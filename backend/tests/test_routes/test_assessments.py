@@ -52,3 +52,44 @@ async def test_soft_delete(db_conn):
     )
     row = await cur.fetchone()
     assert row["status"] == "archived"
+
+
+# ── HTTP-level tests ──────────────────────────────────────────
+import uuid as _uuid
+
+
+class TestAssessmentsHTTP:
+    def test_create_returns_201(self, test_client):
+        resp = test_client.post("/api/v1/assessments", json={"title": "HTTP Test"})
+        assert resp.status_code == 201
+        assert "id" in resp.json()
+
+    def test_list_returns_200(self, test_client):
+        test_client.post("/api/v1/assessments", json={"title": "List Test"})
+        resp = test_client.get("/api/v1/assessments")
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
+
+    def test_get_by_id(self, test_client):
+        create_resp = test_client.post("/api/v1/assessments", json={"title": "Get By ID"})
+        aid = create_resp.json()["id"]
+        resp = test_client.get(f"/api/v1/assessments/{aid}")
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Get By ID"
+
+    def test_patch_status(self, test_client):
+        create_resp = test_client.post("/api/v1/assessments", json={"title": "Patch Status"})
+        aid = create_resp.json()["id"]
+        test_client.patch(f"/api/v1/assessments/{aid}", json={"status": "in_progress"})
+        resp = test_client.get(f"/api/v1/assessments/{aid}")
+        assert resp.json()["status"] == "in_progress"
+
+    def test_delete_returns_204(self, test_client):
+        create_resp = test_client.post("/api/v1/assessments", json={"title": "Delete Test HTTP"})
+        aid = create_resp.json()["id"]
+        resp = test_client.delete(f"/api/v1/assessments/{aid}")
+        assert resp.status_code == 204
+
+    def test_get_nonexistent_returns_404(self, test_client):
+        resp = test_client.get(f"/api/v1/assessments/{_uuid.uuid4()}")
+        assert resp.status_code == 404

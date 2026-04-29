@@ -17,8 +17,10 @@ vi.mock("@/lib/auth", () => ({
   signOut: vi.fn(),
 }));
 
-describe.skip("Dashboard — wizard integration (placeholder)", () => {
-  it("placeholder: renders wizard stepper", () => {
-    expect(true).toBe(true);
+describe("Dashboard wizard module", () => {
+  it("wizard module loads without error", async () => {
+    const mod = await import("@/features/wizard/WizardLayout");
+    expect(mod).toBeDefined();
+    expect(typeof mod.WizardLayout).toBe("function");
   });
 });

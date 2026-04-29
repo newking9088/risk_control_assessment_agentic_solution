@@ -4,7 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 function makeQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity },
+      mutations: { retry: false },
+    },
+  });
 }
 
 function AllProviders({ children }: { children: React.ReactNode }) {
@@ -23,4 +28,11 @@ function setup(ui: React.ReactElement) {
   };
 }
 
-export { renderWithProviders, setup, makeQueryClient };
+function createQueryWrapper(): React.FC<{ children: React.ReactNode }> {
+  const qc = makeQueryClient();
+  return ({ children }) => (
+    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  );
+}
+
+export { renderWithProviders, setup, makeQueryClient, createQueryWrapper };

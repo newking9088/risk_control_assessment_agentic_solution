@@ -64,3 +64,59 @@ async def test_delete_risk(db_conn):
     await db_conn.execute("DELETE FROM app.assessment_risks WHERE id = %s", (rid,))
     cur = await db_conn.execute("SELECT id FROM app.assessment_risks WHERE id = %s", (rid,))
     assert await cur.fetchone() is None
+
+
+# ── HTTP-level tests ──────────────────────────────────────────
+class TestRisksHTTP:
+    def _make_assessment(self, test_client) -> str:
+        resp = test_client.post("/api/v1/assessments", json={"title": "Risk HTTP Test"})
+        assert resp.status_code == 201
+        return resp.json()["id"]
+
+    def test_create_risk(self, test_client):
+        aid = self._make_assessment(test_client)
+        resp = test_client.post(
+            f"/api/v1/assessments/{aid}/risks",
+            json={"name": "Test Risk", "category": "Fraud", "source": "EXT"},
+        )
+        assert resp.status_code == 201
+        assert "id" in resp.json()
+
+    def test_list_risks(self, test_client):
+        aid = self._make_assessment(test_client)
+        test_client.post(
+            f"/api/v1/assessments/{aid}/risks",
+            json={"name": "Listed Risk", "category": "Compliance", "source": "INT"},
+        )
+        resp = test_client.get(f"/api/v1/assessments/{aid}/risks")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 1
+
+    def test_patch_risk(self, test_client):
+        aid = self._make_assessment(test_client)
+        create_resp = test_client.post(
+            f"/api/v1/assessments/{aid}/risks",
+            json={"name": "Patch Risk", "category": "Fraud", "source": "EXT"},
+        )
+        rid = create_resp.json()["id"]
+        resp = test_client.patch(
+            f"/api/v1/assessments/{aid}/risks/{rid}",
+            json={"inherent_likelihood": "high"},
+        )
+        assert resp.status_code == 200
+
+    def test_delete_risk(self, test_client):
+        aid = self._make_assessment(test_client)
+        create_resp = test_client.post(
+            f"/api/v1/assessments/{aid}/risks",
+            json={"name": "Delete Risk", "category": "Fraud", "source": "EXT"},
+        )
+        rid = create_resp.json()["id"]
+        resp = test_client.delete(f"/api/v1/assessments/{aid}/risks/{rid}")
+        assert resp.status_code == 204
+
+    def test_list_risks_empty(self, test_client):
+        aid = self._make_assessment(test_client)
+        resp = test_client.get(f"/api/v1/assessments/{aid}/risks")
+        assert resp.status_code == 200
+        assert resp.json() == []

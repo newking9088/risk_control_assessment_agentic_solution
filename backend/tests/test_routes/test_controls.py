@@ -77,3 +77,58 @@ async def test_delete_control(db_conn):
     await db_conn.execute("DELETE FROM app.assessment_controls WHERE id = %s", (cid,))
     cur = await db_conn.execute("SELECT id FROM app.assessment_controls WHERE id = %s", (cid,))
     assert await cur.fetchone() is None
+
+
+# ── HTTP-level tests ──────────────────────────────────────────
+class TestControlsHTTP:
+    def _make_assessment_and_risk(self, test_client) -> tuple[str, str]:
+        a_resp = test_client.post("/api/v1/assessments", json={"title": "Control HTTP Test"})
+        aid = a_resp.json()["id"]
+        r_resp = test_client.post(
+            f"/api/v1/assessments/{aid}/risks",
+            json={"name": "Base Risk", "category": "Fraud", "source": "EXT"},
+        )
+        rid = r_resp.json()["id"]
+        return aid, rid
+
+    def test_create_control(self, test_client):
+        aid, rid = self._make_assessment_and_risk(test_client)
+        resp = test_client.post(
+            f"/api/v1/assessments/{aid}/controls",
+            json={"risk_id": rid, "name": "Test Control", "type": "Preventive", "is_key": False},
+        )
+        assert resp.status_code == 201
+        assert "id" in resp.json()
+
+    def test_list_controls(self, test_client):
+        aid, rid = self._make_assessment_and_risk(test_client)
+        test_client.post(
+            f"/api/v1/assessments/{aid}/controls",
+            json={"risk_id": rid, "name": "Listed Control", "type": "Detective", "is_key": True},
+        )
+        resp = test_client.get(f"/api/v1/assessments/{aid}/controls")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 1
+
+    def test_patch_effectiveness(self, test_client):
+        aid, rid = self._make_assessment_and_risk(test_client)
+        create_resp = test_client.post(
+            f"/api/v1/assessments/{aid}/controls",
+            json={"risk_id": rid, "name": "Patch Control", "type": "Preventive", "is_key": False},
+        )
+        cid = create_resp.json()["id"]
+        resp = test_client.patch(
+            f"/api/v1/assessments/{aid}/controls/{cid}",
+            json={"overall_effectiveness": "Effective"},
+        )
+        assert resp.status_code == 200
+
+    def test_delete_control(self, test_client):
+        aid, rid = self._make_assessment_and_risk(test_client)
+        create_resp = test_client.post(
+            f"/api/v1/assessments/{aid}/controls",
+            json={"risk_id": rid, "name": "Delete Control", "type": "Preventive", "is_key": False},
+        )
+        cid = create_resp.json()["id"]
+        resp = test_client.delete(f"/api/v1/assessments/{aid}/controls/{cid}")
+        assert resp.status_code == 204

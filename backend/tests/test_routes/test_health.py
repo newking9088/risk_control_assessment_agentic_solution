@@ -1,12 +1,23 @@
-"""Placeholder: liveness and user management endpoint tests."""
-import pytest
+"""Tests for GET /api/health."""
 
 
-@pytest.mark.skip(reason="not yet implemented")
-async def test_liveness():
-    pass
+def test_health_returns_200(test_client):
+    resp = test_client.get("/api/health")
+    assert resp.status_code == 200
 
 
-@pytest.mark.skip(reason="not yet implemented")
-async def test_user_management():
-    pass
+def test_health_contains_api_status(test_client):
+    resp = test_client.get("/api/health")
+    data = resp.json()
+    assert "api" in data
+    assert data["api"] == "ok"
+
+
+def test_health_contains_db_status(test_client):
+    resp = test_client.get("/api/health")
+    assert "db" in resp.json()
+
+
+def test_health_contains_redis_status(test_client):
+    resp = test_client.get("/api/health")
+    assert "redis" in resp.json()
