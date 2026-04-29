@@ -7,7 +7,7 @@ const PORT = process.env.AUTH_PORT ?? 3001;
 
 app.use(express.json());
 
-app.all("/auth/*", toNodeHandler(auth));
+app.all("/api/auth/*", toNodeHandler(auth));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

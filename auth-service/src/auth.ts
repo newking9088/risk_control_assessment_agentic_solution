@@ -4,6 +4,9 @@ import pg from "pg";
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
+  secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: process.env.TRUSTED_ORIGINS?.split(",") ?? [],
   database: {
     type: "pg",
     pool,

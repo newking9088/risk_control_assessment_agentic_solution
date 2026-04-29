@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Any, Optional
 
 import psycopg
 from psycopg_pool import AsyncConnectionPool
@@ -34,9 +34,9 @@ async def get_conn() -> AsyncGenerator[psycopg.AsyncConnection, None]:
 
 
 @asynccontextmanager
-async def get_tenant_cursor(tenant_id: str):
+async def get_tenant_cursor(tenant_id: str, row_factory: Optional[Any] = None):
     async with get_conn() as conn:
-        async with conn.cursor() as cur:
+        async with conn.cursor(row_factory=row_factory) as cur:
             await cur.execute(
                 "SELECT set_config('app.current_tenant_id', %s, true)",
                 (str(tenant_id),),

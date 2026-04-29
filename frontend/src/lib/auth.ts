@@ -1,4 +1,4 @@
-const AUTH_BASE = "/auth";
+const AUTH_BASE = "/api/auth";
 
 export interface Session {
   id: string;
@@ -10,10 +10,17 @@ export interface Session {
 
 export async function getSession(): Promise<Session | null> {
   try {
-    const res = await fetch(`${AUTH_BASE}/session`, { credentials: "include" });
+    const res = await fetch(`${AUTH_BASE}/get-session`, { credentials: "include" });
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.session ?? null;
+    if (!data?.user) return null;
+    return {
+      id: data.session.id,
+      userId: data.user.id,
+      email: data.user.email,
+      role: data.user.role,
+      tenantId: data.user.tenantId,
+    };
   } catch {
     return null;
   }
@@ -31,7 +38,13 @@ export async function signIn(email: string, password: string): Promise<Session> 
     throw new Error(err?.message ?? "Sign-in failed");
   }
   const data = await res.json();
-  return data.session;
+  return {
+    id: data.session.id,
+    userId: data.user.id,
+    email: data.user.email,
+    role: data.user.role,
+    tenantId: data.user.tenantId,
+  };
 }
 
 export async function signOut(): Promise<void> {

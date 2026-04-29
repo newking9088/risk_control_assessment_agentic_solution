@@ -13,6 +13,7 @@ from app.infra.redis_client import init_redis, close_redis
 from app.middleware.permissions import require_minimum_role
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.routes import assessments, documents, risks, controls, approvals, chat, health, admin
+from app.routes.risks import agent_router
 
 settings = get_settings()
 limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit_default])
@@ -30,7 +31,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="RCA Platform API",
     version="1.0.0",
-    root_path="/api",
     docs_url="/docs" if settings.enable_docs else None,
     redoc_url="/redoc" if settings.enable_docs else None,
     lifespan=lifespan,
@@ -61,13 +61,14 @@ viewer_dep = Depends(require_minimum_role("viewer"))
 analyst_dep = Depends(require_minimum_role("analyst"))
 lead_dep = Depends(require_minimum_role("delivery_lead"))
 
-app.include_router(assessments.router, dependencies=[viewer_dep])
-app.include_router(documents.router, dependencies=[analyst_dep])
-app.include_router(risks.router, dependencies=[analyst_dep])
-app.include_router(controls.router, dependencies=[analyst_dep])
-app.include_router(approvals.router, dependencies=[analyst_dep])
-app.include_router(chat.router, dependencies=[viewer_dep])
-app.include_router(admin.router, dependencies=[lead_dep])
+app.include_router(assessments.router, prefix="/api", dependencies=[viewer_dep])
+app.include_router(documents.router,   prefix="/api", dependencies=[analyst_dep])
+app.include_router(risks.router,       prefix="/api", dependencies=[analyst_dep])
+app.include_router(controls.router,    prefix="/api", dependencies=[analyst_dep])
+app.include_router(approvals.router,   prefix="/api", dependencies=[analyst_dep])
+app.include_router(chat.router,        prefix="/api", dependencies=[viewer_dep])
+app.include_router(admin.router,       prefix="/api", dependencies=[lead_dep])
+app.include_router(agent_router,       prefix="/api", dependencies=[analyst_dep])
 
 # ── Prometheus metrics (optional) ─────────────────────────────
 if settings.enable_metrics:

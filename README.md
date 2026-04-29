@@ -24,36 +24,43 @@ An AI-assisted platform for conducting structured risk and control assessments t
 ### Setup
 
 ```bash
-# 1. Configure environment
+# 1. Copy environment files
 cp backend/.env.example backend/.env
-# Edit backend/.env and fill in OPENAI_API_KEY and other required values
+cp auth-service/.env.example auth-service/.env
+cp .env.example .env
 
-# 2. Start the database and cache
-make db-up
+# 2. Set your OpenAI key (chat degrades gracefully if unset)
+# Edit backend/.env and set OPENAI_API_KEY=sk-...
 
-# 3. Apply schema and seed demo data
-make db-schema db-seed
-
-# 4. Install dependencies
+# 3. Install dependencies
 make install
 
-# 5. Start all services
+# 4. Start DB, apply schema, seed demo users
+make db-fresh
+
+# 5. Start all services (auth, backend, frontend)
 make start
 ```
 
-Open `http://localhost:3000` and sign in with:
-- `admin@example.com` / `Admin1234!`
-- `manager@example.com` / `Manager1234!`
-- `analyst@example.com` / `Analyst1234!`
+Open `http://localhost:3000` and sign in with one of the demo accounts:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `analyst@example.com` | `Analyst1234!` | analyst |
+| `lead@example.com` | `Lead1234!` | delivery_lead |
+| `viewer@example.com` | `Viewer1234!` | viewer |
+
+Service logs are written to `/tmp/rca-{auth,backend,frontend}.log`. Run `make logs` to tail them. Run `make stop` to shut everything down.
 
 ## Assessment wizard steps
 
-1. **Start Assessment** — title, scope, and date
-2. **Identify Risks** — add risks by category
-3. **Inherent Risk Rating** — likelihood × impact before controls
-4. **Evaluate Controls** — document controls per risk with effectiveness rating
-5. **Residual Risk** — re-rate after controls
-6. **Assessment Summary** — radar chart, risk register, PDF export
+1. **Preparation** — title, owner, business unit, scope, date
+2. **Questionnaire** — governance and operational diagnostic (8 questions)
+3. **Identify Risks** — add risks by category and source (EXT/INT)
+4. **Inherent Risk** — rate likelihood × impact before controls
+5. **Evaluate Controls** — document controls per risk with effectiveness ratings (1–4)
+6. **Residual Risk** — re-rate after controls
+7. **Summary** — radar chart (inherent vs residual), risk register, PDF export
 
 ## Project structure
 
@@ -72,6 +79,7 @@ docs/             Architecture, API reference, runbook, ADRs
 - [API Reference](docs/API.md)
 - [Runbook](docs/RUNBOOK.md)
 - [ADR 001 — Session auth over JWT](docs/ADR/001-session-auth-over-jwt.md)
+- [ADR 002 — PostgreSQL RLS with app.current_tenant_id](docs/ADR/002-postgres-rls-with-app-current-tenant.md)
 
 ## Deployment
 

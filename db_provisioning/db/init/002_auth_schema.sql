@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS auth."user" (
     locked          BOOLEAN NOT NULL DEFAULT FALSE,
     failed_attempts INT NOT NULL DEFAULT 0,
     locked_until    TIMESTAMPTZ,
+    tenant_id       UUID,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

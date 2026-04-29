@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     # Blob storage
     blob_provider: str = "local"
+    local_blob_path: str = "./data/blobs"
     azure_storage_connection_string: str = ""
     azure_blob_container: str = "rca-documents"
     aws_access_key_id: str = ""

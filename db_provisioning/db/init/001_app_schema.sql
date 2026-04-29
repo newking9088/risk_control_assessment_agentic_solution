@@ -18,41 +18,63 @@ CREATE TABLE IF NOT EXISTS app.tenants (
 
 -- ── Assessments ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS app.assessments (
-    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tenant_id   UUID NOT NULL REFERENCES app.tenants(id),
-    au_name     TEXT NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'in_progress'
-                CHECK (status IN ('in_progress','complete','archived')),
-    created_by  UUID NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    legal_hold  BOOLEAN NOT NULL DEFAULT FALSE
+    id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id            UUID NOT NULL REFERENCES app.tenants(id),
+    title                TEXT NOT NULL,
+    description          TEXT,
+    scope                TEXT,
+    assessment_date      DATE,
+    owner                TEXT,
+    business_unit        TEXT,
+    status               TEXT NOT NULL DEFAULT 'draft'
+                         CHECK (status IN ('draft','in_progress','review','complete','archived')),
+    current_step         INT NOT NULL DEFAULT 1
+                         CHECK (current_step BETWEEN 1 AND 7),
+    questionnaire        JSONB NOT NULL DEFAULT '{}',
+    questionnaire_notes  JSONB NOT NULL DEFAULT '{}',
+    created_by           UUID NOT NULL,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    legal_hold           BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- ── Assessment risks ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS app.assessment_risks (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    assessment_id   UUID NOT NULL REFERENCES app.assessments(id) ON DELETE CASCADE,
-    risk_id         TEXT NOT NULL,
-    applicable      BOOLEAN,
-    rationale       TEXT,
-    inherent_l      INT,
-    inherent_i      INT,
-    residual        INT,
-    approved_by     UUID,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assessment_id        UUID NOT NULL REFERENCES app.assessments(id) ON DELETE CASCADE,
+    name                 TEXT NOT NULL,
+    category             TEXT NOT NULL,
+    source               TEXT NOT NULL CHECK (source IN ('EXT','INT')),
+    description          TEXT,
+    applicable           BOOLEAN,
+    inherent_likelihood  TEXT CHECK (inherent_likelihood IN ('low','medium','high','critical')),
+    inherent_impact      TEXT CHECK (inherent_impact     IN ('low','medium','high','critical')),
+    residual_likelihood  TEXT CHECK (residual_likelihood IN ('low','medium','high','critical')),
+    residual_impact      TEXT CHECK (residual_impact     IN ('low','medium','high','critical')),
+    taxonomy_risk_id     TEXT,
+    rationale            TEXT,
+    approved_by          UUID,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── Assessment controls ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS app.assessment_controls (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    risk_id         UUID NOT NULL REFERENCES app.assessment_risks(id) ON DELETE CASCADE,
-    control_id      TEXT NOT NULL,
-    design_eff      TEXT,
-    operating_eff   TEXT,
-    evidence_ref    TEXT,
-    approved_by     UUID,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assessment_id           UUID NOT NULL REFERENCES app.assessments(id) ON DELETE CASCADE,
+    risk_id                 UUID REFERENCES app.assessment_risks(id) ON DELETE CASCADE,
+    name                    TEXT NOT NULL,
+    control_ref             TEXT,
+    type                    TEXT CHECK (type IN ('Preventive','Detective','Corrective','Directive')),
+    is_key                  BOOLEAN NOT NULL DEFAULT FALSE,
+    description             TEXT,
+    design_effectiveness    INT CHECK (design_effectiveness    BETWEEN 1 AND 4),
+    operating_effectiveness INT CHECK (operating_effectiveness BETWEEN 1 AND 4),
+    overall_effectiveness   TEXT CHECK (overall_effectiveness IN
+                              ('Effective','Partially Effective','Needs Improvement','Ineffective','Not Tested')),
+    rationale               TEXT,
+    evidence_ref            TEXT,
+    approved_by             UUID,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── Documents ─────────────────────────────────────────────────
@@ -151,15 +173,15 @@ CREATE TABLE IF NOT EXISTS app.taxonomy_schemas (
 );
 
 -- ── Row-Level Security ────────────────────────────────────────
-ALTER TABLE app.assessments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app.assessment_risks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.assessments        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.assessment_risks   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app.assessment_controls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app.assessment_documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app.assessment_chunks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app.wip_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app.approval_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app.audit_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE app.taxonomy_schemas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.assessment_chunks  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.wip_sessions       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.approval_requests  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.audit_events       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app.taxonomy_schemas   ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON app.assessments
     USING (tenant_id = current_setting('app.current_tenant_id', true)::UUID);
@@ -173,7 +195,47 @@ CREATE POLICY tenant_isolation ON app.audit_events
 CREATE POLICY tenant_isolation ON app.taxonomy_schemas
     USING (tenant_id = current_setting('app.current_tenant_id', true)::UUID);
 
--- Seed default tenant
+CREATE POLICY tenant_isolation ON app.assessment_risks
+    USING (EXISTS (
+        SELECT 1 FROM app.assessments a
+        WHERE a.id = assessment_risks.assessment_id
+          AND a.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+
+CREATE POLICY tenant_isolation ON app.assessment_controls
+    USING (EXISTS (
+        SELECT 1 FROM app.assessments a
+        WHERE a.id = assessment_controls.assessment_id
+          AND a.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+
+CREATE POLICY tenant_isolation ON app.assessment_documents
+    USING (EXISTS (
+        SELECT 1 FROM app.assessments a
+        WHERE a.id = assessment_documents.assessment_id
+          AND a.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+
+CREATE POLICY tenant_isolation ON app.wip_sessions
+    USING (EXISTS (
+        SELECT 1 FROM app.assessments a
+        WHERE a.id = wip_sessions.assessment_id
+          AND a.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+
+CREATE POLICY tenant_isolation ON app.approval_requests
+    USING (EXISTS (
+        SELECT 1 FROM app.assessments a
+        WHERE a.id = approval_requests.assessment_id
+          AND a.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+
+-- ── Grants ───────────────────────────────────────────────────
+GRANT USAGE ON SCHEMA app TO adminuser;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA app TO adminuser;
+GRANT ALL ON ALL TABLES IN SCHEMA app TO adminuser;
+
+-- ── Seed default tenant ───────────────────────────────────────
 INSERT INTO app.tenants (id, name, slug)
 VALUES ('00000000-0000-0000-0000-000000000001', 'Default Tenant', 'default')
 ON CONFLICT DO NOTHING;
