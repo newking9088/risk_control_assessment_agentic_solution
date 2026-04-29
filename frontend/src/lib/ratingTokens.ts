@@ -6,16 +6,17 @@
  */
 
 export const RATING_COLORS = {
-  low:       { bg: "#788972", fg: "#000000" },
+  veryLow:   { bg: "#3D8B37", fg: "#FFFFFF" },
+  low:       { bg: "#7BB972", fg: "#000000" },
   medium:    { bg: "#F3CC65", fg: "#000000" },
   high:      { bg: "#E58231", fg: "#000000" },
-  critical:  { bg: "#063831", fg: "#FFFFFF" },
-  completed: { bg: "#415389", fg: "#FFFFFF" },
+  critical:  { bg: "#B63831", fg: "#FFFFFF" },
+  completed: { bg: "#415385", fg: "#FFFFFF" },
   nri:       { bg: "#F3F3F3", fg: "#474747" },
 } as const;
 
 export const CONTROL_COLORS = {
-  effective: { bg: "#788972", fg: "#000000" },
+  effective: { bg: "#7BB972", fg: "#000000" },
   partial:   { bg: "#F3CC65", fg: "#000000" },
-  weak:      { bg: "#063831", fg: "#FFFFFF" },
+  weak:      { bg: "#B63831", fg: "#FFFFFF" },
 } as const;

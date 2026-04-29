@@ -1,8 +1,13 @@
 import { RATING_COLORS, CONTROL_COLORS } from "@/lib/ratingTokens";
 
-describe("RATING_COLORS — 4-tier FRA ladder", () => {
+describe("RATING_COLORS — 5-tier FRA ladder", () => {
+  it("very low tier is correct", () => {
+    expect(RATING_COLORS.veryLow.bg).toBe("#3D8B37");
+    expect(RATING_COLORS.veryLow.fg).toBe("#FFFFFF");
+  });
+
   it("low tier is correct", () => {
-    expect(RATING_COLORS.low.bg).toBe("#788972");
+    expect(RATING_COLORS.low.bg).toBe("#7BB972");
     expect(RATING_COLORS.low.fg).toBe("#000000");
   });
 
@@ -17,12 +22,12 @@ describe("RATING_COLORS — 4-tier FRA ladder", () => {
   });
 
   it("critical/very-high tier is correct", () => {
-    expect(RATING_COLORS.critical.bg).toBe("#063831");
+    expect(RATING_COLORS.critical.bg).toBe("#B63831");
     expect(RATING_COLORS.critical.fg).toBe("#FFFFFF");
   });
 
   it("completed status colour is correct", () => {
-    expect(RATING_COLORS.completed.bg).toBe("#415389");
+    expect(RATING_COLORS.completed.bg).toBe("#415385");
     expect(RATING_COLORS.completed.fg).toBe("#FFFFFF");
   });
 
@@ -31,18 +36,26 @@ describe("RATING_COLORS — 4-tier FRA ladder", () => {
     expect(RATING_COLORS.nri.fg).toBe("#474747");
   });
 
-  it("low and high tiers have different backgrounds", () => {
-    expect(RATING_COLORS.low.bg).not.toBe(RATING_COLORS.high.bg);
+  it("critical and very-low both have white foreground (accessible on dark bg)", () => {
+    expect(RATING_COLORS.critical.fg).toBe("#FFFFFF");
+    expect(RATING_COLORS.veryLow.fg).toBe("#FFFFFF");
   });
 
-  it("critical has white foreground (accessible on dark bg)", () => {
-    expect(RATING_COLORS.critical.fg).toBe("#FFFFFF");
+  it("all tiers have distinct backgrounds", () => {
+    const bgs = [
+      RATING_COLORS.veryLow.bg,
+      RATING_COLORS.low.bg,
+      RATING_COLORS.medium.bg,
+      RATING_COLORS.high.bg,
+      RATING_COLORS.critical.bg,
+    ];
+    expect(new Set(bgs).size).toBe(5);
   });
 });
 
 describe("CONTROL_COLORS — 3-tier control ladder", () => {
   it("effective tier is correct", () => {
-    expect(CONTROL_COLORS.effective.bg).toBe("#788972");
+    expect(CONTROL_COLORS.effective.bg).toBe("#7BB972");
     expect(CONTROL_COLORS.effective.fg).toBe("#000000");
   });
 
@@ -51,8 +64,8 @@ describe("CONTROL_COLORS — 3-tier control ladder", () => {
     expect(CONTROL_COLORS.partial.fg).toBe("#000000");
   });
 
-  it("weak tier is correct", () => {
-    expect(CONTROL_COLORS.weak.bg).toBe("#063831");
+  it("weak / not-effective tier is correct", () => {
+    expect(CONTROL_COLORS.weak.bg).toBe("#B63831");
     expect(CONTROL_COLORS.weak.fg).toBe("#FFFFFF");
   });
 

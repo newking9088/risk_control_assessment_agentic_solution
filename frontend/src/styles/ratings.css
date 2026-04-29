@@ -6,42 +6,49 @@
 
 :root {
   /* ── FRA / Inherent / Residual — 4-tier ────────────────── */
-  --fra-1-bg: #788972; --fra-1-fg: #000000; /* Low            */
+  --fra-1-bg: #7BB972; --fra-1-fg: #000000; /* Low            */
   --fra-2-bg: #F3CC65; --fra-2-fg: #000000; /* Medium         */
   --fra-3-bg: #E58231; --fra-3-fg: #000000; /* High           */
-  --fra-4-bg: #063831; --fra-4-fg: #FFFFFF; /* Very High / Critical */
+  --fra-4-bg: #B63831; --fra-4-fg: #FFFFFF; /* Very High / Critical */
   --nr-bg:    #F3F3F3; --nr-fg:    #474747; /* Not Rated      */
 
+  /* ── 5-tier (adds Very Low below Low) ──────────────────── */
+  --fra-0-bg: #3D8B37; --fra-0-fg: #FFFFFF; /* Very Low       */
+
   /* ── Likelihood — alias FRA ladder ─────────────────────── */
-  --like-1-bg: #788972; --like-1-fg: #000000;
+  --like-1-bg: #7BB972; --like-1-fg: #000000;
   --like-2-bg: #F3CC65; --like-2-fg: #000000;
   --like-3-bg: #E58231; --like-3-fg: #000000;
-  --like-4-bg: #063831; --like-4-fg: #FFFFFF;
+  --like-4-bg: #B63831; --like-4-fg: #FFFFFF;
 
   /* ── Impact — alias FRA ladder ─────────────────────────── */
-  --impact-1-bg: #788972; --impact-1-fg: #000000;
+  --impact-1-bg: #7BB972; --impact-1-fg: #000000;
   --impact-2-bg: #F3CC65; --impact-2-fg: #000000;
   --impact-3-bg: #E58231; --impact-3-fg: #000000;
-  --impact-4-bg: #063831; --impact-4-fg: #FFFFFF;
+  --impact-4-bg: #B63831; --impact-4-fg: #FFFFFF;
 
   /* ── Control Effectiveness — 3-tier ────────────────────── */
-  --ce-1-bg: #788972; --ce-1-fg: #000000; /* Effective / Satisfactory      */
-  --ce-2-bg: #F3CC65; --ce-2-fg: #000000; /* Partially Effective           */
-  --ce-3-bg: #063831; --ce-3-fg: #FFFFFF; /* Not Effective / Weak          */
+  --ce-1-bg: #7BB972; --ce-1-fg: #000000; /* Effective / Satisfactory      */
+  --ce-2-bg: #F3CC65; --ce-2-fg: #000000; /* Moderately Effective / Partial */
+  --ce-3-bg: #B63831; --ce-3-fg: #FFFFFF; /* Not Effective / Weak          */
 
   /* ── Assessment Status ──────────────────────────────────── */
-  --status-inprogress-bg: #788972; --status-inprogress-fg: #000000;
-  --status-completed-bg:  #415389; --status-completed-fg:  #FFFFFF;
+  --status-inprogress-bg: #7BB972; --status-inprogress-fg: #000000;
+  --status-completed-bg:  #415385; --status-completed-fg:  #FFFFFF;
   --status-notstarted-bg: #F3F3F3; --status-notstarted-fg: #474747;
   --status-draft-bg:      #F3F3F3; --status-draft-fg:      #474747;
-  --status-review-bg:     #FFF202; --status-review-fg:     #685500;
+  --status-review-bg:     #FFF2D2; --status-review-fg:     #6B5A00;
   --status-archived-bg:   #CDCBEB; --status-archived-fg:   #474747;
 
-  /* ── Accessible stat-label text ─────────────────────────── */
-  --fra-stat-low:      #2d6e3a;
+  /* ── Boolean ────────────────────────────────────────────── */
+  --bool-yes-bg: #7BB972; --bool-yes-fg: #000000;
+  --bool-no-bg:  #B63831; --bool-no-fg:  #FFFFFF;
+
+  /* ── Accessible stat-label text (WCAG AA on panel bg) ───── */
+  --fra-stat-low:      #2d6e2a;
   --fra-stat-medium:   #8a6d00;
-  --fra-stat-high:     #be4b10;
-  --fra-stat-veryhigh: #063831;
+  --fra-stat-high:     #a84b10;
+  --fra-stat-veryhigh: #B63831;
   --fra-stat-nr:       #696969;
 }
 
@@ -56,6 +63,7 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.pwc-rating--fra-0 { background: var(--fra-0-bg); color: var(--fra-0-fg); }
 .pwc-rating--fra-1 { background: var(--fra-1-bg); color: var(--fra-1-fg); }
 .pwc-rating--fra-2 { background: var(--fra-2-bg); color: var(--fra-2-fg); }
 .pwc-rating--fra-3 { background: var(--fra-3-bg); color: var(--fra-3-fg); }
