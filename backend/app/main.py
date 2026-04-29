@@ -55,7 +55,7 @@ app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, generic_error_handler)
 
 # ── Routers ───────────────────────────────────────────────────
-app.include_router(health.router)
+app.include_router(health.router, prefix="/api")
 
 viewer_dep = Depends(require_minimum_role("viewer"))
 analyst_dep = Depends(require_minimum_role("analyst"))

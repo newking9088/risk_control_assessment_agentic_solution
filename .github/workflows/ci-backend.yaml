@@ -1,0 +1,70 @@
+name: CI — Backend
+
+on:
+  pull_request:
+    paths: ["backend/**"]
+  push:
+    branches: [main, develop]
+    paths: ["backend/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: appdb
+          POSTGRES_USER: adminuser
+          POSTGRES_PASSWORD: adminuser_local_pw
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U adminuser -d appdb"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql://adminuser:adminuser_local_pw@localhost:5432/appdb
+      REDIS_URL: redis://localhost:6379/0
+      AUTH_SERVICE_URL: http://localhost:3001
+      BLOB_PROVIDER: local
+      LOCAL_BLOB_PATH: ./data/blobs
+      OPENAI_API_KEY: sk-test-fake
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Apply DB schema
+        run: |
+          psql $DATABASE_URL -f ../db_provisioning/db/init/001_app_schema.sql
+          psql $DATABASE_URL -f ../db_provisioning/db/init/002_auth_schema.sql
+
+      - name: Lint — ruff
+        run: uv run ruff check .
+
+      - name: Lint — black
+        run: uv run black --check .
+
+      - name: Type check — mypy
+        run: uv run mypy app/
+
+      - name: Test — pytest
+        run: uv run pytest -q

@@ -16,6 +16,14 @@
 - [ ] Tested locally with `make start`
 - [ ] Database migrations applied and verified
 
+## Risks
+
+<!-- Any breaking changes, migration steps, or rollback considerations? -->
+
+## Screenshots
+
+<!-- For UI changes, add before/after screenshots or a short screen recording. -->
+
 ## Checklist
 
 - [ ] `make lint` passes

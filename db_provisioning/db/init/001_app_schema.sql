@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS app.assessments (
                          CHECK (current_step BETWEEN 1 AND 7),
     questionnaire        JSONB NOT NULL DEFAULT '{}',
     questionnaire_notes  JSONB NOT NULL DEFAULT '{}',
-    created_by           UUID NOT NULL,
+    created_by           TEXT NOT NULL,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     legal_hold           BOOLEAN NOT NULL DEFAULT FALSE
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS app.assessment_risks (
     residual_impact      TEXT CHECK (residual_impact     IN ('low','medium','high','critical')),
     taxonomy_risk_id     TEXT,
     rationale            TEXT,
-    approved_by          UUID,
+    approved_by          TEXT,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS app.assessment_controls (
                               ('Effective','Partially Effective','Needs Improvement','Ineffective','Not Tested')),
     rationale               TEXT,
     evidence_ref            TEXT,
-    approved_by             UUID,
+    approved_by             TEXT,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS app.assessment_documents (
     mime_type       TEXT NOT NULL,
     chunk_count     INT NOT NULL DEFAULT 0,
     blob_size_bytes BIGINT NOT NULL DEFAULT 0,
-    uploaded_by     UUID NOT NULL,
+    uploaded_by     TEXT NOT NULL,
     uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -118,8 +118,8 @@ CREATE TABLE IF NOT EXISTS app.approval_requests (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     assessment_id   UUID NOT NULL REFERENCES app.assessments(id) ON DELETE CASCADE,
     step            TEXT NOT NULL,
-    requested_by    UUID NOT NULL,
-    approved_by     UUID,
+    requested_by    TEXT NOT NULL,
+    approved_by     TEXT,
     status          TEXT NOT NULL DEFAULT 'pending'
                     CHECK (status IN ('pending','approved','rejected')),
     timestamp       TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS app.approval_requests (
 CREATE TABLE IF NOT EXISTS app.audit_events (
     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id   UUID NOT NULL REFERENCES app.tenants(id),
-    user_id     UUID,
+    user_id     TEXT,
     event_type  TEXT NOT NULL,
     entity_id   UUID,
     prompt      TEXT,
@@ -232,8 +232,9 @@ CREATE POLICY tenant_isolation ON app.approval_requests
 
 -- ── Grants ───────────────────────────────────────────────────
 GRANT USAGE ON SCHEMA app TO adminuser;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA app TO adminuser;
 GRANT ALL ON ALL TABLES IN SCHEMA app TO adminuser;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA app TO adminuser;
+ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL ON TABLES TO adminuser;
 
 -- ── Seed default tenant ───────────────────────────────────────
 INSERT INTO app.tenants (id, name, slug)

@@ -1,0 +1,95 @@
+name: CI/CD — Auth Service
+
+on:
+  push:
+    branches: [main, develop, "release/*"]
+    paths: ["auth-service/**"]
+  workflow_dispatch:
+    inputs:
+      deploy_to_stage:
+        description: Deploy to stage
+        type: boolean
+        default: false
+      deploy_to_prod:
+        description: Deploy to prod
+        type: boolean
+        default: false
+
+env:
+  SERVICE: auth
+  IMAGE: ghcr.io/${{ github.repository_owner }}/rca-auth
+  TARGET_PORT: "3001"
+
+concurrency:
+  group: cicd-auth-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - uses: docker/build-push-action@v6
+        id: push
+        with:
+          context: ./auth-service
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    environment: dev
+    steps:
+      - name: Deploy to dev
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to dev"
+
+  deploy-qa:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release/')
+    environment: qa
+    steps:
+      - name: Deploy to qa
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to qa"
+
+  deploy-stage:
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      - name: Deploy to stage
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to stage"
+
+  deploy-prod:
+    needs: deploy-stage
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Deploy to prod
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to prod"

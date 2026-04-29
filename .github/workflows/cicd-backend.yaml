@@ -1,0 +1,101 @@
+name: CI/CD — Backend
+
+on:
+  push:
+    branches: [main, develop, "release/*"]
+    paths: ["backend/**"]
+  workflow_dispatch:
+    inputs:
+      deploy_to_stage:
+        description: Deploy to stage
+        type: boolean
+        default: false
+      deploy_to_prod:
+        description: Deploy to prod
+        type: boolean
+        default: false
+
+env:
+  SERVICE: backend
+  IMAGE: ghcr.io/${{ github.repository_owner }}/rca-backend
+  TARGET_PORT: "8000"
+
+concurrency:
+  group: cicd-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - uses: docker/build-push-action@v6
+        id: push
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    environment: dev
+    steps:
+      - name: Deploy to dev
+        run: |
+          echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to dev"
+          echo "Replace this step with: kubectl set image deployment/rca-backend rca-backend=${{ env.IMAGE }}@${{ needs.build.outputs.digest }}"
+
+  deploy-qa:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release/')
+    environment: qa
+    steps:
+      - name: Deploy to qa
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to qa"
+
+  deploy-stage:
+    needs: deploy-qa
+    runs-on: ubuntu-latest
+    environment:
+      name: stage
+    steps:
+      - name: Deploy to stage
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to stage"
+
+  deploy-prod:
+    needs: deploy-stage
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    steps:
+      - name: Deploy to prod
+        run: echo "Deploy ${{ env.IMAGE }}@${{ needs.build.outputs.digest }} to prod"

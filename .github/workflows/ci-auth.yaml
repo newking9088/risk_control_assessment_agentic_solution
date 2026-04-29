@@ -1,0 +1,31 @@
+name: CI — Auth Service
+
+on:
+  pull_request:
+    paths: ["auth-service/**"]
+  push:
+    branches: [main, develop]
+    paths: ["auth-service/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: auth-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: auth-service/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit

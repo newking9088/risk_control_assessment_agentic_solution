@@ -2,7 +2,7 @@
 
 # ── Install ──────────────────────────────────────────────────────────────────
 install:  ## Install all dependencies
-	cd backend && uv sync
+	cd backend && uv sync --extra dev
 	cd frontend && npm ci
 	cd auth-service && npm ci
 
