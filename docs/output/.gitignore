@@ -1,0 +1,5 @@
+# AI-generated section outputs and final assembled documents
+# Regenerate with: bash docs/scripts/assemble.sh
+*.md
+*.pdf
+!.gitignore

@@ -1,0 +1,42 @@
+# Security Trust Zones
+
+direction: right
+
+internet: "Internet — Untrusted" {
+  ua: "User Agent\n(Browser)"
+}
+
+dmz: DMZ {
+  ng: "nginx\nTLS · CSP · HSTS\nRate limiting"
+}
+
+apptier: "Application Tier" {
+  direction: down
+  be: "FastAPI Backend"
+  auth: "Auth Service"
+  fe: "Static Files"
+}
+
+datatier: "Data Tier (No Direct Internet)" {
+  direction: down
+  pg: "PostgreSQL + pgvector\n(RLS enforced)"
+  redis: "Redis (password)"
+  blob: "Object Storage (auth)"
+}
+
+aitier: "AI Tier" {
+  direction: down
+  llm: "LLM API (HTTPS out)"
+  emb: "SentenceTransformer\n(in-process)"
+}
+
+internet.ua -> dmz.ng: "HTTPS only"
+dmz.ng -> apptier.be
+dmz.ng -> apptier.auth
+dmz.ng -> apptier.fe
+apptier.be -> datatier.pg
+apptier.be -> datatier.redis
+apptier.be -> datatier.blob
+apptier.be -> aitier.llm: "HTTPS outbound"
+apptier.be -> aitier.emb
+apptier.auth -> datatier.pg

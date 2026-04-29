@@ -1,0 +1,40 @@
+# Plan B — Azure-Native Logical Architecture
+
+direction: down
+
+azure: "Azure — Private VNet" {
+  direction: down
+
+  aks: "AKS / vCluster" {
+    direction: right
+    fe: Frontend
+    be: "FastAPI Backend"
+    auth: "Better Auth"
+  }
+
+  data: "Data Services (Private Endpoints)" {
+    direction: right
+    pg: "Azure PostgreSQL\nFlexible + pgvector"
+    redis: "Azure Cache\nfor Redis (Premium)"
+    blob: "Azure Blob\n+ BYOK (CMK)"
+  }
+
+  async: "Async / Ops" {
+    direction: right
+    sb: "Service Bus\nasync LLM jobs"
+    la: "Log Analytics\n+ App Insights"
+  }
+
+  kv: "Key Vault\nCMK · Secrets"
+  oai: "Azure OpenAI"
+}
+
+azure.aks.be -> azure.data.pg
+azure.aks.be -> azure.data.redis
+azure.aks.be -> azure.data.blob
+azure.aks.be -> azure.oai: "LLM calls"
+azure.aks.be -> azure.async.sb: "enqueue"
+azure.aks.be -> azure.async.la: "metrics + logs"
+azure.kv -> azure.data.pg: CMK
+azure.kv -> azure.data.blob: CMK
+azure.kv -> azure.aks.be: secrets

@@ -1,0 +1,39 @@
+# Integration Topology
+
+direction: down
+
+browser: "Browser (React SPA)"
+
+dmz: DMZ {
+  ng: "nginx :80/443"
+}
+
+app: "Application Tier" {
+  direction: right
+  fe: "Static Files :8080"
+  be: "FastAPI Backend :8000"
+  auth: "Better Auth :8001"
+}
+
+data: "Data Tier" {
+  direction: right
+  redis: "Redis 7"
+  pg: "PostgreSQL 16 + pgvector"
+}
+
+external: "External Services" {
+  direction: right
+  llm: "OpenAI / Azure OpenAI"
+  blob: "Azure Blob / S3"
+}
+
+browser -> dmz.ng: HTTPS
+dmz.ng -> app.fe: "/*"
+dmz.ng -> app.be: "/api/*"
+dmz.ng -> app.auth: "/api/auth/*"
+app.be -> app.auth: "session validate (SHA-256 60s)"
+app.be -> data.redis: "TCP/TLS"
+app.be -> data.pg: "psycopg3 pool + RLS"
+app.be -> external.llm: "HTTPS · API key / MSI"
+app.be -> external.blob: "HTTPS · SAS / MSI"
+app.auth -> data.pg: psycopg3

@@ -1,0 +1,74 @@
+# ER Diagram — Part 2: Audit, Chat, Taxonomy, Auth
+
+AUDIT_EVENTS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  tenant_id: uuid {constraint: foreign_key}
+  user_id: uuid
+  event_type: text
+  entity_id: uuid
+  prompt: text
+  chunks: jsonb
+  model: text
+  confidence: float
+  timestamp: timestamptz
+}
+
+CHAT_MESSAGES: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  session_id: uuid {constraint: foreign_key}
+  role: text
+  content: text
+  timestamp: timestamptz
+}
+
+CHAT_TELEMETRY: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  session_id: uuid {constraint: foreign_key}
+  model: text
+  tokens_in: int
+  tokens_out: int
+  latency_ms: int
+  retrieved_chunks: jsonb
+}
+
+TAXONOMY_SCHEMAS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  tenant_id: uuid {constraint: foreign_key}
+  name: text
+  version: int
+  schema: jsonb
+  active: bool
+}
+
+SCHEMA_CHANGE_LOG: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  taxonomy_id: uuid {constraint: foreign_key}
+  changed_by: uuid
+  diff: jsonb
+  timestamp: timestamptz
+}
+
+AUTH_USER: {
+  shape: sql_table
+  id: text {constraint: primary_key}
+  email: text
+  name: text
+  role: text
+  locked: bool
+}
+
+AUTH_SESSION: {
+  shape: sql_table
+  id: text {constraint: primary_key}
+  user_id: text {constraint: foreign_key}
+  expires_at: timestamptz
+}
+
+CHAT_MESSAGES.session_id -> CHAT_TELEMETRY.session_id: "measured by"
+TAXONOMY_SCHEMAS.id -> SCHEMA_CHANGE_LOG.taxonomy_id: "versioned by"
+AUTH_USER.id -> AUTH_SESSION.user_id: "has"

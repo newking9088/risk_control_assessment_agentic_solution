@@ -1,0 +1,30 @@
+# Flow 2 — Risk Applicability Generation with Analyst Edit
+
+shape: sequence_diagram
+
+Browser
+Backend
+"FAISS/pgvector"
+"LLM API"
+PostgreSQL
+Redis
+
+Browser -> Backend: "POST /api/v1/risk-applicability (trigger)"
+Backend -> "FAISS/pgvector": "retrieve top-k chunks (tenant_id pre-filter)"
+"FAISS/pgvector" -> Backend: "[{chunk_text, score}]"
+Backend -> Backend: "construct prompt (backend/app/prompts/)"
+Backend -> "LLM API": "respond_json(system, user, output_schema)"
+"LLM API" -> Backend: "{risks: [{id, applicable, rationale}]}"
+Backend -> PostgreSQL: "INSERT INTO app.wip_sessions (state=draft)"
+Backend -> Redis: "PUBLISH sse:{session_id} risk:progress"
+Redis -> Backend: "(fan-out to SSE workers)"
+Backend -> Browser: "SSE: risk:progress (per risk) → risk:complete"
+
+Browser -> Backend: "PATCH /api/v1/wip/{id} (analyst edits rationale)"
+Backend -> PostgreSQL: "UPDATE app.wip_sessions (state=reviewed)"
+
+Browser -> Backend: "POST /api/v1/approvals (analyst approves)"
+Backend -> PostgreSQL: "INSERT INTO app.approval_requests (status=approved)"
+Backend -> PostgreSQL: "INSERT INTO app.assessment_risks"
+Backend -> PostgreSQL: "INSERT INTO app.audit_events (prompt, chunks, model, user)"
+Backend -> Browser: "200 {saved: true}"

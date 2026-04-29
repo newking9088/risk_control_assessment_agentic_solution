@@ -1,0 +1,53 @@
+# 7-Step Wizard State Machine
+
+direction: right
+
+start: "" {
+  shape: circle
+  style.fill: "#333333"
+  style.font-color: "#333333"
+}
+
+s1: StartAssessment {
+  style.fill: "#E8F4FD"
+  style.stroke: "#2980B9"
+}
+s2: IdentifyRisks {
+  style.fill: "#E8F4FD"
+  style.stroke: "#2980B9"
+}
+s3: InherentRisk {
+  style.fill: "#E8F4FD"
+  style.stroke: "#2980B9"
+}
+s4: EvaluateControls {
+  style.fill: "#E8F4FD"
+  style.stroke: "#2980B9"
+}
+s5: ResidualRisk {
+  style.fill: "#E8F4FD"
+  style.stroke: "#2980B9"
+}
+s6: AssessmentSummary {
+  style.fill: "#E8F4FD"
+  style.stroke: "#2980B9"
+}
+s7: SignedOff {
+  style.fill: "#D4EDDA"
+  style.stroke: "#155724"
+}
+
+end: "" {
+  shape: circle
+  style.fill: "#333333"
+  style.font-color: "#333333"
+}
+
+start -> s1
+s1 -> s2: "stepValidation passes"
+s2 -> s3: "stepValidation passes"
+s3 -> s4: "all risks approved"
+s4 -> s5: "all controls approved"
+s5 -> s6: "residual computed"
+s6 -> s7: "delivery_lead approves"
+s7 -> end

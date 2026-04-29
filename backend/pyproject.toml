@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rca-backend"
+version = "1.0.0"
+description = "AI-Driven Risk & Control Assessment — Backend API"
+requires-python = ">=3.13"
+dependencies = [
+    # Framework
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "gunicorn>=23",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    # Database
+    "psycopg[binary,pool]>=3.2",
+    "pgvector>=0.3",
+    # Cache
+    "redis>=5.2",
+    # Auth
+    "httpx>=0.28",
+    # LLM
+    "openai>=1.56",
+    # Embeddings
+    "sentence-transformers>=3.3",
+    "faiss-cpu>=1.9",
+    "numpy>=2.1",
+    # Document ingestion
+    "pdfplumber>=0.11",
+    "pymupdf>=1.24",
+    "python-docx>=1.1",
+    "openpyxl>=3.1",
+    "pandas>=2.2",
+    "pytesseract>=0.3",
+    "Pillow>=11",
+    # Chatbot
+    "tiktoken>=0.8",
+    "duckduckgo-search>=7",
+    # Security
+    "slowapi>=0.1",
+    "bleach>=6.2",
+    "python-multipart>=0.0.18",
+    # Observability
+    "prometheus-fastapi-instrumentator>=7",
+    "python-json-logger>=3",
+    # Utilities
+    "python-dotenv>=1.0",
+    "boto3>=1.35",
+    "azure-storage-blob>=12.23",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6",
+    "httpx>=0.28",
+    "black>=24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "isort>=5.13",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.black]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

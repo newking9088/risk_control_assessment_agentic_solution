@@ -1,0 +1,53 @@
+# Plan A — Logical Architecture (Cloud-Agnostic)
+
+direction: down
+
+browser: Browser {
+  spa: "React SPA (Vite 7 · TypeScript)"
+}
+
+proxy: "DMZ — nginx :80/443" {
+  ng: "nginx — TLS · CSP · Rate-limit"
+}
+
+app: "Application Tier" {
+  direction: down
+  be: "FastAPI Backend\n:8000 /api/v1/*"
+  auth: "Better Auth\nExpress :8001"
+  fe: "Static Files\nnginx :8080"
+}
+
+ai: "AI Tier" {
+  direction: right
+  emb: "SentenceTransformer\nMiniLM-L6-v2 dim=384"
+  faiss: "FAISS Index\n(in-process)"
+  llm: "OpenAI / LiteLLM\n(external)"
+}
+
+data: "Data Tier" {
+  direction: right
+  pg: "PostgreSQL 16\n+ pgvector"
+  redis: "Redis 7\nSSE pub/sub · cache"
+  blob: "Object Storage\nBlob / S3"
+}
+
+obs: Observability {
+  direction: right
+  prom: Prometheus
+  graf: "Grafana · Loki · Tempo"
+}
+
+browser.spa -> proxy.ng: HTTPS
+proxy.ng -> app.auth: "/api/auth/*"
+proxy.ng -> app.be: "/api/*"
+proxy.ng -> app.fe: "/*"
+app.be -> data.pg
+app.be -> data.redis
+app.be -> data.blob
+app.be -> ai.emb
+app.be -> ai.llm
+app.be -> obs.prom: metrics
+ai.emb -> ai.faiss
+ai.faiss -> data.pg: chunks
+app.auth -> data.pg
+obs.prom -> obs.graf

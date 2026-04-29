@@ -1,0 +1,33 @@
+# RAG Pipeline — Ingestion to Analyst Approval
+
+direction: right
+
+upload: "File Upload\nPDF · Word · Excel"
+
+extract: "Extraction" {
+  direction: down
+  pdf: "pdfplumber\n+ PyMuPDF"
+  word: python-docx
+  xls: "openpyxl + pandas"
+}
+
+chunk: "Chunking\n512 tok / 64 overlap"
+embed: "Embed\nMiniLM-L6-v2 dim=384"
+store: "FAISS + pgvector\n(tenant-scoped)"
+retrieve: "Retrieve\nk-NN · RRF hybrid"
+prompt: "Prompt construction"
+llm: "LLM call\nrespond_json"
+review: "WIP draft\nwip_sessions"
+approve: "Analyst approves\napproval_requests"
+persist: "Persisted\nassessment_* + audit_events"
+
+upload -> extract
+extract -> chunk
+chunk -> embed
+embed -> store
+store -> retrieve
+retrieve -> prompt
+prompt -> llm
+llm -> review
+review -> approve
+approve -> persist

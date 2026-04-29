@@ -1,0 +1,16 @@
+# Multi-Tenant Isolation — Request Flow
+
+shape: sequence_diagram
+
+Browser
+Backend
+Middleware: "auth.py middleware"
+DB: "PostgreSQL + RLS"
+
+Browser -> Backend: "Request + session cookie"
+Backend -> Middleware: "validate_session(cookies)"
+Middleware -> Backend: "{user_id, tenant_id, role}"
+Backend -> DB: "SET LOCAL app.current_tenant_id = '<tenant_id>'"
+DB -> DB: "RLS policy enforces tenant scope"
+DB -> Backend: "Rows for this tenant only"
+Backend -> Browser: "Response (tenant-scoped data)"

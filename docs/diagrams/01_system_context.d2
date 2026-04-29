@@ -1,0 +1,59 @@
+# System Context — RCA Platform (C4 Level 1)
+
+direction: down
+
+users: Users {
+  direction: right
+  analyst: "Risk Analyst / Auditor" {
+    shape: person
+    style.fill: "#08427B"
+    style.font-color: white
+  }
+  admin: "Delivery Lead" {
+    shape: person
+    style.fill: "#08427B"
+    style.font-color: white
+  }
+}
+
+rca: "RCA Platform" {
+  style.fill: "#1168BD"
+  style.font-color: white
+  style.border-radius: 4
+  label: "RCA Platform\nAI-assisted 7-step assessment\nwith HITL enforcement"
+}
+
+llm_providers: "LLM Providers" {
+  direction: right
+  llm_a: "OpenAI / LiteLLM" {
+    style.fill: "#666666"
+    style.font-color: white
+    label: "OpenAI / LiteLLM\n(Plan A)"
+  }
+  llm_b: "Azure OpenAI" {
+    style.fill: "#666666"
+    style.font-color: white
+    label: "Azure OpenAI\n(Plan B)"
+  }
+}
+
+support: "Supporting Services" {
+  direction: right
+  blob: "Azure Blob / S3" {
+    style.fill: "#666666"
+    style.font-color: white
+    label: "Azure Blob / S3\nDocument storage"
+  }
+  idp: "OIDC Provider" {
+    style.fill: "#666666"
+    style.font-color: white
+    label: "OIDC Provider\nEnterprise SSO (optional)"
+  }
+}
+
+users.analyst -> rca: "Run assessments\nReview & approve AI drafts"
+users.admin -> rca: "Manage taxonomy\nUsers & approvals"
+rca -> llm_providers.llm_a: "HTTPS · API key (Plan A)"
+rca -> llm_providers.llm_b: "HTTPS · Managed Identity (Plan B)"
+rca -> support.blob: "Upload / download documents"
+rca -> support.idp: "SSO (optional)"

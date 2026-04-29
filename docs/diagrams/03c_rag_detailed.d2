@@ -1,0 +1,40 @@
+# Detailed RAG Pipeline — Ingestion and Query Phases
+
+direction: right
+
+ingest: "Ingestion (on upload)" {
+  direction: down
+  up: "Upload\nPOST /api/v1/upload"
+  ext: "Extract\npdfplumber · python-docx\nopenpyxl"
+  chunk: "Chunk\n512 tok / 64 overlap"
+  embed: "Embed\nMiniLM-L6-v2 dim=384"
+  store: "Store\nFAISS + pgvector"
+}
+
+query: "Query (on AI trigger)" {
+  direction: down
+  q: "Step trigger"
+  pre: "Pre-filter\ntenant + assessment"
+  sem: "Semantic\nFAISS / pgvector"
+  kw: "Keyword\nPostgres FTS"
+  rrf: "RRF merge"
+  bud: "Context budget\ntiktoken ≤ 60%"
+  prompt: "Prompt construction"
+  llm: "LLM call\nrespond_json"
+  out: "wip_sessions draft"
+}
+
+ingest.up -> ingest.ext
+ingest.ext -> ingest.chunk
+ingest.chunk -> ingest.embed
+ingest.embed -> ingest.store
+
+query.q -> query.pre
+query.pre -> query.sem
+query.pre -> query.kw
+query.sem -> query.rrf
+query.kw -> query.rrf
+query.rrf -> query.bud
+query.bud -> query.prompt
+query.prompt -> query.llm
+query.llm -> query.out

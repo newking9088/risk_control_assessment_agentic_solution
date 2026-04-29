@@ -1,0 +1,46 @@
+# WIP State Machine — AI Output Lifecycle
+
+direction: right
+
+start: "" {
+  shape: circle
+  style.fill: "#333333"
+  style.font-color: "#333333"
+}
+
+draft: draft {
+  style.fill: "#FFF3CD"
+  style.stroke: "#856404"
+  label: "draft\nAI proposal in wip_sessions"
+}
+
+reviewed: reviewed {
+  style.fill: "#CCE5FF"
+  style.stroke: "#004085"
+  label: "reviewed\nAnalyst has opened & read"
+}
+
+approved: approved {
+  style.fill: "#D4EDDA"
+  style.stroke: "#155724"
+  label: "approved\napproval_requests created"
+}
+
+saved: saved {
+  style.fill: "#D1ECF1"
+  style.stroke: "#0C5460"
+  label: "saved\nassessment_* written\naudit_events logged"
+}
+
+end: "" {
+  shape: circle
+  style.fill: "#333333"
+  style.font-color: "#333333"
+}
+
+start -> draft: "AI generates proposal"
+draft -> reviewed: "Analyst opens step"
+reviewed -> approved: "Analyst clicks Approve\n(or edits then approves)"
+reviewed -> draft: "Analyst requests re-generation"
+approved -> saved: "Backend writes to assessment_*"
+saved -> end

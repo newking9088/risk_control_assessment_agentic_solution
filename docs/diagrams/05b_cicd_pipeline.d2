@@ -1,0 +1,22 @@
+# CI/CD Pipeline Flow
+
+direction: down
+
+f: "feature/* push"
+ci_f: "ci.yml\nlint · test · SAST"
+build_f: "build-and-push.yml\napi + ui + auth images"
+gitops_dev: "update-gitops.yml\ndev/values.yaml"
+argo_dev: "Argo CD → dev"
+
+r: "release/x.y.z push"
+ci_r: ci.yml
+build_r: "build-and-push.yml\ntag: x.y.z"
+stg: "staging/values.yaml\n(approval gate)"
+prod: "production/values.yaml\n(approval gate)"
+
+m: "main push"
+canary: "canary.yml\nimage: canary+sha"
+
+f -> ci_f -> build_f -> gitops_dev -> argo_dev
+r -> ci_r -> build_r -> stg -> prod
+m -> canary

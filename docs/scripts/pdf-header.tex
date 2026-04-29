@@ -1,0 +1,44 @@
+% Unicode fallback packages (loaded before document begins)
+\usepackage{newunicodechar}
+\usepackage{amssymb}
+\newunicodechar{✓}{\ensuremath{\checkmark}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{←}{\ensuremath{\leftarrow}}
+
+% Compact spacing — section headings
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{8pt plus 2pt minus 2pt}{4pt plus 1pt}
+\titlespacing*{\subsection}{0pt}{6pt plus 2pt minus 1pt}{3pt plus 1pt}
+\titlespacing*{\subsubsection}{0pt}{4pt plus 1pt minus 1pt}{2pt}
+
+% Compact spacing — lists
+\usepackage{enumitem}
+\setlist{noitemsep, topsep=3pt, partopsep=0pt, parsep=0pt}
+
+% Image size macros (graphicx already loaded by pandoc template)
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+
+% hyperref, graphicx, and spacing settings deferred until all packages are loaded
+\AtBeginDocument{%
+  \hypersetup{%
+    colorlinks=true,%
+    linkcolor=blue,%
+    urlcolor=blue,%
+    citecolor=blue%
+  }%
+  \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}%
+  % Compact paragraph spacing (pandoc default is 6pt)
+  \setlength{\parskip}{3pt}%
+  \setlength{\parindent}{0pt}%
+  % Compact float (figure/table) spacing
+  \setlength{\floatsep}{6pt plus 2pt minus 2pt}%
+  \setlength{\textfloatsep}{8pt plus 2pt minus 2pt}%
+  \setlength{\intextsep}{6pt plus 2pt minus 2pt}%
+  \setlength{\abovecaptionskip}{3pt}%
+  \setlength{\belowcaptionskip}{3pt}%
+}

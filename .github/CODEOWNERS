@@ -1,0 +1,12 @@
+# Global owner — review required on all PRs
+* @newking9088
+
+# Backend changes
+/backend/ @newking9088
+
+# Frontend changes
+/frontend/ @newking9088
+
+# Infrastructure and CI
+/.github/ @newking9088
+/db_provisioning/ @newking9088

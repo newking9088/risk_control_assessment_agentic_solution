@@ -1,0 +1,35 @@
+# Flow 1 — New Assessment + Document Upload + Chunking/Embedding
+
+shape: sequence_diagram
+
+Browser
+nginx
+Backend
+"Auth Service"
+PostgreSQL
+"Blob Storage"
+"Embedder + FAISS"
+
+Browser -> nginx: "POST /api/auth/sign-in"
+nginx -> "Auth Service": forward
+"Auth Service" -> Browser: "Set-Cookie: session (httpOnly)"
+
+Browser -> nginx: "POST /api/v1/assessments"
+nginx -> Backend: forward
+Backend -> "Auth Service": "GET /api/auth/get-session (cache miss)"
+"Auth Service" -> Backend: "{user_id, tenant_id, role}"
+Backend -> PostgreSQL: "INSERT INTO app.assessments"
+PostgreSQL -> Backend: assessment_id
+Backend -> Browser: "201 {assessment_id}"
+
+Browser -> nginx: "POST /api/v1/upload (multipart)"
+nginx -> Backend: forward
+Backend -> Backend: "Validate MIME + magic bytes + size ≤ 50 MB"
+Backend -> "Blob Storage": "stream upload → blob_key"
+Backend -> PostgreSQL: "INSERT INTO app.assessment_documents"
+Backend -> "Embedder + FAISS": "extract text (pdfplumber/docx/openpyxl)"
+"Embedder + FAISS" -> "Embedder + FAISS": "chunk (512 tok / 64 overlap)"
+"Embedder + FAISS" -> "Embedder + FAISS": "embed (paraphrase-MiniLM-L6-v2)"
+"Embedder + FAISS" -> PostgreSQL: "INSERT INTO app.assessment_chunks (pgvector)"
+"Embedder + FAISS" -> "Embedder + FAISS": "add to FAISS index (Plan A)"
+Backend -> Browser: "SSE: upload:progress → upload:complete"

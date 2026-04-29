@@ -1,0 +1,35 @@
+# Plan A — Physical Kubernetes Deployment
+
+direction: down
+
+ingress: Ingress {
+  ing: "nginx Ingress :80 / :443"
+}
+
+pods: "Kubernetes Pods" {
+  direction: right
+  fe_pod: "frontend\nnginx :8080 · HPA min 2"
+  be_pod: "backend\nuvicorn :8000 · HPA min 2"
+  auth_pod: "auth-service\nexpress :8001 · HPA min 2"
+  redis_pod: "redis :6379"
+}
+
+storage: "Persistent Volumes" {
+  pgpv: "PostgreSQL StatefulSet"
+}
+
+config: "Config & Secrets" {
+  direction: right
+  cm: "ConfigMap\nAPP_ENV · LOG_LEVEL"
+  sec: "Secret\nDB_URL · REDIS_PASSWORD\nOPENAI_API_KEY"
+}
+
+ingress.ing -> pods.fe_pod: "/*"
+ingress.ing -> pods.be_pod: "/api/*"
+ingress.ing -> pods.auth_pod: "/api/auth/*"
+pods.be_pod -> pods.redis_pod
+pods.be_pod -> storage.pgpv
+pods.auth_pod -> storage.pgpv
+config.cm -> pods.be_pod: "env vars"
+config.sec -> pods.be_pod: "secrets"
+config.sec -> pods.auth_pod: "secrets"

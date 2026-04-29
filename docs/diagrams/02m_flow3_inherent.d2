@@ -1,0 +1,40 @@
+# Flow 3 — Inherent Ratings + Control Mapping + Residual + 2nd-Line Approval
+
+shape: sequence_diagram
+
+Browser
+Backend
+"LLM API"
+PostgreSQL
+
+Browser -> Backend: "POST /api/v1/inherent-ratings"
+Backend -> "LLM API": "respond_json (L × I per risk)"
+"LLM API" -> Backend: "[{risk_id, l, i, rationale}]"
+Backend -> PostgreSQL: "wip_sessions (state=draft)"
+Browser -> Backend: "Analyst reviews → approves per risk"
+Backend -> PostgreSQL: "app.assessment_risks (inherent_l, inherent_i)"
+Backend -> PostgreSQL: "app.audit_events"
+
+Browser -> Backend: "POST /api/v1/control-mapping"
+Backend -> "LLM API": "respond_json (risk → controls + gap flags)"
+"LLM API" -> Backend: "[{risk_id, controls:[], gaps:[]}]"
+Backend -> PostgreSQL: "wip_sessions (state=draft)"
+Browser -> Backend: "Analyst confirms gaps → approves"
+Backend -> PostgreSQL: "app.assessment_controls"
+
+Browser -> Backend: "POST /api/v1/control-effectiveness"
+Backend -> "LLM API": "respond_json (design_eff, operating_eff, evidence)"
+"LLM API" -> Backend: "[{control_id, design_eff, operating_eff}]"
+Backend -> PostgreSQL: "wip_sessions (state=draft)"
+Browser -> Backend: "Analyst approves"
+Backend -> PostgreSQL: "app.assessment_controls (design_eff, operating_eff)"
+
+Browser -> Backend: "POST /api/v1/residual-risk (NO LLM)"
+Backend -> Backend: "deterministic matrix(inherent_l, inherent_i, eff)"
+Backend -> PostgreSQL: "app.assessment_risks (residual)"
+Backend -> PostgreSQL: "INSERT app.approval_requests (step=residual, status=pending)"
+Backend -> Browser: "200 {approval_request_id}"
+
+Browser -> Backend: "POST /api/v1/approvals/{id}/approve (delivery_lead)"
+Backend -> PostgreSQL: "app.approval_requests (status=approved)"
+Backend -> Browser: "200 {finalised: true}"

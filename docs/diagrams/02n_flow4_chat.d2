@@ -1,0 +1,23 @@
+# Flow 4 — Chat Assistant Streamed Response
+
+shape: sequence_diagram
+
+Browser
+Backend
+"FAISS/pgvector"
+"LLM API"
+PostgreSQL
+Redis
+
+Browser -> Backend: "POST /api/v1/chat (opens SSE stream)"
+Backend -> "FAISS/pgvector": "retrieve top-k chunks (tenant + assessment filter)"
+"FAISS/pgvector" -> Backend: "[{chunk_text, score}]"
+Backend -> Backend: "context-window budget (tiktoken)\nsystem+chunks ≤ 60% · history ≤ 30%"
+Backend -> "LLM API": "stream=True, messages=[system, history, user_query]"
+"LLM API" -> Backend: "token delta (streamed)"
+Backend -> Redis: "PUBLISH sse:{session_id} chat:token"
+Redis -> Browser: "SSE: chat:token (rendered incrementally)"
+"LLM API" -> Backend: "finish_reason=stop"
+Backend -> PostgreSQL: "INSERT INTO app.chat_messages (role=assistant)"
+Backend -> PostgreSQL: "INSERT INTO app.chat_telemetry (model, tokens, latency)"
+Backend -> Browser: "SSE: chat:done"

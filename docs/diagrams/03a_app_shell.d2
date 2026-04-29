@@ -1,0 +1,21 @@
+# Frontend Application Shell
+
+direction: down
+
+shell: "App Shell (App.tsx)\nQueryClientProvider + RouterProvider" {
+  navbar: "Navbar (auth state · role-gated nav)"
+  routes: "Route tree (routeTree.tsx)" {
+    dashboard: "Dashboard (/dashboard)"
+    wizard: "7-step Wizard (/fraud/*)" {
+      s1: "Start Assessment (/fraud/start)"
+      s2: "Identify Risks (/fraud/risks)"
+      s3: "Inherent Risk (/fraud/inherent)"
+      s4: "Evaluate Controls (/fraud/controls)"
+      s5: "Residual Risk (/fraud/residual)"
+      s6: "Summary (/fraud/summary)"
+    }
+    admin: "Admin Console (/admin — delivery_lead only)"
+    login: "Login (/login)"
+  }
+  chat: "AIChatWidget (floating · any route)"
+}

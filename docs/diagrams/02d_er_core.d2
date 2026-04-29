@@ -1,0 +1,94 @@
+# ER Diagram — Part 1: Assessment Core
+
+TENANTS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  name: text
+  slug: text
+  config: jsonb
+}
+
+ASSESSMENTS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  tenant_id: uuid {constraint: foreign_key}
+  au_name: text
+  status: text
+  created_by: uuid
+  created_at: timestamptz
+  legal_hold: bool
+}
+
+ASSESSMENT_RISKS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  assessment_id: uuid {constraint: foreign_key}
+  risk_id: text
+  applicability: bool
+  inherent_l: int
+  inherent_i: int
+  residual: int
+  rationale: text
+  approved_by: uuid
+}
+
+ASSESSMENT_CONTROLS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  risk_id: uuid {constraint: foreign_key}
+  control_id: text
+  design_eff: text
+  operating_eff: text
+  evidence_ref: text
+  approved_by: uuid
+}
+
+ASSESSMENT_DOCUMENTS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  assessment_id: uuid {constraint: foreign_key}
+  blob_key: text
+  mime_type: text
+  chunk_count: int
+  blob_size_bytes: bigint
+}
+
+ASSESSMENT_CHUNKS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  document_id: uuid {constraint: foreign_key}
+  tenant_id: uuid {constraint: foreign_key}
+  content: text
+  embedding: "vector(384)"
+  chunk_index: int
+  created_at: timestamptz
+}
+
+WIP_SESSIONS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  assessment_id: uuid {constraint: foreign_key}
+  step: text
+  state: text
+  data: jsonb
+  updated_at: timestamptz
+}
+
+APPROVAL_REQUESTS: {
+  shape: sql_table
+  id: uuid {constraint: primary_key}
+  assessment_id: uuid {constraint: foreign_key}
+  step: text
+  requested_by: uuid
+  approved_by: uuid
+  status: text
+  timestamp: timestamptz
+}
+
+TENANTS.id -> ASSESSMENTS.tenant_id: "owns"
+ASSESSMENTS.id -> ASSESSMENT_RISKS.assessment_id: "contains"
+ASSESSMENT_RISKS.id -> ASSESSMENT_CONTROLS.risk_id: "mapped to"
+ASSESSMENTS.id -> ASSESSMENT_DOCUMENTS.assessment_id: "has"
+ASSESSMENT_DOCUMENTS.id -> ASSESSMENT_CHUNKS.document_id: "chunked into"
+ASSESSMENTS.id -> WIP_SESSIONS.assessment_id: "tracked by"
+ASSESSMENTS.id -> APPROVAL_REQUESTS.assessment_id: "approved via"

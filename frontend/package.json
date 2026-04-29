@@ -1,0 +1,41 @@
+{
+  "name": "rca-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext ts,tsx",
+    "build:analyze": "vite build --mode analyze"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.62",
+    "@tanstack/react-router": "^1.93",
+    "better-auth": "^1.2",
+    "dompurify": "^3.2",
+    "react": "^18.3",
+    "react-dom": "^18.3",
+    "recharts": "^2.13",
+    "zustand": "^5.0",
+    "clsx": "^2.1",
+    "jspdf": "^2.5",
+    "html-to-image": "^1.11"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@types/dompurify": "^3",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^4.3",
+    "jsdom": "^25",
+    "sass-embedded": "^1.81",
+    "typescript": "^5.7",
+    "vite": "^6.0",
+    "vitest": "^2.1"
+  }
+}

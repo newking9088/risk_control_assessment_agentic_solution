@@ -1,0 +1,33 @@
+# Repository Relationship — App, GitOps, IaC
+
+direction: right
+
+app_repo: "App Repo" {
+  be: "backend/"
+  fe: "frontend/"
+  auth: "auth-service/"
+  helm: "deploy/helm/"
+  gha: ".github/workflows/"
+}
+
+gitops: "GitOps Repo" {
+  direction: down
+  dev_v: "dev/values.yaml\nfeature-sha"
+  stg_v: "staging/values.yaml"
+  prod_v: "production/values.yaml\n1.4.0"
+}
+
+iac_repo: "IaC Repo (Terraform)" {
+  tf: "infrastructure/\nenvironments/ + modules/"
+}
+
+cluster: "Kubernetes / AKS" {
+  direction: down
+  argo: "Argo CD"
+  k8s: "Cluster state"
+}
+
+app_repo.gha -> gitops: "build · tag · push"
+gitops -> cluster.argo
+cluster.argo -> cluster.k8s: sync
+iac_repo.tf -> cluster: "terraform apply"

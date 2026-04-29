@@ -1,0 +1,34 @@
+name: Update GitOps repo
+
+on:
+  workflow_run:
+    workflows: ["Build and push images"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  update:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: newking9088/risk_control_assessment_agentic_solution_gitops
+          token: ${{ secrets.GITOPS_PAT }}
+
+      - name: Pin new image SHA for dev
+        run: |
+          SHA=sha-${{ github.event.workflow_run.head_sha }}
+          for SVC in backend frontend auth-service; do
+            FILE="deployments/values/${SVC}/dev/values.yaml"
+            sed -i "s|tag: .*|tag: \"${SHA}\"|" "${FILE}" || true
+          done
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deployments/values/
+          git diff --cached --quiet || git commit -m "chore(dev): pin images to ${{ github.event.workflow_run.head_sha }}"
+          git push
