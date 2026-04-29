@@ -1,10 +1,10 @@
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /app
 RUN pip install uv
 COPY pyproject.toml .
 RUN uv sync --no-dev
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 ARG GIT_SHA="unknown"
 ARG BUILD_DATE="unknown"
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
