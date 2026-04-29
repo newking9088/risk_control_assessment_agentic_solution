@@ -1,6 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
+import { RATING_COLORS, CONTROL_COLORS } from "@/lib/ratingTokens";
 import styles from "./methodology.module.scss";
 
 export const Route = createRoute({
@@ -27,14 +28,14 @@ function MatrixCell({ label, color }: { label: string; color: string }) {
 }
 
 const CELL_COLORS: Record<string, string> = {
-  "Very Low": "#166534",
-  "Low": "#15803d",
-  "Moderate": "#92400e",
-  "High": "#b45309",
-  "Critical": "#991b1b",
+  "Very Low": RATING_COLORS.low.bg,
+  "Low":      RATING_COLORS.low.bg,
+  "Moderate": RATING_COLORS.medium.bg,
+  "High":     RATING_COLORS.high.bg,
+  "Critical": RATING_COLORS.critical.bg,
 };
 
-function MethodologyPage() {
+export function MethodologyPage() {
   return (
     <div className={styles.page}>
       <TopNav />
@@ -62,10 +63,10 @@ function MethodologyPage() {
             </p>
 
             <div className={styles.scaleRow}>
-              <ScoreCircle value={1} label="Low" color="#15803d" />
-              <ScoreCircle value={2} label="Moderate" color="#92400e" />
-              <ScoreCircle value={3} label="High" color="#b45309" />
-              <ScoreCircle value={4} label="Very High" color="#991b1b" />
+              <ScoreCircle value={1} label="Low"       color={RATING_COLORS.low.bg} />
+              <ScoreCircle value={2} label="Moderate"  color={RATING_COLORS.medium.bg} />
+              <ScoreCircle value={3} label="High"      color={RATING_COLORS.high.bg} />
+              <ScoreCircle value={4} label="Very High" color={RATING_COLORS.critical.bg} />
             </div>
 
             <div className={styles.tableWrapper}>
@@ -144,7 +145,7 @@ function MethodologyPage() {
 
             <div className={styles.likelihoodGrid}>
               <div className={styles.likelihoodCard}>
-                <div className={styles.likelihoodScore} style={{ background: "#15803d" }}>1</div>
+                <div className={styles.likelihoodScore} style={{ background: RATING_COLORS.low.bg }}>1</div>
                 <div className={styles.likelihoodBody}>
                   <strong>Unlikely</strong>
                   <p>Event is highly unlikely to occur</p>
@@ -153,7 +154,7 @@ function MethodologyPage() {
                 </div>
               </div>
               <div className={styles.likelihoodCard}>
-                <div className={styles.likelihoodScore} style={{ background: "#92400e" }}>2</div>
+                <div className={styles.likelihoodScore} style={{ background: RATING_COLORS.medium.bg }}>2</div>
                 <div className={styles.likelihoodBody}>
                   <strong>Possible</strong>
                   <p>Event not expected but possible</p>
@@ -162,7 +163,7 @@ function MethodologyPage() {
                 </div>
               </div>
               <div className={styles.likelihoodCard}>
-                <div className={styles.likelihoodScore} style={{ background: "#b45309" }}>3</div>
+                <div className={styles.likelihoodScore} style={{ background: RATING_COLORS.high.bg }}>3</div>
                 <div className={styles.likelihoodBody}>
                   <strong>Likely</strong>
                   <p>Event might occur at some time</p>
@@ -171,7 +172,7 @@ function MethodologyPage() {
                 </div>
               </div>
               <div className={styles.likelihoodCard}>
-                <div className={styles.likelihoodScore} style={{ background: "#991b1b" }}>4</div>
+                <div className={styles.likelihoodScore} style={{ background: RATING_COLORS.critical.bg }}>4</div>
                 <div className={styles.likelihoodBody}>
                   <strong>Very Likely</strong>
                   <p>Event is almost certain to occur</p>
@@ -235,10 +236,10 @@ function MethodologyPage() {
             </p>
 
             <div className={styles.scaleRow}>
-              <ScoreCircle value={1} label="Satisfactory" color="#15803d" />
-              <ScoreCircle value={2} label="Partial" color="#92400e" />
-              <ScoreCircle value={3} label="Needs Improvement" color="#b45309" />
-              <ScoreCircle value={4} label="Weak" color="#991b1b" />
+              <ScoreCircle value={1} label="Satisfactory"      color={CONTROL_COLORS.effective.bg} />
+              <ScoreCircle value={2} label="Partial"           color={CONTROL_COLORS.partial.bg} />
+              <ScoreCircle value={3} label="Needs Improvement" color={RATING_COLORS.high.bg} />
+              <ScoreCircle value={4} label="Weak"              color={CONTROL_COLORS.weak.bg} />
             </div>
 
             <div className={styles.tableWrapper}>

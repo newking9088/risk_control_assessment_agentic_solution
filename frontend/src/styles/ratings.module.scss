@@ -1,4 +1,5 @@
-/* Central rating badge styles — import this everywhere you need risk/control/status badges */
+/* All colour values reference CSS custom properties from ratings.css.
+   Zero hardcoded hex in this file. */
 
 .badge {
   display: inline-flex;
@@ -14,22 +15,25 @@
 }
 
 /* ── Inherent / Residual Risk ─────────────────────────────── */
-.veryHigh  { background: #991b1b; color: #fff; }
-.critical  { background: #7f1d1d; color: #fff; }
-.high      { background: #b45309; color: #fff; }
-.moderate  { background: #92400e; color: #fff; }
-.low       { background: #15803d; color: #fff; }
-.veryLow   { background: #166534; color: #fff; }
+.veryHigh  { background: var(--fra-4-bg); color: var(--fra-4-fg); }
+.critical  { background: var(--fra-4-bg); color: var(--fra-4-fg); }
+.high      { background: var(--fra-3-bg); color: var(--fra-3-fg); }
+.moderate  { background: var(--fra-2-bg); color: var(--fra-2-fg); }
+.low       { background: var(--fra-1-bg); color: var(--fra-1-fg); }
+.veryLow   { background: var(--fra-1-bg); color: var(--fra-1-fg); }
+.notRated  { background: var(--nr-bg);    color: var(--nr-fg);    }
 
 /* ── Controls Effectiveness ───────────────────────────────── */
-.weak             { background: #dc2626; color: #fff; }
-.needsImprovement { background: #ea580c; color: #fff; }
-.partial          { background: #d97706; color: #fff; }
-.satisfactory     { background: #16a34a; color: #fff; }
+.satisfactory     { background: var(--ce-1-bg); color: var(--ce-1-fg); }
+.effective        { background: var(--ce-1-bg); color: var(--ce-1-fg); }
+.partial          { background: var(--ce-2-bg); color: var(--ce-2-fg); }
+.weak             { background: var(--ce-3-bg); color: var(--ce-3-fg); }
+.needsImprovement { background: var(--ce-3-bg); color: var(--ce-3-fg); }
+.ineffective      { background: var(--ce-3-bg); color: var(--ce-3-fg); }
 
 /* ── Assessment Status ────────────────────────────────────── */
-.inProgress { background: #2563eb; color: #fff; }
-.completed  { background: #16a34a; color: #fff; }
-.draft      { background: #94a3b8; color: #fff; }
-.review     { background: #d97706; color: #fff; }
-.archived   { background: #475569; color: #fff; }
+.inProgress { background: var(--status-inprogress-bg); color: var(--status-inprogress-fg); }
+.completed  { background: var(--status-completed-bg);  color: var(--status-completed-fg);  }
+.draft      { background: var(--status-draft-bg);      color: var(--status-draft-fg);      }
+.review     { background: var(--status-review-bg);     color: var(--status-review-fg);     }
+.archived   { background: var(--status-archived-bg);   color: var(--status-archived-fg);   }

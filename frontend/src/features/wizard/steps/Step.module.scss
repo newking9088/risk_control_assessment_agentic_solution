@@ -409,10 +409,10 @@
 
   &:hover { border-color: #94a3b8; }
 
-  &.levelLow    { &.levelActive { background: #dcfce7; border-color: #22c55e; color: #15803d; } }
-  &.levelMedium { &.levelActive { background: #fef3c7; border-color: #f59e0b; color: #92400e; } }
-  &.levelHigh   { &.levelActive { background: #fee2e2; border-color: #ef4444; color: #b91c1c; } }
-  &.levelCritical { &.levelActive { background: #fce7f3; border-color: #ec4899; color: #9d174d; } }
+  &.levelLow     { &.levelActive { background: color-mix(in srgb, var(--fra-1-bg) 25%, white); border-color: var(--fra-1-bg); color: var(--fra-stat-low); } }
+  &.levelMedium  { &.levelActive { background: color-mix(in srgb, var(--fra-2-bg) 25%, white); border-color: var(--fra-2-bg); color: var(--fra-stat-medium); } }
+  &.levelHigh    { &.levelActive { background: color-mix(in srgb, var(--fra-3-bg) 25%, white); border-color: var(--fra-3-bg); color: var(--fra-stat-high); } }
+  &.levelCritical { &.levelActive { background: color-mix(in srgb, var(--fra-4-bg) 25%, white); border-color: var(--fra-4-bg); color: var(--fra-stat-veryhigh); } }
 }
 
 .levelActive {
@@ -581,13 +581,13 @@
   font-weight: 700;
   text-transform: capitalize;
 
-  &.low      { background: #dcfce7; color: #15803d; }
-  &.medium   { background: #fef3c7; color: #92400e; }
-  &.high     { background: #fee2e2; color: #b91c1c; }
-  &.critical { background: #fce7f3; color: #9d174d; }
-  &.effective { background: #dcfce7; color: #15803d; }
-  &.partial  { background: #fef3c7; color: #92400e; }
-  &.needs-improvement { background: #fee2e2; color: #b91c1c; }
+  &.low      { background: color-mix(in srgb, var(--fra-1-bg) 25%, white); color: var(--fra-stat-low); }
+  &.medium   { background: color-mix(in srgb, var(--fra-2-bg) 25%, white); color: var(--fra-stat-medium); }
+  &.high     { background: color-mix(in srgb, var(--fra-3-bg) 25%, white); color: var(--fra-stat-high); }
+  &.critical { background: color-mix(in srgb, var(--fra-4-bg) 25%, white); color: var(--fra-stat-veryhigh); }
+  &.effective { background: color-mix(in srgb, var(--ce-1-bg) 25%, white); color: var(--fra-stat-low); }
+  &.partial  { background: color-mix(in srgb, var(--ce-2-bg) 25%, white); color: var(--fra-stat-medium); }
+  &.needs-improvement { background: color-mix(in srgb, var(--ce-3-bg) 25%, white); color: var(--fra-stat-veryhigh); }
 }
 
 /* ── Summary ── */

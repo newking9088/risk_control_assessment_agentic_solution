@@ -1,3 +1,13 @@
+/* ── Rating matrix className helpers (use instead of inline styles where possible) ── */
+.matrixLow      { background: var(--fra-1-bg); color: var(--fra-1-fg); }
+.matrixMedium   { background: var(--fra-2-bg); color: var(--fra-2-fg); }
+.matrixHigh     { background: var(--fra-3-bg); color: var(--fra-3-fg); }
+.matrixCritical { background: var(--fra-4-bg); color: var(--fra-4-fg); }
+
+.ceEffective    { background: var(--ce-1-bg); color: var(--ce-1-fg); }
+.cePartial      { background: var(--ce-2-bg); color: var(--ce-2-fg); }
+.ceWeak         { background: var(--ce-3-bg); color: var(--ce-3-fg); }
+
 .page {
   min-height: 100vh;
   background: #f0f2f5;

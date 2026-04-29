@@ -128,28 +128,28 @@ function AssessmentsPage() {
         {/* Stats row */}
         <div className={styles.statsRow}>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "#d97706" }}>📈</span>
+            <span className={styles.statIcon} style={{ color: "var(--fra-stat-medium)" }}>📈</span>
             <div>
               <div className={styles.statValue}>{all.length}</div>
               <div className={styles.statLabel}>Total Assessments</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "#dc2626" }}>⏱</span>
+            <span className={styles.statIcon} style={{ color: "var(--fra-stat-veryhigh)" }}>⏱</span>
             <div>
               <div className={styles.statValue}>{inProgressCount}</div>
               <div className={styles.statLabel}>In Progress</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "#16a34a" }}>✓</span>
+            <span className={styles.statIcon} style={{ color: "var(--fra-stat-low)" }}>✓</span>
             <div>
               <div className={styles.statValue}>{completedCount}</div>
               <div className={styles.statLabel}>Completed</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "#dc2626" }}>⚠</span>
+            <span className={styles.statIcon} style={{ color: "var(--fra-stat-veryhigh)" }}>⚠</span>
             <div>
               <div className={styles.statValue}>{highCriticalCount}</div>
               <div className={styles.statLabel}>High/Critical</div>

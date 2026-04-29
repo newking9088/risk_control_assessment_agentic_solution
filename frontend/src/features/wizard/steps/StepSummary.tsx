@@ -6,8 +6,12 @@ import {
 } from "recharts";
 import clsx from "clsx";
 import { api } from "@/lib/api";
+import { RATING_COLORS } from "@/lib/ratingTokens";
 import type { StepProps } from "../WizardLayout";
 import styles from "./Step.module.scss";
+
+/* Mirrors ratings.css — used only for Recharts strokes and inline SVG */
+const R = RATING_COLORS;
 
 interface Assessment {
   title: string;
@@ -143,8 +147,8 @@ export function StepSummary({ assessmentId, onValidChange }: StepProps) {
             <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <PolarGrid stroke="#e2e8f0" />
               <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#64748b" }} />
-              <Radar name="Inherent" dataKey="Inherent" stroke="#ef4444" fill="#ef4444" fillOpacity={0.18} strokeWidth={2} />
-              <Radar name="Residual" dataKey="Residual" stroke="#2563eb" fill="#2563eb" fillOpacity={0.18} strokeWidth={2} />
+              <Radar name="Inherent" dataKey="Inherent" stroke={R.critical.bg}  fill={R.critical.bg}  fillOpacity={0.18} strokeWidth={2} />
+              <Radar name="Residual" dataKey="Residual" stroke={R.completed.bg} fill={R.completed.bg} fillOpacity={0.18} strokeWidth={2} />
               <Tooltip
                 contentStyle={{ fontSize: "0.8rem", borderRadius: "6px", border: "1px solid #e2e8f0" }}
               />
@@ -185,8 +189,8 @@ export function StepSummary({ assessmentId, onValidChange }: StepProps) {
                       fontWeight: 700,
                       padding: "0.15rem 0.4rem",
                       borderRadius: "3px",
-                      background: r.source === "EXT" ? "#fce7f3" : "#d1fae5",
-                      color: r.source === "EXT" ? "#9d174d" : "#065f46",
+                      background: r.source === "EXT" ? R.high.bg : R.low.bg,
+                      color: r.source === "EXT" ? R.high.fg : R.low.fg,
                     }}>
                       {r.source}
                     </span>
@@ -206,7 +210,7 @@ export function StepSummary({ assessmentId, onValidChange }: StepProps) {
                     <span style={{
                       fontSize: "0.75rem",
                       fontWeight: 700,
-                      color: reduction > 0 ? "#16a34a" : "#dc2626",
+                      color: reduction > 0 ? R.low.bg : R.critical.bg,
                     }}>
                       {reduction > 0 ? `↓ ${reduction}%` : "—"}
                     </span>
