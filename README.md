@@ -69,7 +69,7 @@ openssl rand -hex 32
 make install
 ```
 
-This runs `uv sync --extra dev` for the backend, `npm ci` for the frontend, and `npm ci` for the auth service.
+This runs `uv sync --extra dev` for the backend, and `npm install --legacy-peer-deps` for the frontend and auth service.
 
 ### 5. Start the database, apply schema, seed demo users
 

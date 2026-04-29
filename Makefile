@@ -3,8 +3,8 @@
 # ── Install ──────────────────────────────────────────────────────────────────
 install:  ## Install all dependencies
 	cd backend && uv sync --extra dev
-	cd frontend && npm ci
-	cd auth-service && npm ci
+	cd frontend && npm install --legacy-peer-deps
+	cd auth-service && npm install --legacy-peer-deps
 
 # ── Infrastructure ────────────────────────────────────────────────────────────
 db-up:  ## Start DB and Redis containers
