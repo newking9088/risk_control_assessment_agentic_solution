@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, Shield, Tag } from "lucide-react";
+import { AlertTriangle, CheckCircle, Tag } from "lucide-react";
 import { TopNav } from "@/features/wizard/TopNav";
 import { ChatWidget } from "@/features/chat/ChatWidget";
 import { SettingsDrawer } from "@/features/settings/SettingsDrawer";
@@ -8,15 +8,11 @@ import type { RiskSourceFilter } from "./useTaxonomyManagement";
 import styles from "./TaxonomyManagement.module.scss";
 import { useState } from "react";
 
-const TYPE_BADGE: Record<string, string> = {
-  Preventive: styles.typeBadgePreventive,
-  Detective:  styles.typeBadgeDetective,
-  Corrective: styles.typeBadgeCorrective,
-  Directive:  styles.typeBadgeDirective,
-};
-
-const CONTROL_TYPES = ["Preventive", "Detective", "Corrective", "Directive"];
-const SOURCE_FILTERS: RiskSourceFilter[] = ["ALL", "EXT", "INT"];
+const SOURCE_FILTERS: { value: RiskSourceFilter; label: string }[] = [
+  { value: "ALL", label: "All" },
+  { value: "EXT", label: "External Fraud" },
+  { value: "INT", label: "Insider Threat" },
+];
 
 export function TaxonomyManagementPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -24,21 +20,17 @@ export function TaxonomyManagementPage() {
   const {
     taxonomies, selectedId, setSelectedId,
     taxonomy, loading, error, successMsg,
-    editRisks, editControls,
-    handleRiskChange, handleControlChange,
-    addBlankRisk, addBlankControl,
+    editRisks,
+    handleRiskChange,
+    addBlankRisk,
     handleSave, handleDelete,
     fileInputRef, handleFileChange, uploading,
     riskSearch, setRiskSearch,
     riskCategoryFilter, setRiskCategoryFilter,
     riskSourceFilter, setRiskSourceFilter,
-    controlSearch, setControlSearch,
-    controlTypeFilter, setControlTypeFilter,
     riskPageData, filteredRisks, riskPage, setRiskPage, riskTotalPages,
-    ctrlPageData, filteredControls, controlPage, setControlPage, ctrlTotalPages,
     riskCategories, stats,
-    activeTab, setActiveTab,
-    RISK_PAGE, CTRL_PAGE,
+    RISK_PAGE,
   } = useTaxonomyManagement();
 
   return (
@@ -49,9 +41,9 @@ export function TaxonomyManagementPage() {
         {/* Header */}
         <div className={styles.pageHeader}>
           <div>
-            <h1 className={styles.pageTitle}>Risk &amp; Control Taxonomy</h1>
+            <h1 className={styles.pageTitle}>Fraud Risk Taxonomy</h1>
             <p className={styles.pageSubtitle}>
-              Manage the global risk and control taxonomy used across all assessments
+              Manage the global fraud risk taxonomy used across all assessments
             </p>
           </div>
           <div className={styles.headerActions}>
@@ -105,17 +97,20 @@ export function TaxonomyManagementPage() {
 
         {/* Banners */}
         {successMsg && <div className={styles.bannerSuccess}>✓ {successMsg}</div>}
-        {error && <div className={styles.bannerError}>✗ {error}</div>}
+        {error      && <div className={styles.bannerError}>✗ {error}</div>}
 
-        {/* Loading */}
-        {loading && <div style={{ color: "#64748b", fontSize: "0.875rem", marginBottom: "1rem" }}>Loading…</div>}
+        {loading && (
+          <div style={{ color: "#64748b", fontSize: "0.875rem", marginBottom: "1rem" }}>
+            Loading…
+          </div>
+        )}
 
         {/* Empty state */}
         {!loading && !taxonomy && (
           <div className={styles.emptyCard}>
             <div className={styles.emptyIcon}>📂</div>
             <h3>No taxonomy loaded</h3>
-            <p>Upload an Excel or CSV file to import risks and controls into the taxonomy.</p>
+            <p>Upload an Excel or CSV file to import fraud risks into the taxonomy.</p>
             <button
               className={styles.btnPrimary}
               onClick={() => fileInputRef.current?.click()}
@@ -127,20 +122,13 @@ export function TaxonomyManagementPage() {
 
         {taxonomy && (
           <>
-            {/* Stats */}
-            <div className={styles.statsRow}>
+            {/* Stats — 3 cards (no Controls) */}
+            <div className={styles.statsRow} style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
               <div className={styles.statCard}>
                 <div className={styles.statIconRisk}><AlertTriangle size={18} /></div>
                 <div>
                   <div className={styles.statValue}>{stats.totalRisks}</div>
                   <div className={styles.statLabel}>Total Risks</div>
-                </div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statIconControl}><Shield size={18} /></div>
-                <div>
-                  <div className={styles.statValue}>{stats.totalControls}</div>
-                  <div className={styles.statLabel}>Total Controls</div>
                 </div>
               </div>
               <div className={styles.statCard}>
@@ -159,257 +147,138 @@ export function TaxonomyManagementPage() {
               </div>
             </div>
 
-            {/* Main card */}
+            {/* Risks card */}
             <div className={styles.card}>
-              {/* Tab bar */}
-              <div className={styles.tabBar}>
-                <button
-                  className={`${styles.tabBtn} ${activeTab === "risks" ? styles.tabBtnActive : ""}`}
-                  onClick={() => setActiveTab("risks")}
-                >
-                  Risks ({editRisks.length})
-                </button>
-                <button
-                  className={`${styles.tabBtn} ${activeTab === "controls" ? styles.tabBtnActive : ""}`}
-                  onClick={() => setActiveTab("controls")}
-                >
-                  Controls ({editControls.length})
-                </button>
+              <div style={{
+                padding: "0.85rem 1.25rem",
+                borderBottom: "1px solid #e2e8f0",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                color: "#1e293b",
+              }}>
+                Fraud Risks ({editRisks.length})
               </div>
 
-              {/* ── RISKS TAB ── */}
-              {activeTab === "risks" && (
-                <>
-                  <div className={styles.toolbar}>
-                    <div className={styles.toolbarLeft}>
-                      <input
-                        className={styles.search}
-                        type="text"
-                        placeholder="Search risks…"
-                        value={riskSearch}
-                        onChange={(e) => setRiskSearch(e.target.value)}
-                      />
-                      <select
-                        className={styles.filterSelect}
-                        value={riskCategoryFilter ?? ""}
-                        onChange={(e) => setRiskCategoryFilter(e.target.value || null)}
+              {/* Toolbar */}
+              <div className={styles.toolbar}>
+                <div className={styles.toolbarLeft}>
+                  <input
+                    className={styles.search}
+                    type="text"
+                    placeholder="Search risks…"
+                    value={riskSearch}
+                    onChange={(e) => setRiskSearch(e.target.value)}
+                  />
+                  <select
+                    className={styles.filterSelect}
+                    value={riskCategoryFilter ?? ""}
+                    onChange={(e) => setRiskCategoryFilter(e.target.value || null)}
+                  >
+                    <option value="">All Categories</option>
+                    {riskCategories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <div className={styles.filterBtns}>
+                    {SOURCE_FILTERS.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        className={`${styles.filterBtn} ${riskSourceFilter === value ? styles.filterBtnActive : ""}`}
+                        onClick={() => setRiskSourceFilter(value)}
                       >
-                        <option value="">All Categories</option>
-                        {riskCategories.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      <div className={styles.filterBtns}>
-                        {SOURCE_FILTERS.map((s) => (
-                          <button
-                            key={s}
-                            className={`${styles.filterBtn} ${riskSourceFilter === s ? styles.filterBtnActive : ""}`}
-                            onClick={() => setRiskSourceFilter(s)}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className={styles.toolbarRight}>
-                      <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{filteredRisks.length} risks</span>
-                      <button className={styles.addRowBtn} onClick={addBlankRisk}>+ Add Risk</button>
-                    </div>
+                        {label}
+                      </button>
+                    ))}
                   </div>
+                </div>
+                <div className={styles.toolbarRight}>
+                  <span style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                    {filteredRisks.length} risks
+                  </span>
+                  <button className={styles.addRowBtn} onClick={addBlankRisk}>
+                    + Add Risk
+                  </button>
+                </div>
+              </div>
 
-                  <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th>Risk ID</th>
-                          <th>Category</th>
-                          <th>Name</th>
-                          <th>Description</th>
-                          <th>Source</th>
+              {/* Table */}
+              <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Risk ID</th>
+                      <th>Category</th>
+                      <th>Name</th>
+                      <th>Description</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {riskPageData.map((r, i) => {
+                      const globalIdx = (riskPage - 1) * RISK_PAGE + i;
+                      return (
+                        <tr key={r.risk_id} className={styles.tableRow}>
+                          <td className={`${styles.editableCell} ${styles.idCell}`}>
+                            <input
+                              value={r.risk_id}
+                              onChange={(e) => handleRiskChange(globalIdx, "risk_id", e.target.value)}
+                            />
+                          </td>
+                          <td className={styles.editableCell}>
+                            <input
+                              value={r.category}
+                              onChange={(e) => handleRiskChange(globalIdx, "category", e.target.value)}
+                              placeholder="Category"
+                            />
+                          </td>
+                          <td className={styles.editableCell}>
+                            <input
+                              value={r.name}
+                              onChange={(e) => handleRiskChange(globalIdx, "name", e.target.value)}
+                              placeholder="Risk name"
+                            />
+                          </td>
+                          <td className={styles.editableCell}>
+                            <textarea
+                              value={r.description ?? ""}
+                              onChange={(e) => handleRiskChange(globalIdx, "description", e.target.value)}
+                              placeholder="Description"
+                              rows={1}
+                            />
+                          </td>
+                          <td className={styles.editableCell}>
+                            <select
+                              className={styles.filterSelect}
+                              value={r.source ?? ""}
+                              onChange={(e) => handleRiskChange(globalIdx, "source", e.target.value)}
+                              style={{ fontSize: "0.75rem", padding: "0.2rem 0.4rem" }}
+                            >
+                              <option value="">—</option>
+                              <option value="EXT">External Fraud</option>
+                              <option value="INT">Insider Threat</option>
+                            </select>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {riskPageData.map((r, i) => {
-                          const globalIdx = (riskPage - 1) * RISK_PAGE + i;
-                          return (
-                            <tr key={r.risk_id} className={styles.tableRow}>
-                              <td className={`${styles.editableCell} ${styles.idCell}`}>
-                                <input
-                                  value={r.risk_id}
-                                  onChange={(e) => handleRiskChange(globalIdx, "risk_id", e.target.value)}
-                                />
-                              </td>
-                              <td className={styles.editableCell}>
-                                <input
-                                  value={r.category}
-                                  onChange={(e) => handleRiskChange(globalIdx, "category", e.target.value)}
-                                  placeholder="Category"
-                                />
-                              </td>
-                              <td className={styles.editableCell}>
-                                <input
-                                  value={r.name}
-                                  onChange={(e) => handleRiskChange(globalIdx, "name", e.target.value)}
-                                  placeholder="Risk name"
-                                />
-                              </td>
-                              <td className={styles.editableCell}>
-                                <textarea
-                                  value={r.description ?? ""}
-                                  onChange={(e) => handleRiskChange(globalIdx, "description", e.target.value)}
-                                  placeholder="Description"
-                                  rows={1}
-                                />
-                              </td>
-                              <td className={styles.editableCell}>
-                                <input
-                                  value={r.source ?? ""}
-                                  onChange={(e) => handleRiskChange(globalIdx, "source", e.target.value)}
-                                  placeholder="EXT / INT"
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {riskTotalPages > 1 && (
+                <div className={styles.pagination}>
+                  <span className={styles.paginationInfo}>
+                    Showing {Math.min((riskPage - 1) * RISK_PAGE + 1, filteredRisks.length)}–
+                    {Math.min(riskPage * RISK_PAGE, filteredRisks.length)} of {filteredRisks.length}
+                  </span>
+                  <div className={styles.paginationControls}>
+                    <button className={styles.pageBtn} disabled={riskPage === 1} onClick={() => setRiskPage((p) => p - 1)}>Previous</button>
+                    <span className={styles.pageNum}>{riskPage}</span>
+                    <span className={styles.pageOf}>of {riskTotalPages}</span>
+                    <button className={styles.pageBtn} disabled={riskPage === riskTotalPages} onClick={() => setRiskPage((p) => p + 1)}>Next</button>
                   </div>
-
-                  {riskTotalPages > 1 && (
-                    <div className={styles.pagination}>
-                      <span className={styles.paginationInfo}>
-                        Showing {Math.min((riskPage - 1) * RISK_PAGE + 1, filteredRisks.length)}–
-                        {Math.min(riskPage * RISK_PAGE, filteredRisks.length)} of {filteredRisks.length}
-                      </span>
-                      <div className={styles.paginationControls}>
-                        <button className={styles.pageBtn} disabled={riskPage === 1} onClick={() => setRiskPage((p) => p - 1)}>Previous</button>
-                        <span className={styles.pageNum}>{riskPage}</span>
-                        <span className={styles.pageOf}>of {riskTotalPages}</span>
-                        <button className={styles.pageBtn} disabled={riskPage === riskTotalPages} onClick={() => setRiskPage((p) => p + 1)}>Next</button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* ── CONTROLS TAB ── */}
-              {activeTab === "controls" && (
-                <>
-                  <div className={styles.toolbar}>
-                    <div className={styles.toolbarLeft}>
-                      <input
-                        className={styles.search}
-                        type="text"
-                        placeholder="Search controls…"
-                        value={controlSearch}
-                        onChange={(e) => setControlSearch(e.target.value)}
-                      />
-                      <div className={styles.filterBtns}>
-                        <button
-                          className={`${styles.filterBtn} ${!controlTypeFilter ? styles.filterBtnActive : ""}`}
-                          onClick={() => setControlTypeFilter(null)}
-                        >
-                          All
-                        </button>
-                        {CONTROL_TYPES.map((t) => (
-                          <button
-                            key={t}
-                            className={`${styles.filterBtn} ${controlTypeFilter === t ? styles.filterBtnActive : ""}`}
-                            onClick={() => setControlTypeFilter(t)}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className={styles.toolbarRight}>
-                      <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{filteredControls.length} controls</span>
-                      <button className={styles.addRowBtn} onClick={addBlankControl}>+ Add Control</button>
-                    </div>
-                  </div>
-
-                  <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr>
-                          <th>Control ID</th>
-                          <th>Name</th>
-                          <th>Description</th>
-                          <th>Type</th>
-                          <th>Key Control</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ctrlPageData.map((c, i) => {
-                          const globalIdx = (controlPage - 1) * CTRL_PAGE + i;
-                          const norm = c.control_type ?? "";
-                          return (
-                            <tr key={c.control_id} className={styles.tableRow}>
-                              <td className={`${styles.editableCell} ${styles.idCell}`}>
-                                <input
-                                  value={c.control_id}
-                                  onChange={(e) => handleControlChange(globalIdx, "control_id", e.target.value)}
-                                />
-                              </td>
-                              <td className={styles.editableCell}>
-                                <input
-                                  value={c.control_name}
-                                  onChange={(e) => handleControlChange(globalIdx, "control_name", e.target.value)}
-                                  placeholder="Control name"
-                                />
-                              </td>
-                              <td className={styles.editableCell}>
-                                <textarea
-                                  value={c.description ?? ""}
-                                  onChange={(e) => handleControlChange(globalIdx, "description", e.target.value)}
-                                  placeholder="Description"
-                                  rows={1}
-                                />
-                              </td>
-                              <td>
-                                <select
-                                  className={styles.filterSelect}
-                                  value={norm}
-                                  onChange={(e) => handleControlChange(globalIdx, "control_type", e.target.value)}
-                                  style={{ fontSize: "0.75rem", padding: "0.2rem 0.4rem" }}
-                                >
-                                  <option value="">—</option>
-                                  {CONTROL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                                </select>
-                              </td>
-                              <td>
-                                <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={!!c.is_key}
-                                    onChange={(e) => handleControlChange(globalIdx, "is_key", e.target.checked)}
-                                    style={{ accentColor: "#2563eb" }}
-                                  />
-                                  {c.is_key && <span className={styles.keyBadge}>KEY</span>}
-                                </label>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {ctrlTotalPages > 1 && (
-                    <div className={styles.pagination}>
-                      <span className={styles.paginationInfo}>
-                        Showing {Math.min((controlPage - 1) * CTRL_PAGE + 1, filteredControls.length)}–
-                        {Math.min(controlPage * CTRL_PAGE, filteredControls.length)} of {filteredControls.length}
-                      </span>
-                      <div className={styles.paginationControls}>
-                        <button className={styles.pageBtn} disabled={controlPage === 1} onClick={() => setControlPage((p) => p - 1)}>Previous</button>
-                        <span className={styles.pageNum}>{controlPage}</span>
-                        <span className={styles.pageOf}>of {ctrlTotalPages}</span>
-                        <button className={styles.pageBtn} disabled={controlPage === ctrlTotalPages} onClick={() => setControlPage((p) => p + 1)}>Next</button>
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
 
               {/* Save bar */}
