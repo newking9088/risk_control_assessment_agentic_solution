@@ -4,6 +4,7 @@ import { Route as AssessmentsRoute } from "./routes/assessments";
 import { Route as WizardRoute } from "./routes/assessments_.$id.wizard";
 import { Route as MethodologyRoute } from "./routes/methodology";
 import { Route as ControlsRoute } from "./routes/controls";
+import { Route as TaxonomyRoute } from "./routes/taxonomy";
 
 export const routeTree = RootRoute.addChildren([
   LoginRoute,
@@ -11,4 +12,5 @@ export const routeTree = RootRoute.addChildren([
   WizardRoute,
   MethodologyRoute,
   ControlsRoute,
+  TaxonomyRoute,
 ]);
