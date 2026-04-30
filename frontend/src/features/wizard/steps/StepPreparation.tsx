@@ -11,7 +11,63 @@ interface Assessment {
   assessment_date: string;
   owner: string;
   business_unit: string;
+  taxonomy_scope?: string;
+  risk_sources?: string[];
 }
+
+const SCOPE_OPTIONS = [
+  {
+    value: "internal",
+    label: "Insider Threat",
+    icon: "🔒",
+    desc: "Focus on internal fraud risks from employees, contractors, and privileged users.",
+  },
+  {
+    value: "external",
+    label: "External Fraud",
+    icon: "🌐",
+    desc: "Focus on external fraud risks from customers, third parties, and cybercriminals.",
+  },
+  {
+    value: "both",
+    label: "Both",
+    icon: "⚖️",
+    desc: "Comprehensive assessment covering both insider threat and external fraud risks.",
+  },
+];
+
+const SOURCE_OPTIONS = [
+  {
+    value: "transactions",
+    label: "Transaction Monitoring",
+    desc: "Real-time and batch transaction analysis for anomalies.",
+  },
+  {
+    value: "kyc",
+    label: "KYC / CDD Data",
+    desc: "Know Your Customer and Customer Due Diligence records.",
+  },
+  {
+    value: "hr",
+    label: "HR & Access Logs",
+    desc: "Employee access records, role changes, and HR events.",
+  },
+  {
+    value: "audit",
+    label: "Audit Trails",
+    desc: "System audit logs and operational activity records.",
+  },
+  {
+    value: "complaints",
+    label: "Complaints & Disputes",
+    desc: "Customer complaints, disputes, and fraud reports.",
+  },
+  {
+    value: "vendor",
+    label: "Vendor / Third-Party",
+    desc: "Third-party relationships and vendor risk data.",
+  },
+];
 
 export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
   const qc = useQueryClient();
@@ -28,6 +84,8 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
     assessment_date: new Date().toISOString().slice(0, 10),
     owner: "",
     business_unit: "",
+    taxonomy_scope: "both",
+    risk_sources: [] as string[],
   });
 
   useEffect(() => {
@@ -39,6 +97,8 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
         assessment_date: data.assessment_date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
         owner: data.owner ?? "",
         business_unit: data.business_unit ?? "",
+        taxonomy_scope: data.taxonomy_scope ?? "both",
+        risk_sources: data.risk_sources ?? [],
       });
     }
   }, [data]);
@@ -48,13 +108,29 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
   }, [form, onValidChange]);
 
   const save = useMutation({
-    mutationFn: (body: typeof form) =>
+    mutationFn: (body: Partial<typeof form>) =>
       api.patch(`/api/v1/assessments/${assessmentId}`, body).then((r) => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assessment", assessmentId] }),
   });
 
   function set(field: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  function handleScopeClick(value: string) {
+    setForm((f) => ({ ...f, taxonomy_scope: value }));
+    save.mutate({ taxonomy_scope: value });
+  }
+
+  function handleSourceToggle(value: string) {
+    setForm((f) => {
+      const current = f.risk_sources;
+      const updated = current.includes(value)
+        ? current.filter((s) => s !== value)
+        : [...current, value];
+      save.mutate({ risk_sources: updated });
+      return { ...f, risk_sources: updated };
+    });
   }
 
   return (
@@ -137,6 +213,59 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
               placeholder="Brief description of the objectives for this assessment"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Risk Focus Selection */}
+      <div className={styles.card} style={{ marginTop: "1rem" }}>
+        <div className={styles.sectionTitle}>Risk Focus</div>
+        <p style={{ fontSize: "0.825rem", color: "#64748b", margin: "0 0 1rem" }}>
+          Select the type of fraud risk this assessment will focus on.
+        </p>
+        <div className={styles.focusGrid}>
+          {SCOPE_OPTIONS.map((opt) => {
+            const active = form.taxonomy_scope === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                className={`${styles.focusCard} ${active ? styles.focusCardActive : ""}`}
+                onClick={() => handleScopeClick(opt.value)}
+              >
+                <div className={styles.focusIconWrap}>{opt.icon}</div>
+                <div className={styles.focusLabel}>{opt.label}</div>
+                <div className={styles.focusDesc}>{opt.desc}</div>
+                {active && <div className={styles.focusSelected}>✓ Selected</div>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Risk Sources */}
+      <div className={styles.card} style={{ marginTop: "1rem" }}>
+        <div className={styles.sectionTitle}>Risk Data Sources</div>
+        <p style={{ fontSize: "0.825rem", color: "#64748b", margin: "0 0 1rem" }}>
+          Select the data sources that will inform this assessment. Multiple selections allowed.
+        </p>
+        <div className={styles.sourceGrid}>
+          {SOURCE_OPTIONS.map((opt) => {
+            const checked = form.risk_sources.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                className={`${styles.sourceCard} ${checked ? styles.sourceCardActive : ""}`}
+                onClick={() => handleSourceToggle(opt.value)}
+              >
+                <div className={styles.sourceCardCheck}>{checked ? "☑" : "☐"}</div>
+                <div>
+                  <div className={styles.sourceName}>{opt.label}</div>
+                  <div className={styles.sourceDesc}>{opt.desc}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

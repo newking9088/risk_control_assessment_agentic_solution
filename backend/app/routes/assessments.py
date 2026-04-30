@@ -26,6 +26,8 @@ class AssessmentPatch(BaseModel):
     current_step: Optional[int] = None
     questionnaire: Optional[Any] = None
     questionnaire_notes: Optional[Any] = None
+    taxonomy_scope: Optional[str] = None
+    risk_sources: Optional[list] = None
 
 
 @router.get("")
@@ -35,7 +37,8 @@ async def list_assessments(request: Request):
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         await cur.execute(
             """SELECT id, title, description, scope, assessment_date, owner, business_unit,
-                      status, current_step, created_by, tenant_id, created_at, updated_at
+                      status, current_step, taxonomy_scope, risk_sources,
+                      created_by, tenant_id, created_at, updated_at
                FROM app.assessments WHERE tenant_id = %s ORDER BY created_at DESC""",
             (tenant_id,),
         )
@@ -63,6 +66,7 @@ async def get_assessment(assessment_id: str, request: Request):
         await cur.execute(
             """SELECT id, title, description, scope, assessment_date, owner, business_unit,
                       status, current_step, questionnaire, questionnaire_notes,
+                      taxonomy_scope, risk_sources,
                       created_by, tenant_id, created_at, updated_at
                FROM app.assessments WHERE id = %s""",
             (assessment_id,),

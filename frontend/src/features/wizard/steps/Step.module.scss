@@ -590,6 +590,113 @@
   &.needs-improvement { background: color-mix(in srgb, var(--ce-3-bg) 25%, white); color: var(--fra-stat-veryhigh); }
 }
 
+/* ── Focus cards (Risk scope selection) ── */
+.focusGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.focusCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.25rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  gap: 0.4rem;
+
+  &:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+  }
+}
+
+.focusCardActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.focusIconWrap {
+  font-size: 1.75rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.focusLabel {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.focusDesc {
+  font-size: 0.775rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.focusSelected {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2563eb;
+  margin-top: 0.25rem;
+}
+
+/* ── Source cards (Risk data sources) ── */
+.sourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.sourceCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: #93c5fd;
+    background: #f8fafc;
+  }
+}
+
+.sourceCardActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.sourceCardCheck {
+  font-size: 1.1rem;
+  color: #2563eb;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.sourceName {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.15rem;
+}
+
+.sourceDesc {
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
 /* ── Summary ── */
 .summaryGrid {
   display: grid;
