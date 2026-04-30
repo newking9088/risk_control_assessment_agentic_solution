@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { TopNav } from "./TopNav";
+import { ChatWidget } from "@/features/chat/ChatWidget";
 import { WizardSidebar } from "./WizardSidebar";
 import { StepPreparation } from "./steps/StepPreparation";
 import { StepQuestionnaire } from "./steps/StepQuestionnaire";
@@ -121,6 +122,7 @@ export function WizardLayout({ assessmentId, currentStep, assessmentTitle }: Pro
           </footer>
         </div>
       </div>
+      <ChatWidget assessmentId={assessmentId} />
     </div>
   );
 }

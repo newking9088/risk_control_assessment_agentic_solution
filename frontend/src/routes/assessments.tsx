@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
 import { RatingBadge } from "@/components/RatingBadge";
+import { ChatWidget } from "@/features/chat/ChatWidget";
 import styles from "./assessments.module.scss";
 
 export const Route = createRoute({
@@ -350,15 +351,7 @@ function AssessmentsPage() {
         <a href="#">Terms and conditions</a>
       </footer>
 
-      {/* AI Assistant chat button */}
-      <button className={styles.chatBtn} title="Open AI Assistant">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l4.93-1.37A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"
-            fill="white"
-          />
-        </svg>
-      </button>
+      <ChatWidget />
     </div>
   );
 }

@@ -367,26 +367,3 @@
   a { color: #94a3b8; text-decoration: none; &:hover { color: #64748b; } }
 }
 
-/* ── Chat button ─────────────────────────────────────────── */
-.chatBtn {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #1e293b;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  transition: background 0.15s, transform 0.15s;
-  z-index: 200;
-
-  &:hover {
-    background: #334155;
-    transform: scale(1.05);
-  }
-}
