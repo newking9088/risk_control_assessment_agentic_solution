@@ -71,7 +71,9 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
           + Create New Assessment
         </button>
 
-        <button className={styles.tab}>Controls Library</button>
+        <Link to="/controls" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
+          Controls Library
+        </Link>
         <button className={styles.tab}>Taxonomy</button>
         <Link to="/methodology" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
           Methodology
