@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
+import { LayoutDashboard } from "lucide-react";
 import { getSession, signOut } from "@/lib/auth";
 import styles from "./TopNav.module.scss";
 
@@ -53,7 +54,8 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending }: Props) {
 
       <nav className={styles.tabs}>
         <Link to="/assessments" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
-          📊 Assessment Dashboard
+          <LayoutDashboard size={16} strokeWidth={1.75} style={{ verticalAlign: "middle", marginRight: "0.375rem" }} />
+          Assessment Dashboard
         </Link>
 
         <button

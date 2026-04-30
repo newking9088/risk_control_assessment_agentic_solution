@@ -1,7 +1,6 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { LayoutDashboard } from "lucide-react";
 import { api } from "@/lib/api";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
@@ -119,10 +118,7 @@ function AssessmentsPage() {
       <div className={styles.body}>
         <div className={styles.pageHeader}>
           <div>
-            <h1 className={styles.pageTitle}>
-              <LayoutDashboard size={24} strokeWidth={1.75} style={{ verticalAlign: "middle", marginRight: "0.5rem" }} />
-              Assessment Dashboard
-            </h1>
+            <h1 className={styles.pageTitle}>Assessment Dashboard</h1>
             <p className={styles.pageSubtitle}>
               Monitor and manage risk and control assessments across all business units
             </p>
