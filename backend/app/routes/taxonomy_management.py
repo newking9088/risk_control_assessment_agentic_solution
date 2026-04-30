@@ -130,20 +130,57 @@ def _normalise_controls(rows: list[dict]) -> list[dict]:
 
 # ── Endpoints ─────────────────────────────────────────────────
 
+_NEW_COLS_EXIST: bool | None = None  # cached after first check
+
+
+async def _check_new_cols(tenant_id: str) -> bool:
+    """Return True if 005 migration columns exist in taxonomy_schemas."""
+    global _NEW_COLS_EXIST
+    if _NEW_COLS_EXIST is not None:
+        return _NEW_COLS_EXIST
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_schema='app' AND table_name='taxonomy_schemas'
+                     AND column_name='risks_data'"""
+            )
+            row = await cur.fetchone()
+            _NEW_COLS_EXIST = row is not None
+    except Exception:
+        _NEW_COLS_EXIST = False
+    return _NEW_COLS_EXIST
+
+
 @router.get("")
 async def list_taxonomies(request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    has_new = await _check_new_cols(tenant_id)
+
+    if has_new:
+        sql = """SELECT id, name, version, source_type, risk_count, control_count,
+                        active, file_name, uploaded_at, created_at
+                 FROM app.taxonomy_schemas
+                 WHERE tenant_id = %s
+                 ORDER BY created_at DESC"""
+    else:
+        sql = """SELECT id, name, version, active, created_at
+                 FROM app.taxonomy_schemas
+                 WHERE tenant_id = %s
+                 ORDER BY created_at DESC"""
+
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-        await cur.execute(
-            """SELECT id, name, version, source_type, risk_count, control_count,
-                      active, file_name, uploaded_at, created_at
-               FROM app.taxonomy_schemas
-               WHERE tenant_id = %s
-               ORDER BY created_at DESC""",
-            (tenant_id,),
-        )
-        return await cur.fetchall()
+        await cur.execute(sql, (tenant_id,))
+        rows = await cur.fetchall()
+
+    if not has_new:
+        rows = [
+            {**r, "source_type": "both", "risk_count": 0, "control_count": 0,
+             "file_name": None, "uploaded_at": None}
+            for r in rows
+        ]
+    return rows
 
 
 @router.post("", status_code=201, dependencies=[analyst_gate])
@@ -165,18 +202,32 @@ async def create_taxonomy(body: TaxonomyCreate, request: Request):
 async def get_taxonomy(taxonomy_id: str, request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    has_new = await _check_new_cols(tenant_id)
+
+    if has_new:
+        sql = """SELECT id, name, version, source_type, schema,
+                        risks_data, controls_data, risk_count, control_count,
+                        active, file_name, uploaded_at, created_at
+                 FROM app.taxonomy_schemas
+                 WHERE id = %s AND tenant_id = %s"""
+    else:
+        sql = """SELECT id, name, version, schema, active, created_at
+                 FROM app.taxonomy_schemas
+                 WHERE id = %s AND tenant_id = %s"""
+
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-        await cur.execute(
-            """SELECT id, name, version, source_type, schema,
-                      risks_data, controls_data, risk_count, control_count,
-                      active, file_name, uploaded_at, created_at
-               FROM app.taxonomy_schemas
-               WHERE id = %s AND tenant_id = %s""",
-            (taxonomy_id, tenant_id),
-        )
+        await cur.execute(sql, (taxonomy_id, tenant_id))
         row = await cur.fetchone()
+
     if not row:
         raise HTTPException(status_code=404, detail="Taxonomy not found")
+
+    if not has_new:
+        row = {
+            **row,
+            "source_type": "both", "risks_data": [], "controls_data": [],
+            "risk_count": 0, "control_count": 0, "file_name": None, "uploaded_at": None,
+        }
     return row
 
 
@@ -187,10 +238,11 @@ async def patch_taxonomy(taxonomy_id: str, body: TaxonomyPatch, request: Request
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         return {"id": taxonomy_id}
-    updates["updated_at"] = "NOW()"
-    set_clauses = ", ".join(f"{k} = %s" for k in updates if k != "updated_at")
-    set_clauses += ", updated_at = NOW()"
-    values = [v for k, v in updates.items() if k != "updated_at"] + [taxonomy_id, tenant_id]
+    has_new = await _check_new_cols(tenant_id)
+    set_clauses = ", ".join(f"{k} = %s" for k in updates)
+    if has_new:
+        set_clauses += ", updated_at = NOW()"
+    values = list(updates.values()) + [taxonomy_id, tenant_id]
     async with get_tenant_cursor(tenant_id) as cur:
         await cur.execute(
             f"UPDATE app.taxonomy_schemas SET {set_clauses} WHERE id = %s AND tenant_id = %s",
