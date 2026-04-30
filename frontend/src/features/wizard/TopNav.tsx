@@ -1,17 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Settings } from "lucide-react";
 import { getSession, signOut } from "@/lib/auth";
 import styles from "./TopNav.module.scss";
+
+const SETTINGS_ROLES = new Set(["delivery_lead", "admin"]);
 
 interface Props {
   assessmentTitle?: string;
   onCreateNew?: () => void;
   createPending?: boolean;
+  onSettingsOpen?: () => void;
 }
 
-export function TopNav({ assessmentTitle, onCreateNew, createPending }: Props) {
+export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettingsOpen }: Props) {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -25,6 +28,8 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending }: Props) {
   const initials = session?.email
     ? session.email.slice(0, 2).toUpperCase()
     : "?";
+
+  const canOpenSettings = session?.role ? SETTINGS_ROLES.has(session.role) : false;
 
   async function handleLogout() {
     await signOut();
@@ -77,6 +82,16 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending }: Props) {
         <div className={styles.assessmentLabel} title={assessmentTitle}>
           {assessmentTitle}
         </div>
+      )}
+
+      {canOpenSettings && onSettingsOpen && (
+        <button
+          className={styles.settingsBtn}
+          onClick={onSettingsOpen}
+          title="Settings & Preferences"
+        >
+          <Settings size={18} strokeWidth={1.75} />
+        </button>
       )}
 
       {/* User avatar + dropdown */}

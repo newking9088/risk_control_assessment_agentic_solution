@@ -118,6 +118,24 @@
   flex-shrink: 0;
 }
 
+/* ── Settings gear ───────────────────────────────────────── */
+.settingsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover { background: #f1f5f9; color: #1e293b; }
+}
+
 /* ── User avatar + dropdown ──────────────────────────────── */
 .userArea {
   position: relative;
