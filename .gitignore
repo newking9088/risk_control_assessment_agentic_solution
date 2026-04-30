@@ -25,6 +25,13 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Images (reference/design assets — never commit)
+*.jpeg
+*.jpg
+*.png
+*.gif
+*.webp
+
 # IDE
 .vscode/
 .idea/
