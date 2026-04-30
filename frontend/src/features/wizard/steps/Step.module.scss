@@ -590,6 +590,308 @@
   &.needs-improvement { background: color-mix(in srgb, var(--ce-3-bg) 25%, white); color: var(--fra-stat-veryhigh); }
 }
 
+/* ── Step 2 progress hints ── */
+.reviewHint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f59e0b;
+  background: #fffbeb;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+}
+
+/* ── Step 2: Operational Profile grid ── */
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.profileCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.profileCardLabel {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.2rem;
+}
+
+.profileCardHint {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 0.65rem;
+  line-height: 1.4;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 28px;
+  margin-bottom: 0.5rem;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+}
+
+.tagRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #60a5fa;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+
+  &:hover { color: #ef4444; }
+}
+
+.tagEmpty {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.tagAddRow {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tagInput {
+  flex: 1;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+  background: #f8fafc;
+
+  &:focus { border-color: #2563eb; background: #fff; }
+}
+
+.tagAddBtn {
+  padding: 0.3rem 0.65rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover { background: #1d4ed8; }
+}
+
+.confirmBtn {
+  padding: 0.55rem 1.4rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) { background: #1d4ed8; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+/* ── Step 2: QA filter bar ── */
+.qaFilterBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.qaBackLink {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+
+  &:hover { color: #2563eb; text-decoration: underline; }
+}
+
+.qaFilters {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.qaFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 99px;
+  background: #fff;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+  &:hover { border-color: #94a3b8; color: #1e293b; }
+}
+
+.qaFilterBtnActive {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.qaFilterCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  padding: 0.05rem 0.4rem;
+  border-radius: 99px;
+  color: #475569;
+}
+
+/* ── Step 2: Accordion sections ── */
+.accordionSection {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.accordionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+
+  &:hover { background: #f1f5f9; }
+}
+
+.accordionTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex: 1;
+}
+
+.accordionMeta {
+  font-size: 0.775rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.accordionChevron {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.accordionBody {
+  padding: 0.25rem 0;
+}
+
+/* ── Step 2: QA question cards ── */
+.qaCard {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child { border-bottom: none; }
+}
+
+.qaCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.qaId {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  margin-top: 1px;
+}
+
+.qaText {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+.qaStatus {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.qaStatus_confident {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.qaStatus_needs_review {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.qaStatus_unanswered {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* ── Step 2: QA footer ── */
+.qaFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.qaFooterMeta {
+  font-size: 0.825rem;
+  color: #64748b;
+}
+
 /* ── Focus cards (Risk scope selection) ── */
 .focusGrid {
   display: grid;
