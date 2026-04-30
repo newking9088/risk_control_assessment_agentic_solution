@@ -1,0 +1,338 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Sections ───────────────────────────────────────────────── */
+.section {
+  padding: 1rem 0;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child { border-bottom: none; }
+}
+
+.dangerSection {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  background: #fff5f5;
+}
+
+.sectionTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dangerTitle { color: #dc2626; }
+
+.sectionDesc {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+/* ── Card picker ────────────────────────────────────────────── */
+.cardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+
+  &:hover { border-color: #93c5fd; background: #f0f9ff; }
+}
+
+.cardActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.cardLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.cardDesc {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* ── Radio group ────────────────────────────────────────────── */
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radioItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #1e293b;
+  cursor: pointer;
+
+  input[type="radio"] { margin-top: 2px; accent-color: #2563eb; flex-shrink: 0; }
+}
+
+.radioDesc {
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* ── Labels editor ──────────────────────────────────────────── */
+.labelList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.labelItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.labelIndex {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.labelInput {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #93c5fd; }
+}
+
+/* ── Select ─────────────────────────────────────────────────── */
+.select {
+  width: 100%;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #93c5fd; }
+}
+
+/* ── Field group ────────────────────────────────────────────── */
+.fieldGroup {
+  margin-bottom: 0.9rem;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.3rem;
+}
+
+/* ── Number input ───────────────────────────────────────────── */
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.numberInput {
+  width: 90px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #93c5fd; }
+}
+
+.unit {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+/* ── Range slider ───────────────────────────────────────────── */
+.range {
+  width: 100%;
+  accent-color: #2563eb;
+}
+
+.rangeVal {
+  font-size: 0.78rem;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.rangeLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+/* ── Toggle switches ────────────────────────────────────────── */
+.toggleList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}
+
+.toggleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+}
+
+.toggleLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.toggleDesc {
+  font-size: 0.73rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #cbd5e1;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.18s;
+  padding: 0;
+
+  &[aria-checked="true"] { background: #2563eb; }
+}
+
+.toggleOn { background: #2563eb; }
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s;
+  pointer-events: none;
+
+  .toggle[aria-checked="true"] & { transform: translateX(16px); }
+}
+
+/* ── Locked notice ──────────────────────────────────────────── */
+.lockedNotice {
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* ── Action buttons ─────────────────────────────────────────── */
+.actionBtn {
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #1e293b;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+
+  &:hover:not(:disabled) { background: #f1f5f9; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.actionBtnDanger {
+  color: #dc2626;
+  border-color: #fecaca;
+
+  &:hover:not(:disabled) { background: #fef2f2; }
+}
+
+.cancelSmallBtn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  color: #64748b;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover { background: #f1f5f9; }
+}
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.confirmText {
+  font-size: 0.78rem;
+  color: #dc2626;
+}
+
+.successMsg {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: #16a34a;
+}

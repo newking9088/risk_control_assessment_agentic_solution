@@ -6,6 +6,7 @@ import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
 import { RatingBadge } from "@/components/RatingBadge";
 import { ChatWidget } from "@/features/chat/ChatWidget";
+import { SettingsDrawer } from "@/features/settings/SettingsDrawer";
 import styles from "./assessments.module.scss";
 
 export const Route = createRoute({
@@ -57,6 +58,7 @@ function AssessmentsPage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { data: all = [], isLoading } = useQuery<Assessment[]>({
     queryKey: ["assessments"],
@@ -114,7 +116,11 @@ function AssessmentsPage() {
 
   return (
     <div className={styles.page}>
-      <TopNav onCreateNew={handleNew} createPending={create.isPending} />
+      <TopNav
+        onCreateNew={handleNew}
+        createPending={create.isPending}
+        onSettingsOpen={() => setSettingsOpen(true)}
+      />
 
       <div className={styles.body}>
         <div className={styles.pageHeader}>
@@ -352,6 +358,7 @@ function AssessmentsPage() {
       </footer>
 
       <ChatWidget />
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

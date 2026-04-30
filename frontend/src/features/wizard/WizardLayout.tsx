@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SettingsDrawer } from "@/features/settings/SettingsDrawer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { TopNav } from "./TopNav";
@@ -47,6 +48,7 @@ interface Props {
 export function WizardLayout({ assessmentId, currentStep, assessmentTitle }: Props) {
   const [activeStep, setActiveStep] = useState(currentStep);
   const [stepValid, setStepValid] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const qc = useQueryClient();
 
   const advance = useMutation({
@@ -78,7 +80,7 @@ export function WizardLayout({ assessmentId, currentStep, assessmentTitle }: Pro
 
   return (
     <div className={styles.shell}>
-      <TopNav assessmentTitle={assessmentTitle} />
+      <TopNav assessmentTitle={assessmentTitle} onSettingsOpen={() => setSettingsOpen(true)} />
       <div className={styles.body}>
         <WizardSidebar
           steps={STEPS}
@@ -123,6 +125,7 @@ export function WizardLayout({ assessmentId, currentStep, assessmentTitle }: Pro
         </div>
       </div>
       <ChatWidget assessmentId={assessmentId} />
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
