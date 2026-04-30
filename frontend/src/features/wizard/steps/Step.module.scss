@@ -329,7 +329,317 @@
   &:hover { text-decoration: underline; }
 }
 
-/* ── Inherent / Residual risk rating ── */
+/* ── Step 4: Inherent Risk Rating — master-detail ── */
+.irLayout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.irSidebar {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+}
+
+.irSidebarFilter {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.irFilterBtn {
+  flex: 1;
+  padding: 0.3rem 0.4rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+  &:hover { border-color: #94a3b8; }
+}
+
+.irFilterBtnActive {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.irSidebarList {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.irCategoryHeader {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  border-top: 1px solid #f1f5f9;
+}
+
+.irRiskCard {
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  border-left: 3px solid transparent;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.1s, border-left-color 0.1s;
+
+  &:hover { background: #f8fafc; }
+  &:last-child { border-bottom: none; }
+}
+
+.irRiskCardActive {
+  background: #eff6ff !important;
+  border-left-color: #2563eb !important;
+}
+
+.irRiskCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.irSourceBadge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.irBadgeExt { background: #fce7f3; color: #9d174d; }
+.irBadgeInt { background: #d1fae5; color: #065f46; }
+
+.irStatusPill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 99px;
+}
+
+.irStatusRated   { background: #dcfce7; color: #166534; }
+.irStatusUnrated { background: #fef3c7; color: #92400e; }
+
+.irRiskName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+/* ── Detail panel ── */
+.irDetail {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.irDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.irDetailTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.irDetailMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.irDetailCategory {
+  font-size: 0.78rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+}
+
+.irNavBtns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.irNavBtn {
+  padding: 0.3rem 0.75rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 0.12s;
+
+  &:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.irNavCount {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.irRatingPanels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.irRatingPanel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.irRatingPanelLabel {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.irRatingPanelHint {
+  font-size: 0.775rem;
+  color: #94a3b8;
+  margin: 0 0 0.75rem;
+}
+
+.irLevelButtons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.irLevelBtn {
+  flex: 1;
+  padding: 0.5rem 0.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+
+  &:hover { border-color: #94a3b8; }
+}
+
+.irLevel_low     { &.irLevelActive { background: #f0fdf4; border-color: #22c55e; color: #166534; } }
+.irLevel_medium  { &.irLevelActive { background: #fffbeb; border-color: #f59e0b; color: #92400e; } }
+.irLevel_high    { &.irLevelActive { background: #fff7ed; border-color: #f97316; color: #9a3412; } }
+.irLevel_critical { &.irLevelActive { background: #fef2f2; border-color: #ef4444; color: #991b1b; } }
+
+.irLevelActive { font-weight: 700; }
+
+.irComputedRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.irComputedLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.irComputedBadge {
+  font-size: 0.875rem;
+  font-weight: 800;
+  padding: 0.3rem 0.9rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.irRating_low      { background: #dcfce7; color: #166534; }
+.irRating_medium   { background: #fef3c7; color: #92400e; }
+.irRating_high     { background: #ffedd5; color: #9a3412; }
+.irRating_critical { background: #fee2e2; color: #991b1b; }
+
+.irComputedFormula {
+  font-size: 0.775rem;
+  color: #94a3b8;
+}
+
+.irComputedPending {
+  font-size: 0.775rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.irRationaleSection {
+  margin-bottom: 0.5rem;
+}
+
+.irRationaleInput {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  resize: vertical;
+  min-height: 72px;
+  box-sizing: border-box;
+  margin-top: 0.4rem;
+
+  &:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+}
+
+/* ── Inherent / Residual risk rating (legacy) ── */
 .ratingLayout {
   display: flex;
   flex-direction: column;
