@@ -16,6 +16,7 @@ class RiskCreate(BaseModel):
     category: str
     source: str
     description: Optional[str] = None
+    taxonomy_risk_id: Optional[str] = None
 
 
 class RiskPatch(BaseModel):
@@ -29,21 +30,63 @@ class RiskPatch(BaseModel):
     residual_likelihood: Optional[str] = None
     residual_impact: Optional[str] = None
     rationale: Optional[str] = None
+    applicability_confidence: Optional[float] = None
+    confidence_label: Optional[str] = None
+    decision_basis: Optional[str] = None
+    requires_review: Optional[bool] = None
+
+
+# ── Column-resilience cache ───────────────────────────────────
+_APPLIC_COLS_EXIST: bool | None = None
+
+
+async def _check_applic_cols(tenant_id: str) -> bool:
+    global _APPLIC_COLS_EXIST
+    if _APPLIC_COLS_EXIST is not None:
+        return _APPLIC_COLS_EXIST
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_schema='app' AND table_name='assessment_risks'
+                     AND column_name='applicability_confidence'"""
+            )
+            _APPLIC_COLS_EXIST = (await cur.fetchone()) is not None
+    except Exception:
+        _APPLIC_COLS_EXIST = False
+    return _APPLIC_COLS_EXIST
 
 
 @router.get("/{assessment_id}/risks")
 async def list_risks(assessment_id: str, request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    has_new = await _check_applic_cols(tenant_id)
+
+    if has_new:
+        sql = """SELECT id, assessment_id, name, category, source, description, applicable,
+                        inherent_likelihood, inherent_impact, residual_likelihood, residual_impact,
+                        taxonomy_risk_id, rationale, approved_by,
+                        applicability_confidence, confidence_label, decision_basis, requires_review,
+                        extra_data, created_at
+                 FROM app.assessment_risks WHERE assessment_id = %s ORDER BY category, name"""
+    else:
+        sql = """SELECT id, assessment_id, name, category, source, description, applicable,
+                        inherent_likelihood, inherent_impact, residual_likelihood, residual_impact,
+                        taxonomy_risk_id, rationale, approved_by, created_at
+                 FROM app.assessment_risks WHERE assessment_id = %s ORDER BY category, name"""
+
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-        await cur.execute(
-            """SELECT id, assessment_id, name, category, source, description, applicable,
-                      inherent_likelihood, inherent_impact, residual_likelihood, residual_impact,
-                      taxonomy_risk_id, rationale, approved_by, created_at
-               FROM app.assessment_risks WHERE assessment_id = %s ORDER BY created_at""",
-            (assessment_id,),
-        )
-        return await cur.fetchall()
+        await cur.execute(sql, (assessment_id,))
+        rows = await cur.fetchall()
+
+    if not has_new:
+        rows = [
+            {**r, "applicability_confidence": None, "confidence_label": "manual",
+             "decision_basis": "manual", "requires_review": False, "extra_data": {}}
+            for r in rows
+        ]
+    return rows
 
 
 @router.post("/{assessment_id}/risks", status_code=201)
@@ -54,20 +97,115 @@ async def create_risk(assessment_id: str, body: RiskCreate, request: Request):
     async with get_tenant_cursor(tenant_id) as cur:
         await cur.execute(
             """INSERT INTO app.assessment_risks
-               (id, assessment_id, name, category, source, description)
-               VALUES (%s, %s, %s, %s, %s, %s)""",
-            (risk_id, assessment_id, body.name, body.category, body.source, body.description),
+               (id, assessment_id, name, category, source, description, taxonomy_risk_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (risk_id, assessment_id, body.name, body.category, body.source,
+             body.description, body.taxonomy_risk_id),
         )
     return {"id": risk_id}
+
+
+@router.post("/{assessment_id}/risks/import-from-taxonomy", status_code=200)
+async def import_risks_from_taxonomy(assessment_id: str, request: Request):
+    """Load risks from the active taxonomy into assessment_risks (skip duplicates)."""
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+
+    # Fetch active taxonomy with risks_data
+    async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+        # Check if risks_data column exists
+        await cur.execute(
+            """SELECT column_name FROM information_schema.columns
+               WHERE table_schema='app' AND table_name='taxonomy_schemas'
+                 AND column_name='risks_data'"""
+        )
+        has_risks_data = (await cur.fetchone()) is not None
+
+        if not has_risks_data:
+            return {"imported": 0, "skipped": 0, "message": "No taxonomy data available"}
+
+        await cur.execute(
+            """SELECT id, risks_data FROM app.taxonomy_schemas
+               WHERE tenant_id = %s AND active = TRUE
+               ORDER BY created_at DESC LIMIT 1""",
+            (tenant_id,),
+        )
+        taxonomy = await cur.fetchone()
+
+    if not taxonomy or not taxonomy["risks_data"]:
+        return {"imported": 0, "skipped": 0, "message": "No active taxonomy found"}
+
+    risks_data = taxonomy["risks_data"]
+    imported = 0
+    skipped = 0
+
+    async with get_tenant_cursor(tenant_id) as cur:
+        for r in risks_data:
+            tax_risk_id = r.get("risk_id", "")
+            # Check if already imported for this assessment
+            await cur.execute(
+                """SELECT id FROM app.assessment_risks
+                   WHERE assessment_id = %s AND taxonomy_risk_id = %s""",
+                (assessment_id, tax_risk_id),
+            )
+            # Use connection's own cursor to check
+            # Re-fetch with dict_row
+            pass
+
+        # Re-do with dict_row cursor for check
+    async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+        # Get existing taxonomy_risk_ids for this assessment
+        await cur.execute(
+            "SELECT taxonomy_risk_id FROM app.assessment_risks WHERE assessment_id = %s",
+            (assessment_id,),
+        )
+        existing = {row["taxonomy_risk_id"] for row in await cur.fetchall() if row["taxonomy_risk_id"]}
+
+    async with get_tenant_cursor(tenant_id) as cur:
+        for r in risks_data:
+            tax_risk_id = r.get("risk_id", "")
+            if tax_risk_id in existing:
+                skipped += 1
+                continue
+            source = r.get("source", "EXT").upper()
+            if source not in ("EXT", "INT"):
+                source = "EXT"
+            await cur.execute(
+                """INSERT INTO app.assessment_risks
+                   (id, assessment_id, name, category, source, description, taxonomy_risk_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (str(uuid.uuid4()), assessment_id,
+                 r.get("name", ""), r.get("category", ""),
+                 source, r.get("description", ""), tax_risk_id),
+            )
+            imported += 1
+
+    return {"imported": imported, "skipped": skipped}
 
 
 @router.patch("/{assessment_id}/risks/{risk_id}")
 async def patch_risk(assessment_id: str, risk_id: str, body: RiskPatch, request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    has_new = await _check_applic_cols(tenant_id)
+
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
+
+    # Drop new columns if migration hasn't run
+    if not has_new:
+        for col in ("applicability_confidence", "confidence_label", "decision_basis", "requires_review"):
+            updates.pop(col, None)
+
+    # Handle applicable=False explicitly (model_dump excludes False with if v is not None)
+    raw = body.model_dump()
+    if raw.get("applicable") is False:
+        updates["applicable"] = False
+    if raw.get("requires_review") is False and has_new:
+        updates["requires_review"] = False
+
     if not updates:
         return {"id": risk_id}
+
     set_clauses = ", ".join(f"{k} = %s" for k in updates)
     values = list(updates.values()) + [risk_id, assessment_id]
     async with get_tenant_cursor(tenant_id) as cur:

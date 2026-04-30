@@ -590,6 +590,317 @@
   &.needs-improvement { background: color-mix(in srgb, var(--ce-3-bg) 25%, white); color: var(--fra-stat-veryhigh); }
 }
 
+/* ── Step 3: Risk Applicability Table ── */
+.riskToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.riskToolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.riskToolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.riskSearch {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-family: inherit;
+  width: 200px;
+  outline: none;
+
+  &:focus { border-color: #2563eb; }
+}
+
+.riskCategorySelect {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-family: inherit;
+  background: #fff;
+  outline: none;
+
+  &:focus { border-color: #2563eb; }
+}
+
+.riskSourceBtns {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.riskSourceBtn {
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 99px;
+  background: #fff;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+  &:hover { border-color: #94a3b8; }
+}
+
+.riskSourceBtnActive {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.riskUndecidedBtn {
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 99px;
+  background: #fff;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+  &:hover { border-color: #94a3b8; }
+}
+
+.riskUndecidedBtnActive {
+  border-color: #f59e0b;
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.riskCount {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.importBtn {
+  padding: 0.4rem 0.9rem;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) { background: #1e293b; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.importBanner {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 0.825rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.riskTableCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.riskTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+
+  th {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+    color: #1e293b;
+  }
+
+  tr:last-child td { border-bottom: none; }
+}
+
+.riskRow {
+  transition: background 0.1s;
+  &:hover td { background: #fafafa; }
+}
+
+.riskRowUndecided td {
+  background: #fffbeb;
+}
+
+.riskCategoryCell {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.riskSourceBadge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.riskBadgeExt {
+  background: #fce7f3;
+  color: #9d174d;
+}
+
+.riskBadgeInt {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.riskNameCell {
+  min-width: 200px;
+}
+
+.riskName {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.875rem;
+  margin-bottom: 0.2rem;
+}
+
+.riskDesc {
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.applicableToggle {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.applicableBtn {
+  padding: 0.3rem 0.7rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+
+  &:hover { border-color: #94a3b8; }
+}
+
+.applicableBtnYes {
+  color: #64748b;
+
+  &:hover { border-color: #22c55e; color: #166534; }
+}
+
+.applicableBtnYesActive {
+  border-color: #22c55e !important;
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+}
+
+.applicableBtnNo {
+  color: #64748b;
+
+  &:hover { border-color: #ef4444; color: #991b1b; }
+}
+
+.applicableBtnNoActive {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+.rationaleCell {
+  min-width: 180px;
+}
+
+.rationaleInput {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: #f8fafc;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  min-height: 52px;
+
+  &:focus { border-color: #2563eb; background: #fff; }
+}
+
+.rationalePrompt {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.confidencePill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.confHigh   { background: #dcfce7; color: #166534; }
+.confMedium { background: #fef3c7; color: #92400e; }
+.confLow    { background: #fee2e2; color: #991b1b; }
+.confManual { background: #f1f5f9; color: #64748b; }
+
+.addRiskOpenBtn {
+  margin-top: 0.75rem;
+  padding: 0.4rem 1rem;
+  background: none;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 6px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: border-color 0.12s, color 0.12s;
+
+  &:hover { border-color: #2563eb; color: #2563eb; }
+}
+
 /* ── Step 2 progress hints ── */
 .reviewHint {
   font-size: 0.78rem;
