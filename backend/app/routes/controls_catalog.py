@@ -80,6 +80,21 @@ async def list_controls(
     return {"items": items, "total": total}
 
 
+@router.get("/sources")
+async def list_control_sources(request: Request):
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+        await cur.execute(
+            """SELECT DISTINCT source FROM app.control_catalog
+               WHERE tenant_id = %s AND source IS NOT NULL AND source <> ''
+               ORDER BY source""",
+            (tenant_id,),
+        )
+        rows = await cur.fetchall()
+    return [r["source"] for r in rows]
+
+
 @router.post("", status_code=201, dependencies=[analyst_gate])
 async def create_control(body: ControlCreate, request: Request):
     user = request.state.user

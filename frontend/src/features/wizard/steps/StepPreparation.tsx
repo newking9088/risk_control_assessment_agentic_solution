@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, Trash2, CheckCircle2, AlertCircle,
   BarChart2, Users, GitBranch, FileSearch, Loader2,
+  BookOpen, ShieldCheck, Check,
 } from "lucide-react";
 import clsx from "clsx";
 import { api } from "@/lib/api";
@@ -20,12 +21,23 @@ interface Doc {
   blob_size_bytes: number; uploaded_at: string; category: string;
 }
 
+interface Taxonomy {
+  id: string; name: string; version: string;
+  source_type: string; active: boolean;
+}
+
 const SUPPORT_TYPES = [
   { category: "meeting_minutes",  title: "Meeting Minutes",       desc: "Workshop or kickoff meeting notes",    Icon: FileText    },
   { category: "process_desc",     title: "Process Descriptions",  desc: "Business process documentation",       Icon: FileSearch  },
   { category: "kpis_kris",        title: "KPIs / KRIs",          desc: "Key performance and risk indicators",  Icon: BarChart2   },
   { category: "process_maps",     title: "Process Maps",          desc: "Visual process flow diagrams",         Icon: GitBranch   },
   { category: "stakeholder_list", title: "Stakeholder List",      desc: "Assessment unit stakeholders",         Icon: Users       },
+];
+
+const SCOPE_OPTIONS = [
+  { value: "internal", label: "Insider Threat",  desc: "Risks from employees, contractors, and privileged users" },
+  { value: "external", label: "External Fraud",  desc: "Risks from customers, third parties, and cybercriminals" },
+  { value: "both",     label: "Both",            desc: "Comprehensive coverage of insider and external fraud risks" },
 ];
 
 function fmtBytes(b: number) {
@@ -36,6 +48,13 @@ function fmtBytes(b: number) {
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+// Extract a short org/company name from a taxonomy name
+function extractOrgName(name: string): string {
+  // e.g. "NGC Fraud Risk Framework" → "NGC"
+  const first = name.split(/\s+/)[0];
+  return first ?? name;
 }
 
 export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
@@ -53,8 +72,41 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
     queryFn: () => api.get(`/api/v1/assessments/${assessmentId}/documents`).then((r) => r.json()),
   });
 
+  // Fetch available sources from taxonomy list + controls catalog
+  const { data: taxonomies = [] } = useQuery<Taxonomy[]>({
+    queryKey: ["taxonomies"],
+    queryFn: () => api.get("/api/v1/taxonomy").then((r) => r.json()),
+  });
+
+  const { data: controlSources = [] } = useQuery<string[]>({
+    queryKey: ["controlSources"],
+    queryFn: () => api.get("/api/v1/controls/sources").then((r) => r.json()),
+  });
+
   const [form, setForm] = useState({ title: "", unit_id: "", business_unit: "" });
-  const [uploading, setUploading] = useState<string | null>(null); // category being uploaded
+  const [selectedSources, setSelectedSources] = useState<string[]>(["NGC"]);
+  const [taxonomyScope, setTaxonomyScope] = useState<string>("both");
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [sourcesInitialised, setSourcesInitialised] = useState(false);
+
+  // Build unified source list: one entry per unique org name
+  // Taxonomy entries take priority; control-only sources are appended
+  const taxonomySources = taxonomies.map((t) => ({
+    key:   extractOrgName(t.name),
+    label: t.name,
+    type:  "taxonomy" as const,
+  }));
+  const usedTaxKeys = new Set(taxonomySources.map((s) => s.key));
+  const controlOnlySources = controlSources
+    .filter((s) => !usedTaxKeys.has(s))
+    .map((s) => ({ key: s, label: s, type: "controls" as const }));
+
+  // Always show NGC even if not yet in DB
+  const allSources = [...taxonomySources, ...controlOnlySources];
+  const hasNGC = allSources.some((s) => s.key === "NGC");
+  const displaySources = hasNGC
+    ? allSources
+    : [{ key: "NGC", label: "NGC", type: "controls" as const }, ...allSources];
 
   useEffect(() => {
     if (data) {
@@ -63,15 +115,23 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
         unit_id:       data.unit_id       ?? "",
         business_unit: data.business_unit ?? "",
       });
+      setTaxonomyScope(data.taxonomy_scope ?? "both");
+
+      if (!sourcesInitialised) {
+        setSourcesInitialised(true);
+        const saved = data.risk_sources ?? [];
+        // Auto-select NGC if nothing has been saved yet
+        setSelectedSources(saved.length > 0 ? saved : ["NGC"]);
+      }
     }
-  }, [data]);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     onValidChange(form.title.trim().length > 0 && form.business_unit.trim().length > 0);
   }, [form, onValidChange]);
 
   const save = useMutation({
-    mutationFn: (body: Partial<typeof form>) =>
+    mutationFn: (body: Record<string, unknown>) =>
       api.patch(`/api/v1/assessments/${assessmentId}`, body).then((r) => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assessment", assessmentId] }),
   });
@@ -114,6 +174,19 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
     const f = e.target.files?.[0];
     if (f) uploadFile(f, cat);
     e.target.value = "";
+  }
+
+  function toggleSource(key: string) {
+    setSelectedSources((prev) => {
+      const next = prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key];
+      save.mutate({ risk_sources: next });
+      return next;
+    });
+  }
+
+  function handleScopeClick(value: string) {
+    setTaxonomyScope(value);
+    save.mutate({ taxonomy_scope: value });
   }
 
   const auDocs   = documents.filter((d) => d.category === "au_description" || !d.category);
@@ -291,6 +364,83 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* ── Risk Assessment Focus ── */}
+      <div className={clsx(styles.card, styles.prepFocusCard)}>
+        <div className={styles.prepFocusHeading}>RISK ASSESSMENT FOCUS</div>
+
+        {/* Step A: Risk & Controls Sources */}
+        <div className={styles.prepFocusSection}>
+          <div className={styles.prepFocusSectionLabel}>
+            <BookOpen size={14} className={styles.prepFocusSectionIcon} />
+            Risk &amp; Controls Sources
+          </div>
+          <p className={styles.prepFocusSectionDesc}>
+            Select the risk and controls frameworks that apply to this assessment.
+            Sources are drawn from the Controls Library and Taxonomy configured in the dashboard.
+          </p>
+
+          <div className={styles.prepSourceGrid}>
+            {displaySources.map(({ key, label, type }) => {
+              const selected = selectedSources.includes(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={clsx(styles.prepSourceCard, selected && styles.prepSourceCardActive)}
+                  onClick={() => toggleSource(key)}
+                >
+                  <div className={styles.prepSourceCardTop}>
+                    <span className={clsx(
+                      styles.prepSourceTypeBadge,
+                      type === "taxonomy" ? styles.prepBadgeTaxonomy : styles.prepBadgeControls
+                    )}>
+                      {type === "taxonomy" ? "Taxonomy" : "Controls"}
+                    </span>
+                    {selected && (
+                      <span className={styles.prepSourceCheck}>
+                        <Check size={11} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div className={styles.prepSourceName}>{label}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={styles.prepFocusDivider} />
+
+        {/* Step B: Risk Scope */}
+        <div className={styles.prepFocusSection}>
+          <div className={styles.prepFocusSectionLabel}>
+            <ShieldCheck size={14} className={styles.prepFocusSectionIcon} />
+            Risk Scope
+          </div>
+          <p className={styles.prepFocusSectionDesc}>
+            Define which types of fraud risk this assessment will cover.
+          </p>
+
+          <div className={styles.prepScopeRow}>
+            {SCOPE_OPTIONS.map((opt) => {
+              const active = taxonomyScope === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={clsx(styles.prepScopeBtn, active && styles.prepScopeBtnActive)}
+                  onClick={() => handleScopeClick(opt.value)}
+                >
+                  {active && <Check size={12} strokeWidth={3} className={styles.prepScopeCheck} />}
+                  <span className={styles.prepScopeBtnLabel}>{opt.label}</span>
+                  <span className={styles.prepScopeBtnDesc}>{opt.desc}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
