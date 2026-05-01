@@ -168,7 +168,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
             disabled={importMut.isPending}
             onClick={() => importMut.mutate()}
           >
-            {importMut.isPending ? "Importing…" : "⬇ Load from Taxonomy"}
+            {importMut.isPending ? "Importing…" : "⬇ Load NGC Taxonomy"}
           </button>
         </div>
       </div>
@@ -184,7 +184,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
             <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📋</div>
             <p style={{ margin: "0 0 0.75rem", fontWeight: 600, color: "#1e293b" }}>No risks loaded yet</p>
             <p style={{ margin: "0 0 1rem", color: "#64748b", fontSize: "0.825rem" }}>
-              Click "Load from Taxonomy" to import risks from your active taxonomy, or add them manually below.
+              Click "Load NGC Taxonomy" to import NGC standard risks, or add them manually below.
             </p>
           </div>
         ) : visible.length === 0 ? (
