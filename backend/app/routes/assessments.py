@@ -22,6 +22,7 @@ class AssessmentPatch(BaseModel):
     assessment_date: Optional[str] = None
     owner: Optional[str] = None
     business_unit: Optional[str] = None
+    unit_id: Optional[str] = None
     status: Optional[str] = None
     current_step: Optional[int] = None
     questionnaire: Optional[Any] = None
@@ -30,8 +31,10 @@ class AssessmentPatch(BaseModel):
     risk_sources: Optional[list] = None
 
 
-# ── Column-resilience cache ───────────────────────────────────
+# ── Column-resilience caches ─────────────────────────────────
 _SCOPE_COLS_EXIST: bool | None = None
+_UNIT_COL_EXIST: bool | None = None
+_DOC_CAT_COL_EXIST: bool | None = None
 
 
 async def _check_scope_cols(tenant_id: str) -> bool:
@@ -51,29 +54,69 @@ async def _check_scope_cols(tenant_id: str) -> bool:
     return _SCOPE_COLS_EXIST
 
 
+async def _check_unit_col(tenant_id: str) -> bool:
+    global _UNIT_COL_EXIST
+    if _UNIT_COL_EXIST is not None:
+        return _UNIT_COL_EXIST
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_schema='app' AND table_name='assessments'
+                     AND column_name='unit_id'"""
+            )
+            _UNIT_COL_EXIST = (await cur.fetchone()) is not None
+    except Exception:
+        _UNIT_COL_EXIST = False
+    return _UNIT_COL_EXIST
+
+
+async def _check_doc_cat_col(tenant_id: str) -> bool:
+    global _DOC_CAT_COL_EXIST
+    if _DOC_CAT_COL_EXIST is not None:
+        return _DOC_CAT_COL_EXIST
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_schema='app' AND table_name='assessment_documents'
+                     AND column_name='category'"""
+            )
+            _DOC_CAT_COL_EXIST = (await cur.fetchone()) is not None
+    except Exception:
+        _DOC_CAT_COL_EXIST = False
+    return _DOC_CAT_COL_EXIST
+
+
 @router.get("")
 async def list_assessments(request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_scope = await _check_scope_cols(tenant_id)
+    has_unit = await _check_unit_col(tenant_id)
 
+    extra_cols = ""
     if has_scope:
-        sql = """SELECT id, title, description, scope, assessment_date, owner, business_unit,
-                        status, current_step, taxonomy_scope, risk_sources,
-                        created_by, tenant_id, created_at, updated_at
-                 FROM app.assessments WHERE tenant_id = %s ORDER BY created_at DESC"""
-    else:
-        sql = """SELECT id, title, description, scope, assessment_date, owner, business_unit,
-                        status, current_step,
-                        created_by, tenant_id, created_at, updated_at
-                 FROM app.assessments WHERE tenant_id = %s ORDER BY created_at DESC"""
+        extra_cols += ", taxonomy_scope, risk_sources"
+    if has_unit:
+        extra_cols += ", unit_id"
+
+    sql = f"""SELECT id, title, description, scope, assessment_date, owner, business_unit,
+                    status, current_step{extra_cols},
+                    created_by, tenant_id, created_at, updated_at
+             FROM app.assessments WHERE tenant_id = %s ORDER BY created_at DESC"""
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         await cur.execute(sql, (tenant_id,))
         rows = await cur.fetchall()
 
+    defaults: dict = {}
     if not has_scope:
-        rows = [{**r, "taxonomy_scope": "both", "risk_sources": []} for r in rows]
+        defaults.update({"taxonomy_scope": "both", "risk_sources": []})
+    if not has_unit:
+        defaults.update({"unit_id": ""})
+    if defaults:
+        rows = [{**defaults, **r} for r in rows]
     return rows
 
 
@@ -95,18 +138,18 @@ async def get_assessment(assessment_id: str, request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_scope = await _check_scope_cols(tenant_id)
+    has_unit = await _check_unit_col(tenant_id)
 
+    extra_cols = ""
     if has_scope:
-        sql = """SELECT id, title, description, scope, assessment_date, owner, business_unit,
-                        status, current_step, questionnaire, questionnaire_notes,
-                        taxonomy_scope, risk_sources,
-                        created_by, tenant_id, created_at, updated_at
-                 FROM app.assessments WHERE id = %s"""
-    else:
-        sql = """SELECT id, title, description, scope, assessment_date, owner, business_unit,
-                        status, current_step, questionnaire, questionnaire_notes,
-                        created_by, tenant_id, created_at, updated_at
-                 FROM app.assessments WHERE id = %s"""
+        extra_cols += ", taxonomy_scope, risk_sources"
+    if has_unit:
+        extra_cols += ", unit_id"
+
+    sql = f"""SELECT id, title, description, scope, assessment_date, owner, business_unit,
+                    status, current_step, questionnaire, questionnaire_notes{extra_cols},
+                    created_by, tenant_id, created_at, updated_at
+             FROM app.assessments WHERE id = %s"""
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         await cur.execute(sql, (assessment_id,))
@@ -115,8 +158,13 @@ async def get_assessment(assessment_id: str, request: Request):
     if not row:
         raise NotFoundError("assessment")
 
+    defaults: dict = {}
     if not has_scope:
-        row = {**row, "taxonomy_scope": "both", "risk_sources": []}
+        defaults.update({"taxonomy_scope": "both", "risk_sources": []})
+    if not has_unit:
+        defaults.update({"unit_id": ""})
+    if defaults:
+        row = {**defaults, **row}
     return row
 
 
@@ -125,12 +173,18 @@ async def patch_assessment(assessment_id: str, body: AssessmentPatch, request: R
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_scope = await _check_scope_cols(tenant_id)
+    has_unit = await _check_unit_col(tenant_id)
 
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    # Drop scope columns if the migration hasn't run yet
+    raw = body.model_dump()
+    if raw.get("applicable") is False:
+        updates["applicable"] = False
+
     if not has_scope:
         updates.pop("taxonomy_scope", None)
         updates.pop("risk_sources", None)
+    if not has_unit:
+        updates.pop("unit_id", None)
 
     if not updates:
         return {"id": assessment_id}
@@ -153,4 +207,43 @@ async def delete_assessment(assessment_id: str, request: Request):
         await cur.execute(
             "UPDATE app.assessments SET status = 'archived', updated_at = NOW() WHERE id = %s",
             (assessment_id,),
+        )
+
+
+# ── Document sub-resources ────────────────────────────────────
+
+@router.get("/{assessment_id}/documents")
+async def list_documents(assessment_id: str, request: Request):
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    has_cat = await _check_doc_cat_col(tenant_id)
+
+    if has_cat:
+        sql = """SELECT id, filename, mime_type, blob_size_bytes, uploaded_at, category
+                 FROM app.assessment_documents
+                 WHERE assessment_id = %s
+                 ORDER BY uploaded_at ASC"""
+    else:
+        sql = """SELECT id, filename, mime_type, blob_size_bytes, uploaded_at
+                 FROM app.assessment_documents
+                 WHERE assessment_id = %s
+                 ORDER BY uploaded_at ASC"""
+
+    async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+        await cur.execute(sql, (assessment_id,))
+        rows = await cur.fetchall()
+
+    if not has_cat:
+        rows = [{**r, "category": "au_description"} for r in rows]
+    return rows
+
+
+@router.delete("/{assessment_id}/documents/{doc_id}", status_code=204)
+async def delete_document(assessment_id: str, doc_id: str, request: Request):
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    async with get_tenant_cursor(tenant_id) as cur:
+        await cur.execute(
+            "DELETE FROM app.assessment_documents WHERE id = %s AND assessment_id = %s",
+            (doc_id, assessment_id),
         )

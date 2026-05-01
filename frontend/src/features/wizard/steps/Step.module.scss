@@ -2379,3 +2379,252 @@
     max-width: none;
   }
 }
+
+/* ── Step 1: Preparation (prep*) ── */
+.prepLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: start;
+}
+
+.prepCard {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prepCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.prepCardTitle {
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.prepCardIcon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.prepUploadBtn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover:not(:disabled) { background: #1d4ed8; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.prepFieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prepFileCount {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.prepFileList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.prepFileRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+}
+
+.prepFileIcon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.prepFileMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.prepFileName {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prepFileSizeDt {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.prepFileDelete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover { background: #fee2e2; color: #dc2626; }
+}
+
+.prepFileStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.prepStatusIcon {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.prepUploadPlaceholder {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.775rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.prepPlaceholderIcon {
+  color: #cbd5e1;
+  flex-shrink: 0;
+}
+
+.prepSpinner {
+  animation: prepSpin 0.8s linear infinite;
+}
+
+@keyframes prepSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Supporting Documents */
+.prepSupportCard {
+  padding: 1rem 1.25rem;
+}
+
+.prepSupportHeader {
+  margin-bottom: 0.75rem;
+}
+
+.prepSupportDesc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.2rem 0 0;
+}
+
+.prepDocGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.prepDocTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.1rem 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+  &:hover:not(:disabled) {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+  &:disabled { cursor: not-allowed; opacity: 0.7; }
+}
+
+.prepDocTileUploaded {
+  border-color: #86efac;
+  background: #f0fdf4;
+  &:hover:not(:disabled) {
+    border-color: #4ade80;
+    background: #dcfce7;
+  }
+}
+
+.prepDocIconWrap {
+  color: #64748b;
+  .prepDocTileUploaded & { color: #16a34a; }
+}
+
+.prepDocTileTitle {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.prepDocTileDesc {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.prepDocBadge {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  background: #22c55e;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

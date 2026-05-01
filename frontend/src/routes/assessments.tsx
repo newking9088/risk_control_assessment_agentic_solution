@@ -28,6 +28,7 @@ interface Assessment {
   inherent_risk_rating?: string;
   controls_effectiveness_rating?: string;
   residual_risk_rating?: string;
+  unit_id?: string;
   taxonomy_scope?: string;
   risk_sources?: string[];
 }

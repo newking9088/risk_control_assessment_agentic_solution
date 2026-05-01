@@ -1,110 +1,73 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Upload, FileText, Trash2, CheckCircle2, AlertCircle,
+  BarChart2, Users, GitBranch, FileSearch, Loader2,
+} from "lucide-react";
+import clsx from "clsx";
 import { api } from "@/lib/api";
 import type { StepProps } from "../WizardLayout";
 import styles from "./Step.module.scss";
 
 interface Assessment {
-  title: string;
-  description: string;
-  scope: string;
-  assessment_date: string;
-  owner: string;
-  business_unit: string;
-  taxonomy_scope?: string;
-  risk_sources?: string[];
+  id: string; title: string; description: string; scope: string;
+  assessment_date: string; owner: string; business_unit: string;
+  unit_id?: string; taxonomy_scope?: string; risk_sources?: string[];
 }
 
-const SCOPE_OPTIONS = [
-  {
-    value: "internal",
-    label: "Insider Threat",
-    icon: "🔒",
-    desc: "Focus on internal fraud risks from employees, contractors, and privileged users.",
-  },
-  {
-    value: "external",
-    label: "External Fraud",
-    icon: "🌐",
-    desc: "Focus on external fraud risks from customers, third parties, and cybercriminals.",
-  },
-  {
-    value: "both",
-    label: "Both",
-    icon: "⚖️",
-    desc: "Comprehensive assessment covering both insider threat and external fraud risks.",
-  },
+interface Doc {
+  id: string; filename: string; mime_type: string;
+  blob_size_bytes: number; uploaded_at: string; category: string;
+}
+
+const SUPPORT_TYPES = [
+  { category: "meeting_minutes",  title: "Meeting Minutes",       desc: "Workshop or kickoff meeting notes",    Icon: FileText    },
+  { category: "process_desc",     title: "Process Descriptions",  desc: "Business process documentation",       Icon: FileSearch  },
+  { category: "kpis_kris",        title: "KPIs / KRIs",          desc: "Key performance and risk indicators",  Icon: BarChart2   },
+  { category: "process_maps",     title: "Process Maps",          desc: "Visual process flow diagrams",         Icon: GitBranch   },
+  { category: "stakeholder_list", title: "Stakeholder List",      desc: "Assessment unit stakeholders",         Icon: Users       },
 ];
 
-const SOURCE_OPTIONS = [
-  {
-    value: "transactions",
-    label: "Transaction Monitoring",
-    desc: "Real-time and batch transaction analysis for anomalies.",
-  },
-  {
-    value: "kyc",
-    label: "KYC / CDD Data",
-    desc: "Know Your Customer and Customer Due Diligence records.",
-  },
-  {
-    value: "hr",
-    label: "HR & Access Logs",
-    desc: "Employee access records, role changes, and HR events.",
-  },
-  {
-    value: "audit",
-    label: "Audit Trails",
-    desc: "System audit logs and operational activity records.",
-  },
-  {
-    value: "complaints",
-    label: "Complaints & Disputes",
-    desc: "Customer complaints, disputes, and fraud reports.",
-  },
-  {
-    value: "vendor",
-    label: "Vendor / Third-Party",
-    desc: "Third-party relationships and vendor risk data.",
-  },
-];
+function fmtBytes(b: number) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(2)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
   const qc = useQueryClient();
+  const auRef   = useRef<HTMLInputElement>(null);
+  const suppRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   const { data } = useQuery<Assessment>({
     queryKey: ["assessment", assessmentId],
     queryFn: () => api.get(`/api/v1/assessments/${assessmentId}`).then((r) => r.json()),
   });
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    scope: "",
-    assessment_date: new Date().toISOString().slice(0, 10),
-    owner: "",
-    business_unit: "",
-    taxonomy_scope: "both",
-    risk_sources: [] as string[],
+  const { data: documents = [] } = useQuery<Doc[]>({
+    queryKey: ["documents", assessmentId],
+    queryFn: () => api.get(`/api/v1/assessments/${assessmentId}/documents`).then((r) => r.json()),
   });
+
+  const [form, setForm] = useState({ title: "", unit_id: "", business_unit: "" });
+  const [uploading, setUploading] = useState<string | null>(null); // category being uploaded
 
   useEffect(() => {
     if (data) {
       setForm({
-        title: data.title ?? "",
-        description: data.description ?? "",
-        scope: data.scope ?? "",
-        assessment_date: data.assessment_date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
-        owner: data.owner ?? "",
+        title:         data.title         ?? "",
+        unit_id:       data.unit_id       ?? "",
         business_unit: data.business_unit ?? "",
-        taxonomy_scope: data.taxonomy_scope ?? "both",
-        risk_sources: data.risk_sources ?? [],
       });
     }
   }, [data]);
 
   useEffect(() => {
-    onValidChange(form.title.trim().length > 0 && form.scope.trim().length > 0);
+    onValidChange(form.title.trim().length > 0 && form.business_unit.trim().length > 0);
   }, [form, onValidChange]);
 
   const save = useMutation({
@@ -113,156 +76,218 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assessment", assessmentId] }),
   });
 
-  function set(field: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [field]: value }));
+  const deleteDoc = useMutation({
+    mutationFn: (docId: string) =>
+      api.delete(`/api/v1/assessments/${assessmentId}/documents/${docId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents", assessmentId] }),
+  });
+
+  async function uploadFile(file: File, category: string) {
+    setUploading(category);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(
+        `/api/v1/upload?assessment_id=${assessmentId}&category=${category}`,
+        { method: "POST", credentials: "include", body: fd },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      qc.invalidateQueries({ queryKey: ["documents", assessmentId] });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUploading(null);
+    }
   }
 
-  function handleScopeClick(value: string) {
-    setForm((f) => ({ ...f, taxonomy_scope: value }));
-    save.mutate({ taxonomy_scope: value });
+  function pickFile(ref: React.RefObject<HTMLInputElement | null>) {
+    ref.current?.click();
   }
 
-  function handleSourceToggle(value: string) {
-    setForm((f) => {
-      const current = f.risk_sources;
-      const updated = current.includes(value)
-        ? current.filter((s) => s !== value)
-        : [...current, value];
-      save.mutate({ risk_sources: updated });
-      return { ...f, risk_sources: updated };
-    });
+  function onAuChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) uploadFile(f, "au_description");
+    e.target.value = "";
   }
+
+  function onSuppChange(cat: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) uploadFile(f, cat);
+    e.target.value = "";
+  }
+
+  const auDocs   = documents.filter((d) => d.category === "au_description" || !d.category);
+  const suppDocs = (cat: string) => documents.filter((d) => d.category === cat);
 
   return (
     <div className={styles.step}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Preparation</h2>
-        <p className={styles.stepDesc}>Define the scope, ownership, and timeline for this risk and control assessment.</p>
+        <h2 className={styles.stepTitle}>Step 1: Prepare an Assessment</h2>
+        <p className={styles.stepDesc}>Set up the assessment parameters and upload the supporting documents</p>
       </div>
 
-      <div className={styles.card}>
-        <div className={styles.fieldGrid}>
-          <div className={styles.fieldFull}>
-            <label className={styles.label}>
-              Assessment Title <span className={styles.required}>*</span>
-            </label>
-            <input
-              className={styles.input}
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              onBlur={() => save.mutate(form)}
-              placeholder="e.g. Q1 2026 Fraud Risk & Controls Assessment"
-            />
+      {/* ── Top two-column layout ── */}
+      <div className={styles.prepLayout}>
+
+        {/* Left: Assessment Unit Details */}
+        <div className={clsx(styles.card, styles.prepCard)}>
+          <div className={styles.prepCardHeader}>
+            <span className={styles.prepCardTitle}>
+              <FileText size={14} strokeWidth={2.2} className={styles.prepCardIcon} />
+              Assessment Unit Details
+            </span>
+            <span className={styles.required}>*</span>
           </div>
 
-          <div>
-            <label className={styles.label}>Assessment Owner</label>
-            <input
-              className={styles.input}
-              value={form.owner}
-              onChange={(e) => set("owner", e.target.value)}
-              onBlur={() => save.mutate(form)}
-              placeholder="Full name"
-            />
-          </div>
+          <div className={styles.prepFieldStack}>
+            <div>
+              <label className={styles.label}>
+                Assessment Unit ID <span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                value={form.unit_id}
+                onChange={(e) => setForm((f) => ({ ...f, unit_id: e.target.value }))}
+                onBlur={() => save.mutate({ unit_id: form.unit_id })}
+                placeholder="e.g. RET-228"
+              />
+            </div>
 
-          <div>
-            <label className={styles.label}>Business Unit</label>
-            <input
-              className={styles.input}
-              value={form.business_unit}
-              onChange={(e) => set("business_unit", e.target.value)}
-              onBlur={() => save.mutate(form)}
-              placeholder="e.g. Retail Banking, Payments"
-            />
-          </div>
+            <div>
+              <label className={styles.label}>
+                Assessment Unit Name <span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                onBlur={() => save.mutate({ title: form.title })}
+                placeholder="e.g. Consumer Credit Card Opening"
+              />
+            </div>
 
-          <div>
-            <label className={styles.label}>Assessment Date</label>
-            <input
-              type="date"
-              className={styles.input}
-              value={form.assessment_date}
-              onChange={(e) => set("assessment_date", e.target.value)}
-              onBlur={() => save.mutate(form)}
-            />
-          </div>
-
-          <div className={styles.fieldFull}>
-            <label className={styles.label}>
-              Scope <span className={styles.required}>*</span>
-            </label>
-            <textarea
-              className={styles.textarea}
-              value={form.scope}
-              onChange={(e) => set("scope", e.target.value)}
-              onBlur={() => save.mutate(form)}
-              rows={3}
-              placeholder="Define the processes, systems, or organisational units in scope"
-            />
-          </div>
-
-          <div className={styles.fieldFull}>
-            <label className={styles.label}>Description</label>
-            <textarea
-              className={styles.textarea}
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              onBlur={() => save.mutate(form)}
-              rows={3}
-              placeholder="Brief description of the objectives for this assessment"
-            />
+            <div>
+              <label className={styles.label}>
+                Line of Business <span className={styles.required}>*</span>
+              </label>
+              <input
+                className={styles.input}
+                value={form.business_unit}
+                onChange={(e) => setForm((f) => ({ ...f, business_unit: e.target.value }))}
+                onBlur={() => save.mutate({ business_unit: form.business_unit })}
+                placeholder="e.g. Retail 2"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Risk Focus Selection */}
-      <div className={styles.card} style={{ marginTop: "1rem" }}>
-        <div className={styles.sectionTitle}>Risk Focus</div>
-        <p style={{ fontSize: "0.825rem", color: "#64748b", margin: "0 0 1rem" }}>
-          Select the type of fraud risk this assessment will focus on.
-        </p>
-        <div className={styles.focusGrid}>
-          {SCOPE_OPTIONS.map((opt) => {
-            const active = form.taxonomy_scope === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                className={`${styles.focusCard} ${active ? styles.focusCardActive : ""}`}
-                onClick={() => handleScopeClick(opt.value)}
-              >
-                <div className={styles.focusIconWrap}>{opt.icon}</div>
-                <div className={styles.focusLabel}>{opt.label}</div>
-                <div className={styles.focusDesc}>{opt.desc}</div>
-                {active && <div className={styles.focusSelected}>✓ Selected</div>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        {/* Right: AU Description upload */}
+        <div className={clsx(styles.card, styles.prepCard)}>
+          <div className={styles.prepCardHeader}>
+            <span className={styles.prepCardTitle}>
+              AU Description and Business Process Details
+            </span>
+            <span className={styles.required}>*</span>
+            <input
+              ref={auRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx"
+              style={{ display: "none" }}
+              onChange={onAuChange}
+            />
+            <button
+              type="button"
+              className={styles.prepUploadBtn}
+              onClick={() => pickFile(auRef)}
+              disabled={uploading === "au_description"}
+            >
+              {uploading === "au_description"
+                ? <Loader2 size={13} className={styles.prepSpinner} />
+                : <Upload size={13} />}
+              Upload
+            </button>
+          </div>
 
-      {/* Risk Sources */}
-      <div className={styles.card} style={{ marginTop: "1rem" }}>
-        <div className={styles.sectionTitle}>Risk Data Sources</div>
-        <p style={{ fontSize: "0.825rem", color: "#64748b", margin: "0 0 1rem" }}>
-          Select the data sources that will inform this assessment. Multiple selections allowed.
-        </p>
-        <div className={styles.sourceGrid}>
-          {SOURCE_OPTIONS.map((opt) => {
-            const checked = form.risk_sources.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                className={`${styles.sourceCard} ${checked ? styles.sourceCardActive : ""}`}
-                onClick={() => handleSourceToggle(opt.value)}
-              >
-                <div className={styles.sourceCardCheck}>{checked ? "☑" : "☐"}</div>
-                <div>
-                  <div className={styles.sourceName}>{opt.label}</div>
-                  <div className={styles.sourceDesc}>{opt.desc}</div>
+          {auDocs.length > 0 && (
+            <p className={styles.prepFileCount}>{auDocs.length} file{auDocs.length !== 1 ? "s" : ""} uploaded</p>
+          )}
+
+          <div className={styles.prepFileList}>
+            {auDocs.map((doc) => (
+              <div key={doc.id} className={styles.prepFileRow}>
+                <FileText size={14} className={styles.prepFileIcon} />
+                <div className={styles.prepFileMeta}>
+                  <span className={styles.prepFileName}>{doc.filename}</span>
+                  <span className={styles.prepFileSizeDt}>
+                    {fmtBytes(doc.blob_size_bytes)} · {fmtDate(doc.uploaded_at)}
+                  </span>
                 </div>
+                <button
+                  type="button"
+                  className={styles.prepFileDelete}
+                  onClick={() => deleteDoc.mutate(doc.id)}
+                  title="Remove"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {auDocs.length > 0 && (
+            <div className={styles.prepFileStatus}>
+              <CheckCircle2 size={13} className={styles.prepStatusIcon} />
+              Document analysis complete
+            </div>
+          )}
+
+          {auDocs.length === 0 && uploading !== "au_description" && (
+            <div className={styles.prepUploadPlaceholder}>
+              <AlertCircle size={14} className={styles.prepPlaceholderIcon} />
+              <span>No document uploaded yet. Upload the AU description to proceed.</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Supporting Documents ── */}
+      <div className={clsx(styles.card, styles.prepSupportCard)}>
+        <div className={styles.prepSupportHeader}>
+          <span className={styles.sectionTitle}>Supporting Documents</span>
+          <p className={styles.prepSupportDesc}>
+            Upload relevant documentation to enhance AI-assisted risk identification
+          </p>
+        </div>
+
+        <div className={styles.prepDocGrid}>
+          {SUPPORT_TYPES.map(({ category, title, desc, Icon }) => {
+            const docs = suppDocs(category);
+            const isUploading = uploading === category;
+            return (
+              <button
+                key={category}
+                type="button"
+                className={clsx(styles.prepDocTile, docs.length > 0 && styles.prepDocTileUploaded)}
+                onClick={() => suppRef.current[category]?.click()}
+                disabled={isUploading}
+              >
+                <input
+                  ref={(el) => { suppRef.current[category] = el; }}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                  style={{ display: "none" }}
+                  onChange={(e) => onSuppChange(category, e)}
+                />
+                <div className={styles.prepDocIconWrap}>
+                  {isUploading
+                    ? <Loader2 size={22} className={styles.prepSpinner} />
+                    : <Icon size={22} strokeWidth={1.5} />}
+                </div>
+                <div className={styles.prepDocTileTitle}>{title}</div>
+                <div className={styles.prepDocTileDesc}>{desc}</div>
+                {docs.length > 0 && (
+                  <div className={styles.prepDocBadge}>{docs.length}</div>
+                )}
               </button>
             );
           })}
