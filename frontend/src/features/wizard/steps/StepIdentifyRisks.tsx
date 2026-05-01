@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { RotateCcw, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import clsx from "clsx";
 import type { StepProps } from "../WizardLayout";
@@ -21,30 +22,32 @@ interface RiskRecord {
   taxonomy_risk_id: string | null;
 }
 
-type SourceFilter = "ALL" | "EXT" | "INT";
+interface Assessment {
+  id: string;
+  title: string;
+}
+
+function sourceToL1(source: "EXT" | "INT"): string {
+  return source === "INT" ? "Internal/Insider Fraud/Risk" : "External Fraud/Risk";
+}
 
 export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
   const qc = useQueryClient();
+
+  const { data: assessment } = useQuery<Assessment>({
+    queryKey: ["assessment", assessmentId],
+    queryFn: () => api.get(`/api/v1/assessments/${assessmentId}`).then((r) => r.json()),
+  });
 
   const { data: risks = [], isLoading } = useQuery<RiskRecord[]>({
     queryKey: ["risks", assessmentId],
     queryFn: () => api.get(`/api/v1/assessments/${assessmentId}/risks`).then((r) => r.json()),
   });
 
-  // local rationale drafts (avoids full refetch on every keystroke)
-  const [rationaleMap, setRationaleMap] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const map: Record<string, string> = {};
-    risks.forEach((r) => { map[r.id] = r.rationale ?? ""; });
-    setRationaleMap(map);
-  }, [risks]);
-
-  // Filter state
-  const [search, setSearch]             = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
-  const [undecidedOnly, setUndecidedOnly] = useState(false);
+  const [search, setSearch]       = useState("");
+  const [l1Filter, setL1Filter]   = useState("All");
+  const [l2Filter, setL2Filter]   = useState("All");
+  const [importMsg, setImportMsg] = useState("");
 
   const decidedCount = risks.filter((r) => r.applicable !== null).length;
   const allDecided   = risks.length > 0 && decidedCount === risks.length;
@@ -53,26 +56,23 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
     onValidChange(allDecided);
   }, [allDecided, onValidChange]);
 
-  const categories = [...new Set(risks.map((r) => r.category).filter(Boolean))].sort();
+  const l1Options = ["All", ...new Set(risks.map((r) => sourceToL1(r.source)))].sort();
+  const l2Options = ["All", ...new Set(risks.map((r) => r.category).filter(Boolean))].sort();
 
-  // Filtered view
   const visible = risks.filter((r) => {
-    if (sourceFilter !== "ALL" && r.source !== sourceFilter) return false;
-    if (categoryFilter && r.category !== categoryFilter) return false;
-    if (undecidedOnly && r.applicable !== null) return false;
+    if (l1Filter !== "All" && sourceToL1(r.source) !== l1Filter) return false;
+    if (l2Filter !== "All" && r.category !== l2Filter) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
         r.name.toLowerCase().includes(q) ||
         (r.category ?? "").toLowerCase().includes(q) ||
-        (r.description ?? "").toLowerCase().includes(q) ||
-        (r.rationale ?? "").toLowerCase().includes(q)
+        (r.description ?? "").toLowerCase().includes(q)
       );
     }
     return true;
   });
 
-  // Mutations
   const patchRisk = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
       api.patch(`/api/v1/assessments/${assessmentId}/risks/${id}`, body).then((r) => r.json()),
@@ -89,94 +89,81 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
     },
   });
 
-  const [importMsg, setImportMsg] = useState("");
-
-  function setApplicable(risk: RiskRecord, value: boolean) {
-    patchRisk.mutate({ id: risk.id, body: { applicable: value, decision_basis: "manual", confidence_label: "manual" } });
+  function toggleApplicable(risk: RiskRecord) {
+    const newVal = risk.applicable !== true;
+    patchRisk.mutate({
+      id: risk.id,
+      body: { applicable: newVal, decision_basis: "manual", confidence_label: "manual" },
+    });
   }
 
-  function saveRationale(risk: RiskRecord) {
-    const val = rationaleMap[risk.id] ?? "";
-    if (val !== (risk.rationale ?? "")) {
-      patchRisk.mutate({ id: risk.id, body: { rationale: val } });
-    }
-  }
-
-  const SOURCE_BTNS: { value: SourceFilter; label: string }[] = [
-    { value: "ALL", label: "All Sources" },
-    { value: "EXT", label: "External Fraud" },
-    { value: "INT", label: "Insider Threat" },
-  ];
+  const assessmentTitle = assessment?.title ?? "This Assessment Unit";
 
   return (
     <div className={styles.step}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Identify Relevant Risks</h2>
-        <p className={styles.stepDesc}>
-          Decide which risks are applicable to this assessment. Provide a rationale for each decision.
-          <span className={styles.progressHint}>{decidedCount} of {risks.length} decided</span>
-          {risks.length > 0 && !allDecided && (
-            <span className={styles.reviewHint}>{risks.length - decidedCount} undecided</span>
-          )}
-        </p>
+        <h2 className={styles.stepTitle}>Step 3: Identify Relevant Risks (AI Suggested)</h2>
+        <p className={styles.stepDesc}>Select applicable risks for this assessment unit</p>
       </div>
 
-      {/* Toolbar */}
-      <div className={styles.riskToolbar}>
-        <div className={styles.riskToolbarLeft}>
+      {/* ── Filter row ── */}
+      <div className={styles.riskFilterRow}>
+        <div className={clsx(styles.riskFilterGroup, styles.riskFilterGroupWide)}>
+          <label className={styles.riskFilterLabel}>Search</label>
           <input
-            className={styles.riskSearch}
+            className={styles.riskFilterSearch}
             type="text"
-            placeholder="Search risks…"
+            placeholder="Search risk statement, name, or ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select
-            className={styles.riskCategorySelect}
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="">All Categories</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div className={styles.riskSourceBtns}>
-            {SOURCE_BTNS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                className={clsx(styles.riskSourceBtn, { [styles.riskSourceBtnActive]: sourceFilter === value })}
-                onClick={() => setSourceFilter(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className={clsx(styles.riskUndecidedBtn, { [styles.riskUndecidedBtnActive]: undecidedOnly })}
-            onClick={() => setUndecidedOnly((v) => !v)}
-          >
-            Undecided only
-          </button>
         </div>
-
-        <div className={styles.riskToolbarRight}>
-          <span className={styles.riskCount}>{visible.length} risks</span>
-          <button
-            type="button"
-            className={styles.importBtn}
-            disabled={importMut.isPending}
-            onClick={() => importMut.mutate()}
+        <div className={styles.riskFilterGroup}>
+          <label className={styles.riskFilterLabel}>L1 Risk Type</label>
+          <select
+            className={styles.riskFilterSelect}
+            value={l1Filter}
+            onChange={(e) => { setL1Filter(e.target.value); setL2Filter("All"); }}
           >
-            {importMut.isPending ? "Importing…" : "⬇ Load NGC Taxonomy"}
-          </button>
+            {l1Options.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        <div className={styles.riskFilterGroup}>
+          <label className={styles.riskFilterLabel}>L2 Risk Type</label>
+          <select
+            className={styles.riskFilterSelect}
+            value={l2Filter}
+            onChange={(e) => setL2Filter(e.target.value)}
+          >
+            {l2Options.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
         </div>
       </div>
 
       {importMsg && <div className={styles.importBanner}>{importMsg}</div>}
 
-      {/* Table */}
+      {/* ── Risk Table ── */}
       <div className={styles.riskTableCard}>
+        <div className={styles.riskTableSectionHeader}>
+          <span className={styles.riskTableSectionTitle}>
+            Applicable Fraud Risks for {assessmentTitle}
+          </span>
+          <div className={styles.riskTableActions}>
+            <button
+              type="button"
+              className={styles.riskIconBtn}
+              onClick={() => importMut.mutate()}
+              disabled={importMut.isPending}
+              title="Load from Taxonomy"
+            >
+              <RotateCcw size={14} />
+            </button>
+            <button type="button" className={styles.riskIconBtn} title="Export">
+              <Download size={14} />
+            </button>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className={styles.emptyState} style={{ padding: "3rem" }}>Loading risks…</div>
         ) : risks.length === 0 ? (
@@ -184,7 +171,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
             <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📋</div>
             <p style={{ margin: "0 0 0.75rem", fontWeight: 600, color: "#1e293b" }}>No risks loaded yet</p>
             <p style={{ margin: "0 0 1rem", color: "#64748b", fontSize: "0.825rem" }}>
-              Click "Load NGC Taxonomy" to import NGC standard risks, or add them manually below.
+              Click the refresh icon above to load risks from the NGC taxonomy.
             </p>
           </div>
         ) : visible.length === 0 ? (
@@ -195,12 +182,11 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
           <table className={styles.riskTable}>
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Source</th>
-                <th>Risk Name</th>
-                <th style={{ width: 160 }}>Applicable?</th>
-                <th>Rationale</th>
-                <th style={{ width: 90 }}>Confidence</th>
+                <th className={styles.riskThL1}>L1 Risk</th>
+                <th className={styles.riskThL2}>L2 Risk</th>
+                <th className={styles.riskThL3}>L3 Risk</th>
+                <th className={styles.riskThApplicable}>Applicable</th>
+                <th className={styles.riskThStatement}>Risk Statement</th>
               </tr>
             </thead>
             <tbody>
@@ -208,10 +194,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
                 <RiskRow
                   key={r.id}
                   risk={r}
-                  rationale={rationaleMap[r.id] ?? ""}
-                  onRationaleChange={(v) => setRationaleMap((m) => ({ ...m, [r.id]: v }))}
-                  onRationaleBlur={() => saveRationale(r)}
-                  onSetApplicable={(v) => setApplicable(r, v)}
+                  onToggle={() => toggleApplicable(r)}
                 />
               ))}
             </tbody>
@@ -219,8 +202,16 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
         )}
       </div>
 
-      {/* Manual add row */}
-      <AddRiskRow assessmentId={assessmentId} onAdded={() => qc.invalidateQueries({ queryKey: ["risks", assessmentId] })} />
+      <div className={styles.riskDecidedBar}>
+        <span className={styles.riskDecidedCount}>
+          {decidedCount} of {risks.length} risks marked applicable
+        </span>
+        {risks.length > 0 && !allDecided && (
+          <span className={styles.riskUndecidedHint}>
+            {risks.length - decidedCount} not yet decided
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -229,141 +220,42 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
 
 interface RiskRowProps {
   risk: RiskRecord;
-  rationale: string;
-  onRationaleChange: (v: string) => void;
-  onRationaleBlur: () => void;
-  onSetApplicable: (v: boolean) => void;
+  onToggle: () => void;
 }
 
-function RiskRow({ risk, rationale, onRationaleChange, onRationaleBlur, onSetApplicable }: RiskRowProps) {
-  const [showRationale, setShowRationale] = useState(false);
-
-  useEffect(() => {
-    if (risk.applicable !== null) setShowRationale(true);
-  }, [risk.applicable]);
-
-  const confidenceLabel = risk.confidence_label ?? (risk.applicable !== null ? "manual" : null);
+function RiskRow({ risk, onToggle }: RiskRowProps) {
+  const isOn = risk.applicable === true;
 
   return (
-    <tr className={clsx(styles.riskRow, risk.applicable === null && styles.riskRowUndecided)}>
-      <td className={styles.riskCategoryCell}>{risk.category}</td>
-      <td>
-        <span className={clsx(styles.riskSourceBadge, risk.source === "EXT" ? styles.riskBadgeExt : styles.riskBadgeInt)}>
-          {risk.source === "EXT" ? "External" : "Insider"}
-        </span>
+    <tr className={styles.riskRow}>
+      <td className={styles.riskL1Cell}>{sourceToL1(risk.source)}</td>
+      <td className={styles.riskL2Cell}>{risk.category}</td>
+      <td className={styles.riskL3Cell}>
+        <span className={styles.riskL3Name}>{risk.name}</span>
+        <button type="button" className={styles.riskInfoBtn} title="More info">?</button>
       </td>
-      <td className={styles.riskNameCell}>
-        <div className={styles.riskName}>{risk.name}</div>
-        {risk.description && (
-          <div className={styles.riskDesc}>{risk.description}</div>
-        )}
+      <td className={styles.riskApplicableCell}>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isOn}
+          className={clsx(styles.riskToggleTrack, isOn && styles.riskToggleTrackOn)}
+          onClick={onToggle}
+        >
+          <span className={styles.riskToggleThumb} />
+        </button>
       </td>
-      <td>
-        <div className={styles.applicableToggle}>
-          <button
-            type="button"
-            className={clsx(styles.applicableBtn, styles.applicableBtnYes, risk.applicable === true && styles.applicableBtnYesActive)}
-            onClick={() => onSetApplicable(true)}
-          >
-            ✓ Yes
-          </button>
-          <button
-            type="button"
-            className={clsx(styles.applicableBtn, styles.applicableBtnNo, risk.applicable === false && styles.applicableBtnNoActive)}
-            onClick={() => onSetApplicable(false)}
-          >
-            ✗ No
-          </button>
-        </div>
-      </td>
-      <td className={styles.rationaleCell}>
-        {risk.applicable !== null ? (
-          <textarea
-            className={styles.rationaleInput}
-            placeholder={risk.applicable ? "Why is this risk applicable?" : "Why is this risk not applicable?"}
-            value={rationale}
-            rows={2}
-            onChange={(e) => onRationaleChange(e.target.value)}
-            onBlur={onRationaleBlur}
-          />
-        ) : (
-          <span className={styles.rationalePrompt}>Decide applicability first</span>
-        )}
-      </td>
-      <td>
-        {confidenceLabel && (
-          <span className={clsx(
-            styles.confidencePill,
-            confidenceLabel === "high"   ? styles.confHigh :
-            confidenceLabel === "medium" ? styles.confMedium :
-            confidenceLabel === "low"    ? styles.confLow :
-            styles.confManual
-          )}>
-            {confidenceLabel === "manual" ? "Manual" :
-             confidenceLabel.charAt(0).toUpperCase() + confidenceLabel.slice(1)}
+      <td className={styles.riskStatementCell}>
+        <p className={styles.riskStatementText}>
+          {risk.description ?? risk.name}
+        </p>
+        <div className={styles.riskStatementFooter}>
+          <span className={styles.riskEvidenceTag}>
+            Evidence: <strong>Questionnaire QA</strong>
           </span>
-        )}
+          <span className={styles.riskAiBadge}>AI</span>
+        </div>
       </td>
     </tr>
-  );
-}
-
-// ── Manual Add Row ────────────────────────────────────────────
-
-const CATEGORIES = ["Operational", "Financial", "Compliance", "Technology", "Fraud", "Reputational", "Strategic"];
-
-function AddRiskRow({ assessmentId, onAdded }: { assessmentId: string; onAdded: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", category: CATEGORIES[0], source: "EXT", description: "" });
-
-  const add = useMutation({
-    mutationFn: (body: typeof form) =>
-      api.post(`/api/v1/assessments/${assessmentId}/risks`, body).then((r) => r.json()),
-    onSuccess: () => {
-      onAdded();
-      setForm({ name: "", category: CATEGORIES[0], source: "EXT", description: "" });
-      setOpen(false);
-    },
-  });
-
-  if (!open) {
-    return (
-      <button type="button" className={styles.addRiskOpenBtn} onClick={() => setOpen(true)}>
-        + Add Risk Manually
-      </button>
-    );
-  }
-
-  return (
-    <div className={styles.addRiskPanel} style={{ marginTop: "0.75rem" }}>
-      <p className={styles.addRiskTitle}>Add Risk Manually</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-        <input
-          className={styles.inputSm}
-          placeholder="Risk name *"
-          value={form.name}
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-        />
-        <div className={styles.inlineRow}>
-          <select className={styles.selectSm} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-          </select>
-          <select className={styles.selectSm} value={form.source} onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}>
-            <option value="EXT">External Fraud</option>
-            <option value="INT">Insider Threat</option>
-          </select>
-          <button className={styles.addBtn} onClick={() => add.mutate(form)} disabled={!form.name.trim() || add.isPending}>
-            {add.isPending ? "Adding…" : "+ Add"}
-          </button>
-          <button className={styles.deleteBtn} onClick={() => setOpen(false)}>Cancel</button>
-        </div>
-        <input
-          className={styles.inputSm}
-          placeholder="Description (optional)"
-          value={form.description}
-          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-        />
-      </div>
-    </div>
   );
 }

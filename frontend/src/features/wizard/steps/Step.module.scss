@@ -1668,6 +1668,276 @@
   &:hover { border-color: #2563eb; color: #2563eb; }
 }
 
+/* ── Step 3 redesign: filter row ── */
+.riskFilterRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.riskFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 160px;
+}
+
+.riskFilterGroupWide {
+  flex: 2;
+  min-width: 240px;
+}
+
+.riskFilterLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.riskFilterSearch {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  &::placeholder { color: #94a3b8; }
+}
+
+.riskFilterSelect {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #2563eb; }
+}
+
+/* ── Step 3: table section header ── */
+.riskTableSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.riskTableSectionTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.riskTableActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.riskIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+
+  &:hover:not(:disabled) { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+/* ── Step 3: table column widths ── */
+.riskThL1         { width: 120px; white-space: normal !important; }
+.riskThL2         { width: 120px; white-space: normal !important; }
+.riskThL3         { width: 200px; white-space: normal !important; }
+.riskThApplicable { width: 90px; text-align: center !important; }
+.riskThStatement  { /* takes remaining width */ }
+
+/* ── Step 3: table cells ── */
+.riskL1Cell {
+  font-size: 0.775rem;
+  color: #475569;
+  line-height: 1.4;
+  vertical-align: top;
+}
+
+.riskL2Cell {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #1e293b;
+  vertical-align: top;
+}
+
+.riskL3Cell {
+  vertical-align: top;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.riskL3Name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.riskInfoBtn {
+  flex-shrink: 0;
+  margin-top: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #94a3b8;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.12s, background 0.12s;
+
+  &:hover { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
+}
+
+.riskApplicableCell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* iOS-style toggle */
+.riskToggleTrack {
+  display: inline-flex;
+  align-items: center;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 99px;
+  background: #cbd5e1;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.riskToggleTrackOn {
+  background: #2563eb;
+}
+
+.riskToggleThumb {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+
+  .riskToggleTrackOn & {
+    transform: translateX(1rem);
+  }
+}
+
+/* ── Step 3: risk statement cell ── */
+.riskStatementCell {
+  vertical-align: top;
+}
+
+.riskStatementText {
+  font-size: 0.825rem;
+  color: #1e293b;
+  line-height: 1.55;
+  margin: 0 0 0.5rem;
+}
+
+.riskStatementFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.riskEvidenceTag {
+  font-size: 0.72rem;
+  color: #64748b;
+
+  strong {
+    color: #1e293b;
+    font-weight: 700;
+  }
+}
+
+.riskAiBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* ── Step 3: decided progress bar ── */
+.riskDecidedBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.riskDecidedCount {
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+}
+
+.riskUndecidedHint {
+  font-weight: 600;
+  color: #b45309;
+  background: #fffbeb;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+}
+
 /* ── Step 2 progress hints ── */
 .reviewHint {
   font-size: 0.78rem;
