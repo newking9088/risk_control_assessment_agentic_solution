@@ -106,7 +106,7 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
   const hasNGC = allSources.some((s) => s.key === "NGC");
   const displaySources = hasNGC
     ? allSources
-    : [{ key: "NGC", label: "NGC", type: "controls" as const }, ...allSources];
+    : [{ key: "NGC", label: "NGC Fraud Risk Framework", type: "taxonomy" as const }, ...allSources];
 
   useEffect(() => {
     if (data) {

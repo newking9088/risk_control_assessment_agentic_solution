@@ -29,12 +29,17 @@ class AssessmentPatch(BaseModel):
     questionnaire_notes: Optional[Any] = None
     taxonomy_scope: Optional[str] = None
     risk_sources: Optional[list] = None
+    inherent_risk_rating: Optional[str] = None
+    controls_effectiveness_rating: Optional[str] = None
+    residual_risk_rating: Optional[str] = None
+    assessment_end_date: Optional[str] = None
 
 
 # ── Column-resilience caches ─────────────────────────────────
 _SCOPE_COLS_EXIST: bool | None = None
 _UNIT_COL_EXIST: bool | None = None
 _DOC_CAT_COL_EXIST: bool | None = None
+_RATING_COLS_EXIST: bool | None = None
 
 
 async def _check_scope_cols(tenant_id: str) -> bool:
@@ -88,18 +93,38 @@ async def _check_doc_cat_col(tenant_id: str) -> bool:
     return _DOC_CAT_COL_EXIST
 
 
+async def _check_rating_cols(tenant_id: str) -> bool:
+    global _RATING_COLS_EXIST
+    if _RATING_COLS_EXIST is not None:
+        return _RATING_COLS_EXIST
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_schema='app' AND table_name='assessments'
+                     AND column_name='inherent_risk_rating'"""
+            )
+            _RATING_COLS_EXIST = (await cur.fetchone()) is not None
+    except Exception:
+        _RATING_COLS_EXIST = False
+    return _RATING_COLS_EXIST
+
+
 @router.get("")
 async def list_assessments(request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_scope = await _check_scope_cols(tenant_id)
     has_unit = await _check_unit_col(tenant_id)
+    has_ratings = await _check_rating_cols(tenant_id)
 
     extra_cols = ""
     if has_scope:
         extra_cols += ", taxonomy_scope, risk_sources"
     if has_unit:
         extra_cols += ", unit_id"
+    if has_ratings:
+        extra_cols += ", inherent_risk_rating, controls_effectiveness_rating, residual_risk_rating, assessment_end_date"
 
     sql = f"""SELECT id, title, description, scope, assessment_date, owner, business_unit,
                     status, current_step{extra_cols},
@@ -115,6 +140,13 @@ async def list_assessments(request: Request):
         defaults.update({"taxonomy_scope": "both", "risk_sources": []})
     if not has_unit:
         defaults.update({"unit_id": ""})
+    if not has_ratings:
+        defaults.update({
+            "inherent_risk_rating": None,
+            "controls_effectiveness_rating": None,
+            "residual_risk_rating": None,
+            "assessment_end_date": None,
+        })
     if defaults:
         rows = [{**defaults, **r} for r in rows]
     return rows
@@ -139,12 +171,15 @@ async def get_assessment(assessment_id: str, request: Request):
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_scope = await _check_scope_cols(tenant_id)
     has_unit = await _check_unit_col(tenant_id)
+    has_ratings = await _check_rating_cols(tenant_id)
 
     extra_cols = ""
     if has_scope:
         extra_cols += ", taxonomy_scope, risk_sources"
     if has_unit:
         extra_cols += ", unit_id"
+    if has_ratings:
+        extra_cols += ", inherent_risk_rating, controls_effectiveness_rating, residual_risk_rating, assessment_end_date"
 
     sql = f"""SELECT id, title, description, scope, assessment_date, owner, business_unit,
                     status, current_step, questionnaire, questionnaire_notes{extra_cols},
@@ -163,6 +198,13 @@ async def get_assessment(assessment_id: str, request: Request):
         defaults.update({"taxonomy_scope": "both", "risk_sources": []})
     if not has_unit:
         defaults.update({"unit_id": ""})
+    if not has_ratings:
+        defaults.update({
+            "inherent_risk_rating": None,
+            "controls_effectiveness_rating": None,
+            "residual_risk_rating": None,
+            "assessment_end_date": None,
+        })
     if defaults:
         row = {**defaults, **row}
     return row
@@ -174,6 +216,7 @@ async def patch_assessment(assessment_id: str, body: AssessmentPatch, request: R
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_scope = await _check_scope_cols(tenant_id)
     has_unit = await _check_unit_col(tenant_id)
+    has_ratings = await _check_rating_cols(tenant_id)
 
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     raw = body.model_dump()
@@ -185,6 +228,11 @@ async def patch_assessment(assessment_id: str, body: AssessmentPatch, request: R
         updates.pop("risk_sources", None)
     if not has_unit:
         updates.pop("unit_id", None)
+    if not has_ratings:
+        updates.pop("inherent_risk_rating", None)
+        updates.pop("controls_effectiveness_rating", None)
+        updates.pop("residual_risk_rating", None)
+        updates.pop("assessment_end_date", None)
 
     if not updates:
         return {"id": assessment_id}

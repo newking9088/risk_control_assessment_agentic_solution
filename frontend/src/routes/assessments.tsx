@@ -257,7 +257,7 @@ function AssessmentsPage() {
                             })
                           }
                         >
-                          <td className={styles.auId}>{shortId(a.id)}</td>
+                          <td className={styles.auId}>{a.unit_id || shortId(a.id)}</td>
                           <td className={styles.auName}>{a.title}</td>
                           <td>
                             <RatingBadge
