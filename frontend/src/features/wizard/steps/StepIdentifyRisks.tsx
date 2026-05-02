@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RotateCcw, Download } from "lucide-react";
+import { RotateCcw, Maximize2 } from "lucide-react";
 import { api } from "@/lib/api";
 import clsx from "clsx";
 import type { StepProps } from "../WizardLayout";
@@ -79,7 +79,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["risks", assessmentId] }),
   });
 
-  const importMut = useMutation({
+  const importMut = useMutation<{ imported: number; skipped: number }, Error, void>({
     mutationFn: () =>
       api.post(`/api/v1/assessments/${assessmentId}/risks/import-from-taxonomy`, {}).then((r) => r.json()),
     onSuccess: (data) => {
@@ -107,6 +107,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
       </div>
 
       {/* ── Filter row ── */}
+      <div className={styles.riskFilterCard}>
       <div className={styles.riskFilterRow}>
         <div className={clsx(styles.riskFilterGroup, styles.riskFilterGroupWide)}>
           <label className={styles.riskFilterLabel}>Search</label>
@@ -139,6 +140,7 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
           </select>
         </div>
       </div>
+      </div>
 
       {importMsg && <div className={styles.importBanner}>{importMsg}</div>}
 
@@ -158,8 +160,8 @@ export function StepIdentifyRisks({ assessmentId, onValidChange }: StepProps) {
             >
               <RotateCcw size={14} />
             </button>
-            <button type="button" className={styles.riskIconBtn} title="Export">
-              <Download size={14} />
+            <button type="button" className={styles.riskIconBtn} title="Expand view">
+              <Maximize2 size={14} />
             </button>
           </div>
         </div>
@@ -231,8 +233,10 @@ function RiskRow({ risk, onToggle }: RiskRowProps) {
       <td className={styles.riskL1Cell}>{sourceToL1(risk.source)}</td>
       <td className={styles.riskL2Cell}>{risk.category}</td>
       <td className={styles.riskL3Cell}>
-        <span className={styles.riskL3Name}>{risk.name}</span>
-        <button type="button" className={styles.riskInfoBtn} title="More info">?</button>
+        <div className={styles.riskL3Inner}>
+          <span className={styles.riskL3Name}>{risk.name}</span>
+          <button type="button" className={styles.riskInfoBtn} title="More info">?</button>
+        </div>
       </td>
       <td className={styles.riskApplicableCell}>
         <button
