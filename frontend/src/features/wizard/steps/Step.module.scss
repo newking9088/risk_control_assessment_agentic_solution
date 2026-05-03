@@ -421,6 +421,13 @@
   margin-bottom: 0.3rem;
 }
 
+// Single-row layout: [badge] [name] [rating]
+.irRiskCardRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .irSourceBadge {
   font-size: 0.62rem;
   font-weight: 800;
@@ -429,8 +436,8 @@
   flex-shrink: 0;
 }
 
-.irBadgeExt { background: #fce7f3; color: #9d174d; }
-.irBadgeInt { background: #d1fae5; color: #065f46; }
+.irBadgeExt { background: #dbeafe; color: #1e40af; }
+.irBadgeInt { background: #ffedd5; color: #9a3412; }
 
 .irStatusPill {
   font-size: 0.62rem;
@@ -443,10 +450,14 @@
 .irStatusUnrated { background: #fef3c7; color: #92400e; }
 
 .irRiskName {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #1e293b;
   line-height: 1.35;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Detail panel ── */
@@ -3620,6 +3631,8 @@
 
 .irDimIcon {
   font-style: normal;
+  color: #64748b;
+  flex-shrink: 0;
 }
 
 .irDimSliderRow {
