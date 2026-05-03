@@ -79,9 +79,31 @@ function AssessmentsPage() {
   const [newTitle, setNewTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Edit modal state
+  const [editTarget, setEditTarget] = useState<Assessment | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editUnitId, setEditUnitId] = useState("");
+  const [colEmail, setColEmail] = useState("");
+  const [colList, setColList] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   useEffect(() => {
     if (createOpen) setTimeout(() => inputRef.current?.focus(), 50);
   }, [createOpen]);
+
+  function openEdit(a: Assessment) {
+    setEditTarget(a);
+    setEditTitle(a.title);
+    setEditUnitId(a.unit_id ?? shortId(a.id));
+    setColList([]);
+    setColEmail("");
+    setConfirmDelete(false);
+  }
+
+  function closeEdit() {
+    setEditTarget(null);
+    setConfirmDelete(false);
+  }
 
   const { data: all = [], isLoading } = useQuery<Assessment[]>({
     queryKey: ["assessments"],
@@ -94,6 +116,24 @@ function AssessmentsPage() {
     onSuccess: (a: Assessment) => {
       qc.invalidateQueries({ queryKey: ["assessments"] });
       navigate({ to: "/assessments/$id/wizard", params: { id: a.id } });
+    },
+  });
+
+  const rename = useMutation({
+    mutationFn: ({ id, title, unit_id }: { id: string; title: string; unit_id: string }) =>
+      api.patch(`/api/v1/assessments/${id}`, { title, unit_id }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["assessments"] });
+      closeEdit();
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) =>
+      api.delete(`/api/v1/assessments/${id}`).then(r => r.ok ? {} : r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["assessments"] });
+      closeEdit();
     },
   });
 
@@ -329,17 +369,11 @@ function AssessmentsPage() {
                               ? fmtDate(a.updated_at)
                               : "—"}
                           </td>
-                          <td>
+                          <td onClick={(e) => e.stopPropagation()}>
                             <button
                               className={styles.editBtn}
-                              title="Open assessment"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate({
-                                  to: "/assessments/$id/wizard",
-                                  params: { id: a.id },
-                                });
-                              }}
+                              title="Edit assessment"
+                              onClick={() => openEdit(a)}
                             >
                               ✏
                             </button>
@@ -390,6 +424,112 @@ function AssessmentsPage() {
 
       <ChatWidget />
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {/* ── Edit Assessment Modal ── */}
+      {editTarget && (
+        <div className={styles.modalOverlay} onClick={closeEdit}>
+          <div className={styles.editModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.editModalHeader}>
+              <h2 className={styles.modalTitle}>Edit Assessment Unit</h2>
+              <button className={styles.editModalClose} onClick={closeEdit}>✕</button>
+            </div>
+
+            {/* Details */}
+            <div className={styles.editSection}>
+              <div className={styles.editSectionTitle}>Details</div>
+              <label className={styles.editLabel}>Assessment Unit Name</label>
+              <input
+                className={styles.modalInput}
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                placeholder="e.g. Contact Center"
+              />
+              <label className={styles.editLabel}>AU ID</label>
+              <input
+                className={styles.modalInput}
+                value={editUnitId}
+                onChange={e => setEditUnitId(e.target.value)}
+                placeholder="e.g. AU-001"
+              />
+              <div className={styles.editActions}>
+                <button className={styles.modalCancelBtn} onClick={closeEdit}>Cancel</button>
+                <button
+                  className={styles.modalCreateBtn}
+                  disabled={!editTitle.trim() || rename.isPending}
+                  onClick={() => rename.mutate({ id: editTarget.id, title: editTitle.trim(), unit_id: editUnitId.trim() })}
+                >
+                  {rename.isPending ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            </div>
+
+            {/* Collaborate */}
+            <div className={styles.editSection}>
+              <div className={styles.editSectionTitle}>Collaborate</div>
+              <p className={styles.editSectionDesc}>Invite team members to view or contribute to this assessment.</p>
+              <div className={styles.colRow}>
+                <input
+                  className={styles.colInput}
+                  type="email"
+                  placeholder="colleague@company.com"
+                  value={colEmail}
+                  onChange={e => setColEmail(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && colEmail.trim()) {
+                      setColList(l => [...l, colEmail.trim()]);
+                      setColEmail("");
+                    }
+                  }}
+                />
+                <button
+                  className={styles.colInviteBtn}
+                  disabled={!colEmail.trim()}
+                  onClick={() => { setColList(l => [...l, colEmail.trim()]); setColEmail(""); }}
+                >
+                  Invite
+                </button>
+              </div>
+              {colList.length > 0 && (
+                <ul className={styles.colList}>
+                  {colList.map((email, i) => (
+                    <li key={i} className={styles.colItem}>
+                      <span className={styles.colAvatar}>{email[0].toUpperCase()}</span>
+                      <span className={styles.colEmail}>{email}</span>
+                      <span className={styles.colPending}>Invite pending</span>
+                      <button className={styles.colRemove} onClick={() => setColList(l => l.filter((_, j) => j !== i))}>✕</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Danger Zone */}
+            <div className={styles.editDanger}>
+              <div className={styles.editSectionTitle} style={{ color: "#dc2626" }}>Danger Zone</div>
+              {!confirmDelete ? (
+                <>
+                  <p className={styles.editSectionDesc}>Permanently remove this assessment unit from the dashboard.</p>
+                  <button className={styles.dangerBtn} onClick={() => setConfirmDelete(true)}>
+                    Delete Assessment Unit
+                  </button>
+                </>
+              ) : (
+                <div className={styles.confirmRow}>
+                  <span className={styles.confirmText}>Are you sure? This cannot be undone.</span>
+                  <button className={styles.modalCancelBtn} onClick={() => setConfirmDelete(false)}>Cancel</button>
+                  <button
+                    className={styles.dangerBtnConfirm}
+                    disabled={remove.isPending}
+                    onClick={() => remove.mutate(editTarget.id)}
+                  >
+                    {remove.isPending ? "Deleting…" : "Yes, Delete"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Create Assessment Modal ── */}
       {createOpen && (
