@@ -23,6 +23,54 @@ const ALL_CAPABILITIES = [
   { key: "manage_users",       label: "Manage Users" },
 ];
 
+// Always-visible defaults — merged with API data when available
+const DEFAULT_ROLES: RoleConfig[] = [
+  {
+    role: "viewer",
+    display_label: "Viewer",
+    hierarchy_level: 1,
+    capabilities: ["view_assessments"],
+  },
+  {
+    role: "analyst",
+    display_label: "Analyst",
+    hierarchy_level: 2,
+    capabilities: ["view_assessments", "create_edit"],
+  },
+  {
+    role: "senior_analyst",
+    display_label: "Senior Analyst",
+    hierarchy_level: 3,
+    capabilities: ["view_assessments", "create_edit"],
+  },
+  {
+    role: "team_lead",
+    display_label: "Team Lead",
+    hierarchy_level: 4,
+    capabilities: ["view_assessments", "create_edit", "upload_taxonomies"],
+  },
+  {
+    role: "delivery_lead",
+    display_label: "Delivery Lead",
+    hierarchy_level: 5,
+    capabilities: [
+      "view_assessments", "create_edit", "delete_assessments",
+      "manage_taxonomies", "upload_taxonomies", "configure_llm",
+      "clear_cache", "view_audit_logs", "manage_users",
+    ],
+  },
+  {
+    role: "admin",
+    display_label: "Admin",
+    hierarchy_level: 6,
+    capabilities: [
+      "view_assessments", "create_edit", "delete_assessments",
+      "manage_taxonomies", "upload_taxonomies", "configure_llm",
+      "clear_cache", "view_audit_logs", "manage_users",
+    ],
+  },
+];
+
 const ROLE_STYLE: Record<string, { border: string; icon: ReactNode }> = {
   viewer:         { border: "#94a3b8", icon: <Eye size={16} /> },
   analyst:        { border: "#3b82f6", icon: <User size={16} /> },
@@ -35,13 +83,17 @@ const ROLE_STYLE: Record<string, { border: string; icon: ReactNode }> = {
 export function TabRoles() {
   const qc = useQueryClient();
 
-  const { data: roles = [], isLoading } = useQuery({
+  const { data: apiRoles } = useQuery({
     queryKey: ["admin-roles"],
     queryFn: async () => {
       const res = await api.get("/api/v1/admin/roles");
       return res.json() as Promise<RoleConfig[]>;
     },
   });
+
+  // Merge: start from defaults, override with any API data that exists
+  const apiMap = new Map((apiRoles ?? []).map((r) => [r.role, r]));
+  const roles = DEFAULT_ROLES.map((def) => apiMap.get(def.role) ?? def);
 
   const resetMut = useMutation({
     mutationFn: () => api.post("/api/v1/admin/roles/reset", {}),
@@ -67,15 +119,15 @@ export function TabRoles() {
 
       <div className={styles.rolesSubheading}>Role Hierarchy</div>
 
-      {isLoading ? (
-        <div className={styles.emptyState}>Loading…</div>
-      ) : (
-        <div className={styles.rolesGrid}>
-          {roles.map((rc) => (
-            <RoleCard key={rc.role} config={rc} onSaved={() => qc.invalidateQueries({ queryKey: ["admin-roles"] })} />
-          ))}
-        </div>
-      )}
+      <div className={styles.rolesGrid}>
+        {roles.map((rc) => (
+          <RoleCard
+            key={rc.role}
+            config={rc}
+            onSaved={() => qc.invalidateQueries({ queryKey: ["admin-roles"] })}
+          />
+        ))}
+      </div>
     </>
   );
 }
@@ -84,6 +136,7 @@ function RoleCard({ config, onSaved }: { config: RoleConfig; onSaved: () => void
   const [label, setLabel] = useState(config.display_label);
   const [level, setLevel] = useState(String(config.hierarchy_level));
   const [caps, setCaps] = useState<string[]>(config.capabilities ?? []);
+
   const dirty =
     label !== config.display_label ||
     Number(level) !== config.hierarchy_level ||
