@@ -308,7 +308,7 @@ function AssessmentsPage() {
                       <th>Residual Risk Rating</th>
                       <th>Start Date</th>
                       <th>End Date</th>
-                      <th>Edit</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -372,10 +372,10 @@ function AssessmentsPage() {
                           <td onClick={(e) => e.stopPropagation()}>
                             <button
                               className={styles.editBtn}
-                              title="Edit assessment"
+                              title="Actions"
                               onClick={() => openEdit(a)}
                             >
-                              ✏
+                              ⋯
                             </button>
                           </td>
                         </tr>
