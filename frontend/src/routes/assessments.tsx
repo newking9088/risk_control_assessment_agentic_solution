@@ -157,18 +157,21 @@ function AssessmentsPage() {
     return r === "veryhigh" || r === "critical" || r === "high";
   }).length;
 
-  // Tab counts
+  // Tab counts — "all" excludes archived; archived only visible under "Recently Deleted"
+  const active = all.filter((a) => a.status !== "archived");
   const tabCounts: Record<FilterTab, number> = {
-    all: all.length,
-    draft: all.filter((a) => a.status === "draft").length,
-    in_progress: all.filter((a) => a.status === "in_progress").length,
-    complete: all.filter((a) => a.status === "complete").length,
+    all: active.length,
+    draft: active.filter((a) => a.status === "draft").length,
+    in_progress: active.filter((a) => a.status === "in_progress").length,
+    complete: active.filter((a) => a.status === "complete").length,
     archived: all.filter((a) => a.status === "archived").length,
   };
 
   // Filtered rows
   const filtered = all.filter((a) => {
-    const matchesFilter = filter === "all" || a.status === filter;
+    const matchesFilter = filter === "archived"
+      ? a.status === "archived"
+      : a.status !== "archived" && (filter === "all" || a.status === filter);
     const matchesSearch =
       !search || a.title.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
@@ -208,7 +211,7 @@ function AssessmentsPage() {
           <div className={styles.statCard}>
             <span className={styles.statIcon} style={{ color: "var(--fra-stat-medium)" }}>📈</span>
             <div>
-              <div className={styles.statValue}>{all.length}</div>
+              <div className={styles.statValue}>{active.length}</div>
               <div className={styles.statLabel}>Total Assessments</div>
             </div>
           </div>
