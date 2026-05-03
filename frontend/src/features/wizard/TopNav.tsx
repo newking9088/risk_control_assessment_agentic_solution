@@ -6,6 +6,7 @@ import { getSession, signOut } from "@/lib/auth";
 import styles from "./TopNav.module.scss";
 
 const SETTINGS_ROLES = new Set(["delivery_lead", "admin"]);
+const ADMIN_ROLES    = new Set(["delivery_lead", "admin"]);
 
 interface Props {
   assessmentTitle?: string;
@@ -30,6 +31,7 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
     : "?";
 
   const canOpenSettings = session?.role ? SETTINGS_ROLES.has(session.role) : false;
+  const canViewAdmin    = session?.role ? ADMIN_ROLES.has(session.role)    : false;
 
   async function handleLogout() {
     await signOut();
@@ -80,6 +82,11 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
         <Link to="/methodology" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
           Methodology
         </Link>
+        {canViewAdmin && (
+          <Link to="/admin" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
+            Administration
+          </Link>
+        )}
       </nav>
 
       {assessmentTitle && (
