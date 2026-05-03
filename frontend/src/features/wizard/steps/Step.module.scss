@@ -3514,3 +3514,480 @@
   color: #64748b;
   line-height: 1.35;
 }
+
+/* ── Step 4 redesign: slider-based per-dimension rating ── */
+
+// Score badge colors (1=Low … 4=Very High)
+.irScore1    { background: #dcfce7; color: #166534; }
+.irScore2    { background: #fef3c7; color: #92400e; }
+.irScore3    { background: #ffedd5; color: #9a3412; }
+.irScore4    { background: #fee2e2; color: #991b1b; }
+.irScoreNull { background: #f1f5f9; color: #94a3b8; }
+
+// Breadcrumb row in detail header
+.irDetailRef {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.irDetailRefSep {
+  color: #cbd5e1;
+  font-size: 0.65rem;
+}
+
+// Right side of detail header (badge + nav)
+.irDetailHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.irDetailInherentBadge {
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+// Section cards (Likelihood / Impact Ratings)
+.irSection {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.irSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.irSectionTitle {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.irOverallBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+// Dimension rows (slider left | rationale right)
+.irDimRow {
+  display: grid;
+  grid-template-columns: 44% 56%;
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child { border-bottom: none; }
+}
+
+.irDimLeft {
+  padding: 0.75rem 1rem;
+  border-right: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.irDimLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.irDimIcon {
+  font-style: normal;
+}
+
+.irDimSliderRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.irDimSliderEdge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  flex-shrink: 0;
+  width: 10px;
+  text-align: center;
+}
+
+.irSliderInput {
+  flex: 1;
+  accent-color: #2563eb;
+  cursor: pointer;
+  height: 4px;
+}
+
+.irDimValue {
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.irDimRight {
+  padding: 0.65rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.irDimRationale {
+  flex: 1;
+  min-height: 64px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 0.775rem;
+  font-family: inherit;
+  color: #475569;
+  background: #f8fafc;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  line-height: 1.5;
+
+  &:focus { border-color: #2563eb; background: #fff; }
+  &::placeholder { color: #cbd5e1; font-style: italic; }
+}
+
+// ── Step 6: Residual Risk ─────────────────────────────────────
+
+.rrSummaryCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rrSummaryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1rem 1.2rem 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+  gap: 1rem;
+}
+
+.rrSummaryTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rrSummaryIcon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.rrSummarySubtitle {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.rrTopSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.rrTopLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rrTopBadge {
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.3rem 0.9rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.rrTableWrap {
+  overflow-x: auto;
+}
+
+.rrFlatTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+
+  thead tr {
+    background: #f8fafc;
+  }
+
+  th {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+}
+
+.rrThL1  { min-width: 130px; }
+.rrThL2  { min-width: 120px; }
+.rrThL3  { min-width: 160px; }
+.rrThRating { min-width: 110px; text-align: center !important; }
+
+.rrFlatRow {
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #fafbfc; }
+}
+
+.rrCellL1 {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.rrCellL2 {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+  color: #475569;
+  vertical-align: middle;
+}
+
+.rrCellL3 {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.rrCellRating {
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.rrPill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+// Likelihood badge colours (blue scale)
+.rrLikelihood1    { background: #eff6ff; color: #1d4ed8; }
+.rrLikelihood2    { background: #dbeafe; color: #1e40af; }
+.rrLikelihood3    { background: #bfdbfe; color: #1e3a8a; }
+.rrLikelihood4    { background: #93c5fd; color: #1e3a8a; }
+.rrLikelihoodNull { background: #f1f5f9; color: #94a3b8; }
+
+// Control effectiveness badges
+.rrEffEffective   { background: #dcfce7; color: #166534; }
+.rrEffPartial     { background: #fef3c7; color: #92400e; }
+.rrEffNeeds       { background: #ffedd5; color: #9a3412; }
+.rrEffIneffective { background: #fee2e2; color: #991b1b; }
+.rrEffNull        { background: #f1f5f9; color: #94a3b8; }
+
+// ── Step 7: Assessment Summary redesign ──────────────────────
+
+.smRatingCards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.smRatingCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.smRatingCardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.smRatingCardIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.smRatingIconInherent  { background: #ef4444; }
+.smRatingIconCtrl      { background: #f59e0b; }
+.smRatingIconResidual  { background: #f97316; }
+
+.smRatingCardTypeLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.smRatingBadge {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.smRatingRationale {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.smRatingRationaleHead {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.smRatingRationaleText {
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0;
+}
+
+// Assessment Results tiles
+.smResultsSection {
+  margin-bottom: 1rem;
+}
+
+.smSectionTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.65rem;
+}
+
+.smResultsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.smResultTile {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.smResultTileDanger {
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+
+.smResultIcon {
+  color: #94a3b8;
+  margin-bottom: 0.2rem;
+}
+
+.smResultIconDanger {
+  color: #ef4444;
+}
+
+.smResultCount {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.smResultTileDanger .smResultCount {
+  color: #dc2626;
+}
+
+.smResultLabel {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.35;
+}
+
+// Analytics section
+.smAnalyticsSection {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+// Detail section
+.smDetailSection {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem 1.25rem;
+  margin-bottom: 1rem;
+}

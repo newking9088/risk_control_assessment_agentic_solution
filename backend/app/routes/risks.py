@@ -34,10 +34,23 @@ class RiskPatch(BaseModel):
     confidence_label: Optional[str] = None
     decision_basis: Optional[str] = None
     requires_review: Optional[bool] = None
+    likelihood_score: Optional[int] = None
+    financial_impact: Optional[int] = None
+    regulatory_impact: Optional[int] = None
+    legal_impact: Optional[int] = None
+    customer_impact: Optional[int] = None
+    reputational_impact: Optional[int] = None
+    likelihood_rationale: Optional[str] = None
+    financial_rationale: Optional[str] = None
+    regulatory_rationale: Optional[str] = None
+    legal_rationale: Optional[str] = None
+    customer_rationale: Optional[str] = None
+    reputational_rationale: Optional[str] = None
 
 
 # ── Column-resilience cache ───────────────────────────────────
 _APPLIC_COLS_EXIST: bool | None = None
+_IR_DIMS_EXIST: bool | None = None
 
 
 async def _check_applic_cols(tenant_id: str) -> bool:
@@ -57,24 +70,36 @@ async def _check_applic_cols(tenant_id: str) -> bool:
     return _APPLIC_COLS_EXIST
 
 
+async def _check_ir_dims(tenant_id: str) -> bool:
+    global _IR_DIMS_EXIST
+    if _IR_DIMS_EXIST is not None:
+        return _IR_DIMS_EXIST
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_schema='app' AND table_name='assessment_risks'
+                     AND column_name='likelihood_score'"""
+            )
+            _IR_DIMS_EXIST = (await cur.fetchone()) is not None
+    except Exception:
+        _IR_DIMS_EXIST = False
+    return _IR_DIMS_EXIST
+
+
 @router.get("/{assessment_id}/risks")
 async def list_risks(assessment_id: str, request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_new = await _check_applic_cols(tenant_id)
+    has_ir = await _check_ir_dims(tenant_id)
 
+    sql = "SELECT id, assessment_id, name, category, source, description, applicable, inherent_likelihood, inherent_impact, residual_likelihood, residual_impact, taxonomy_risk_id, rationale, approved_by"
     if has_new:
-        sql = """SELECT id, assessment_id, name, category, source, description, applicable,
-                        inherent_likelihood, inherent_impact, residual_likelihood, residual_impact,
-                        taxonomy_risk_id, rationale, approved_by,
-                        applicability_confidence, confidence_label, decision_basis, requires_review,
-                        extra_data, created_at
-                 FROM app.assessment_risks WHERE assessment_id = %s ORDER BY category, name"""
-    else:
-        sql = """SELECT id, assessment_id, name, category, source, description, applicable,
-                        inherent_likelihood, inherent_impact, residual_likelihood, residual_impact,
-                        taxonomy_risk_id, rationale, approved_by, created_at
-                 FROM app.assessment_risks WHERE assessment_id = %s ORDER BY category, name"""
+        sql += ", applicability_confidence, confidence_label, decision_basis, requires_review, extra_data"
+    if has_ir:
+        sql += ", likelihood_score, financial_impact, regulatory_impact, legal_impact, customer_impact, reputational_impact, likelihood_rationale, financial_rationale, regulatory_rationale, legal_rationale, customer_rationale, reputational_rationale"
+    sql += " , created_at FROM app.assessment_risks WHERE assessment_id = %s ORDER BY category, name"
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         await cur.execute(sql, (assessment_id,))
@@ -84,6 +109,14 @@ async def list_risks(assessment_id: str, request: Request):
         rows = [
             {**r, "applicability_confidence": None, "confidence_label": "manual",
              "decision_basis": "manual", "requires_review": False, "extra_data": {}}
+            for r in rows
+        ]
+    if not has_ir:
+        rows = [
+            {**r, "likelihood_score": None, "financial_impact": None, "regulatory_impact": None,
+             "legal_impact": None, "customer_impact": None, "reputational_impact": None,
+             "likelihood_rationale": None, "financial_rationale": None, "regulatory_rationale": None,
+             "legal_rationale": None, "customer_rationale": None, "reputational_rationale": None}
             for r in rows
         ]
     return rows
@@ -188,12 +221,21 @@ async def patch_risk(assessment_id: str, risk_id: str, body: RiskPatch, request:
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_new = await _check_applic_cols(tenant_id)
+    has_ir = await _check_ir_dims(tenant_id)
 
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
 
     # Drop new columns if migration hasn't run
     if not has_new:
         for col in ("applicability_confidence", "confidence_label", "decision_basis", "requires_review"):
+            updates.pop(col, None)
+
+    # Drop IR dimension columns if migration hasn't run
+    if not has_ir:
+        for col in ("likelihood_score", "financial_impact", "regulatory_impact", "legal_impact",
+                    "customer_impact", "reputational_impact", "likelihood_rationale",
+                    "financial_rationale", "regulatory_rationale", "legal_rationale",
+                    "customer_rationale", "reputational_rationale"):
             updates.pop(col, None)
 
     # Handle applicable=False explicitly (model_dump excludes False with if v is not None)

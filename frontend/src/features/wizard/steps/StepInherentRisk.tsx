@@ -5,75 +5,152 @@ import clsx from "clsx";
 import type { StepProps } from "../WizardLayout";
 import styles from "./Step.module.scss";
 
-interface Risk {
+type DimKey = "likelihood" | "financial" | "regulatory" | "legal" | "customer" | "reputational";
+
+interface RiskRecord {
   id: string;
   name: string;
   category: string;
-  source: string;
+  source: "EXT" | "INT";
   applicable: boolean | null;
-  inherent_likelihood: string | null;
-  inherent_impact: string | null;
-  rationale: string | null;
+  taxonomy_risk_id: string | null;
+  likelihood_score: number | null;
+  financial_impact: number | null;
+  regulatory_impact: number | null;
+  legal_impact: number | null;
+  customer_impact: number | null;
+  reputational_impact: number | null;
+  likelihood_rationale: string | null;
+  financial_rationale: string | null;
+  regulatory_rationale: string | null;
+  legal_rationale: string | null;
+  customer_rationale: string | null;
+  reputational_rationale: string | null;
 }
 
-const LEVELS = [
-  { value: "low",      label: "Low" },
-  { value: "medium",   label: "Medium" },
-  { value: "high",     label: "High" },
-  { value: "critical", label: "Critical" },
+const LIKELIHOOD_LABELS: Record<number, string> = {
+  1: "Unlikely", 2: "Possible", 3: "Likely", 4: "Almost Certain",
+};
+
+const IMPACT_LABELS: Record<number, string> = {
+  1: "Low", 2: "Medium", 3: "High", 4: "Very High",
+};
+
+// 4×4 matrix [likelihood 1-4][impact 1-4] → inherent rating 1-4
+const IR_MATRIX: number[][] = [
+  [0, 0, 0, 0, 0],  // padding
+  [0, 1, 1, 2, 2],  // likelihood 1
+  [0, 1, 2, 3, 3],  // likelihood 2
+  [0, 2, 3, 3, 4],  // likelihood 3
+  [0, 2, 3, 4, 4],  // likelihood 4
 ];
 
-// 4×4 inherent risk matrix
-const RATING_MATRIX: Record<string, Record<string, string>> = {
-  low:      { low: "low",    medium: "low",    high: "medium",   critical: "medium"   },
-  medium:   { low: "low",    medium: "medium",  high: "high",     critical: "high"     },
-  high:     { low: "medium", medium: "high",    high: "high",     critical: "critical" },
-  critical: { low: "medium", medium: "high",    high: "critical", critical: "critical" },
-};
-
-function computeRating(likelihood: string | null, impact: string | null): string | null {
-  if (!likelihood || !impact) return null;
-  return RATING_MATRIX[likelihood]?.[impact] ?? null;
-}
-
-const RATING_LABELS: Record<string, string> = {
-  low: "Low", medium: "Medium", high: "High", critical: "Critical",
-};
+const IMPACT_DIMS: { key: DimKey; label: string; icon: string }[] = [
+  { key: "financial",     label: "Financial",     icon: "$"  },
+  { key: "regulatory",   label: "Regulatory",    icon: "⚖"  },
+  { key: "legal",        label: "Legal",          icon: "⚖"  },
+  { key: "customer",     label: "Customer",       icon: "👤" },
+  { key: "reputational", label: "Reputational",   icon: "📣" },
+];
 
 type SourceFilter = "ALL" | "EXT" | "INT";
+
+function scoreBadgeClass(score: number | null): string {
+  const map: Record<number, string> = {
+    1: styles.irScore1,
+    2: styles.irScore2,
+    3: styles.irScore3,
+    4: styles.irScore4,
+  };
+  return score !== null ? (map[score] ?? styles.irScoreNull) : styles.irScoreNull;
+}
+
+function likelihoodLabel(score: number | null): string {
+  if (score === null) return "Not set";
+  return `${score} — ${LIKELIHOOD_LABELS[score] ?? ""}`;
+}
+
+function impactLabel(score: number | null): string {
+  if (score === null) return "Not set";
+  return `${score} — ${IMPACT_LABELS[score] ?? ""}`;
+}
+
+function computeOverallImpact(scores: Record<string, number | null>): number | null {
+  const vals = IMPACT_DIMS
+    .map((d) => scores[d.key])
+    .filter((v): v is number => v !== null);
+  return vals.length > 0 ? Math.max(...vals) : null;
+}
+
+function computeInherentRating(likelihood: number | null, impact: number | null): number | null {
+  if (likelihood === null || impact === null) return null;
+  return IR_MATRIX[likelihood]?.[impact] ?? null;
+}
+
+function isFullyRated(r: RiskRecord): boolean {
+  return (
+    r.likelihood_score !== null &&
+    r.financial_impact !== null &&
+    r.regulatory_impact !== null &&
+    r.legal_impact !== null &&
+    r.customer_impact !== null &&
+    r.reputational_impact !== null
+  );
+}
 
 export function StepInherentRisk({ assessmentId, onValidChange }: StepProps) {
   const qc = useQueryClient();
 
-  const { data: allRisks = [], isLoading } = useQuery<Risk[]>({
+  const { data: allRisks = [], isLoading } = useQuery<RiskRecord[]>({
     queryKey: ["risks", assessmentId],
     queryFn: () => api.get(`/api/v1/assessments/${assessmentId}/risks`).then((r) => r.json()),
   });
 
-  // Only applicable risks go through rating
   const risks = allRisks.filter((r) => r.applicable === true);
 
   const [selectedId, setSelectedId]     = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
-  const [rationaleMap, setRationaleMap] = useState<Record<string, string>>({});
 
-  // Hydrate rationale map from loaded data
+  // Local state: scores and rationales per risk per dim (for optimistic UI)
+  const [localScores, setLocalScores]         = useState<Record<string, Record<string, number | null>>>({});
+  const [localRationales, setLocalRationales] = useState<Record<string, Record<string, string>>>({});
+
+  // Hydrate from server on load
   useEffect(() => {
-    const map: Record<string, string> = {};
-    risks.forEach((r) => { map[r.id] = r.rationale ?? ""; });
-    setRationaleMap(map);
+    const scores: Record<string, Record<string, number | null>> = {};
+    const rationales: Record<string, Record<string, string>>    = {};
+    risks.forEach((r) => {
+      scores[r.id] = {
+        likelihood:    r.likelihood_score,
+        financial:     r.financial_impact,
+        regulatory:    r.regulatory_impact,
+        legal:         r.legal_impact,
+        customer:      r.customer_impact,
+        reputational:  r.reputational_impact,
+      };
+      rationales[r.id] = {
+        likelihood:    r.likelihood_rationale    ?? "",
+        financial:     r.financial_rationale     ?? "",
+        regulatory:    r.regulatory_rationale    ?? "",
+        legal:         r.legal_rationale         ?? "",
+        customer:      r.customer_rationale      ?? "",
+        reputational:  r.reputational_rationale  ?? "",
+      };
+    });
+    setLocalScores(scores);
+    setLocalRationales(rationales);
   }, [allRisks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-select first unrated risk, or first risk
+  // Auto-select first unrated risk
   useEffect(() => {
     if (!selectedId && risks.length > 0) {
-      const firstUnrated = risks.find((r) => !r.inherent_likelihood || !r.inherent_impact);
-      setSelectedId(firstUnrated?.id ?? risks[0].id);
+      const first = risks.find((r) => !isFullyRated(r)) ?? risks[0];
+      setSelectedId(first.id);
     }
   }, [risks, selectedId]);
 
-  const rated    = risks.filter((r) => r.inherent_likelihood && r.inherent_impact).length;
-  const allRated = risks.length > 0 && rated === risks.length;
+  const ratedCount = risks.filter(isFullyRated).length;
+  const allRated   = risks.length > 0 && ratedCount === risks.length;
 
   useEffect(() => {
     onValidChange(allRated);
@@ -85,45 +162,60 @@ export function StepInherentRisk({ assessmentId, onValidChange }: StepProps) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["risks", assessmentId] }),
   });
 
-  function setLevel(riskId: string, field: "inherent_likelihood" | "inherent_impact", value: string) {
+  function getScore(riskId: string, dim: DimKey): number | null {
+    return localScores[riskId]?.[dim] ?? null;
+  }
+
+  function getRationale(riskId: string, dim: DimKey): string {
+    return localRationales[riskId]?.[dim] ?? "";
+  }
+
+  function handleScoreChange(riskId: string, dim: DimKey, value: number) {
+    setLocalScores((prev) => ({
+      ...prev,
+      [riskId]: { ...prev[riskId], [dim]: value },
+    }));
+  }
+
+  function commitScore(riskId: string, dim: DimKey) {
+    const value = localScores[riskId]?.[dim];
+    if (value === null || value === undefined) return;
+    const field = dim === "likelihood" ? "likelihood_score" : `${dim}_impact`;
     patchRisk.mutate({ id: riskId, body: { [field]: value } });
   }
 
-  function saveRationale(riskId: string) {
-    const val = rationaleMap[riskId] ?? "";
-    const current = risks.find((r) => r.id === riskId)?.rationale ?? "";
-    if (val !== current) {
-      patchRisk.mutate({ id: riskId, body: { rationale: val } });
-    }
+  function handleRationaleChange(riskId: string, dim: DimKey, value: string) {
+    setLocalRationales((prev) => ({
+      ...prev,
+      [riskId]: { ...prev[riskId], [dim]: value },
+    }));
   }
 
-  // Sidebar filtered list
+  function commitRationale(riskId: string, dim: DimKey) {
+    const value   = localRationales[riskId]?.[dim] ?? "";
+    const field   = dim === "likelihood" ? "likelihood_rationale" : `${dim}_rationale`;
+    patchRisk.mutate({ id: riskId, body: { [field]: value } });
+  }
+
+  function riskComputedRating(riskId: string): number | null {
+    const likelihood = getScore(riskId, "likelihood");
+    const overall    = computeOverallImpact(localScores[riskId] ?? {});
+    return computeInherentRating(likelihood, overall);
+  }
+
   const sidebarRisks = risks.filter((r) => sourceFilter === "ALL" || r.source === sourceFilter);
   const categories   = [...new Set(sidebarRisks.map((r) => r.category))].sort();
+  const selected     = risks.find((r) => r.id === selectedId) ?? null;
+  const selectedIdx  = risks.findIndex((r) => r.id === selectedId);
 
-  const selected = risks.find((r) => r.id === selectedId) ?? null;
-
-  function goNext() {
-    const idx = risks.findIndex((r) => r.id === selectedId);
-    if (idx < risks.length - 1) setSelectedId(risks[idx + 1].id);
-  }
-
-  function goPrev() {
-    const idx = risks.findIndex((r) => r.id === selectedId);
-    if (idx > 0) setSelectedId(risks[idx - 1].id);
-  }
-
-  const selectedIdx = risks.findIndex((r) => r.id === selectedId);
-
-  const computedRating = selected
-    ? computeRating(selected.inherent_likelihood, selected.inherent_impact)
-    : null;
+  function goNext() { if (selectedIdx < risks.length - 1) setSelectedId(risks[selectedIdx + 1].id); }
+  function goPrev() { if (selectedIdx > 0) setSelectedId(risks[selectedIdx - 1].id); }
 
   if (isLoading) {
     return (
       <div className={styles.step}>
         <div className={styles.stepHeader}>
-          <h2 className={styles.stepTitle}>Inherent Risk Rating</h2>
+          <h2 className={styles.stepTitle}>Step 4: Inherent Risk Rating (AI Suggested)</h2>
         </div>
         <div className={styles.emptyState}>Loading risks…</div>
       </div>
@@ -134,8 +226,8 @@ export function StepInherentRisk({ assessmentId, onValidChange }: StepProps) {
     return (
       <div className={styles.step}>
         <div className={styles.stepHeader}>
-          <h2 className={styles.stepTitle}>Inherent Risk Rating</h2>
-          <p className={styles.stepDesc}>Rate each applicable risk before controls are applied.</p>
+          <h2 className={styles.stepTitle}>Step 4: Inherent Risk Rating (AI Suggested)</h2>
+          <p className={styles.stepDesc}>Rate likelihood and impact for each applicable risk to determine inherent risk.</p>
         </div>
         <div className={styles.card}>
           <p className={styles.emptyState}>
@@ -146,29 +238,37 @@ export function StepInherentRisk({ assessmentId, onValidChange }: StepProps) {
     );
   }
 
+  // Derived values for the selected risk
+  const selLikelihood    = selected ? getScore(selected.id, "likelihood") : null;
+  const selImpactScores  = selected ? localScores[selected.id] ?? {} : {};
+  const selOverallImpact = computeOverallImpact(selImpactScores);
+  const selInherentRating = computeInherentRating(selLikelihood, selOverallImpact);
+
   return (
     <div className={styles.step}>
       <div className={styles.stepHeader}>
-        <h2 className={styles.stepTitle}>Inherent Risk Rating</h2>
+        <h2 className={styles.stepTitle}>Step 4: Inherent Risk Rating (AI Suggested)</h2>
         <p className={styles.stepDesc}>
-          Rate each applicable risk before controls — likelihood × impact.
-          <span className={styles.progressHint}>{rated} / {risks.length} rated</span>
-          {!allRated && (
-            <span className={styles.reviewHint}>{risks.length - rated} unrated</span>
+          Rate likelihood and impact for each applicable risk to determine inherent risk.{" "}
+          <span className={styles.riskDecidedCount}>{ratedCount} / {risks.length} rated</span>
+          {!allRated && risks.length - ratedCount > 0 && (
+            <span className={styles.riskUndecidedHint} style={{ marginLeft: "0.5rem" }}>
+              {risks.length - ratedCount} unrated
+            </span>
           )}
         </p>
       </div>
 
       <div className={styles.irLayout}>
+
         {/* ── Sidebar ── */}
         <div className={styles.irSidebar}>
-          {/* Source filter */}
           <div className={styles.irSidebarFilter}>
             {(["ALL", "EXT", "INT"] as SourceFilter[]).map((v) => (
               <button
                 key={v}
                 type="button"
-                className={clsx(styles.irFilterBtn, { [styles.irFilterBtnActive]: sourceFilter === v })}
+                className={clsx(styles.irFilterBtn, v === sourceFilter && styles.irFilterBtnActive)}
                 onClick={() => setSourceFilter(v)}
               >
                 {v === "ALL" ? "All" : v === "EXT" ? "External" : "Insider"}
@@ -176,49 +276,40 @@ export function StepInherentRisk({ assessmentId, onValidChange }: StepProps) {
             ))}
           </div>
 
-          {/* Risk list by category */}
           <div className={styles.irSidebarList}>
             {categories.map((cat) => (
               <div key={cat}>
                 <div className={styles.irCategoryHeader}>{cat}</div>
-                {sidebarRisks
-                  .filter((r) => r.category === cat)
-                  .map((r) => {
-                    const isRated = !!(r.inherent_likelihood && r.inherent_impact);
-                    const rating  = computeRating(r.inherent_likelihood, r.inherent_impact);
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        className={clsx(styles.irRiskCard, {
-                          [styles.irRiskCardActive]: r.id === selectedId,
-                        })}
-                        onClick={() => setSelectedId(r.id)}
-                      >
-                        <div className={styles.irRiskCardTop}>
-                          <span className={clsx(
-                            styles.irSourceBadge,
-                            r.source === "EXT" ? styles.irBadgeExt : styles.irBadgeInt
-                          )}>
-                            {r.source === "EXT" ? "EXT" : "INT"}
-                          </span>
-                          <span className={clsx(
-                            styles.irStatusPill,
-                            isRated ? styles.irStatusRated : styles.irStatusUnrated
-                          )}>
-                            {isRated ? RATING_LABELS[rating!] ?? "Rated" : "Unrated"}
-                          </span>
-                        </div>
-                        <div className={styles.irRiskName}>{r.name}</div>
-                      </button>
-                    );
-                  })}
+                {sidebarRisks.filter((r) => r.category === cat).map((r) => {
+                  const rating = riskComputedRating(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className={clsx(styles.irRiskCard, r.id === selectedId && styles.irRiskCardActive)}
+                      onClick={() => setSelectedId(r.id)}
+                    >
+                      <div className={styles.irRiskCardTop}>
+                        <span className={clsx(
+                          styles.irSourceBadge,
+                          r.source === "EXT" ? styles.irBadgeExt : styles.irBadgeInt,
+                        )}>
+                          {r.source}
+                        </span>
+                        <span className={clsx(styles.irStatusPill, scoreBadgeClass(rating))}>
+                          {rating !== null ? IMPACT_LABELS[rating] : "Unrated"}
+                        </span>
+                      </div>
+                      <div className={styles.irRiskName}>{r.name}</div>
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── Detail panel ── */}
+        {/* ── Detail Panel ── */}
         <div className={styles.irDetail}>
           {!selected ? (
             <div className={styles.emptyState} style={{ padding: "3rem" }}>
@@ -226,119 +317,140 @@ export function StepInherentRisk({ assessmentId, onValidChange }: StepProps) {
             </div>
           ) : (
             <>
-              {/* Detail header */}
+              {/* Header */}
               <div className={styles.irDetailHeader}>
                 <div>
-                  <div className={styles.irDetailTitle}>{selected.name}</div>
-                  <div className={styles.irDetailMeta}>
+                  <div className={styles.irDetailRef}>
                     <span className={clsx(
                       styles.irSourceBadge,
-                      selected.source === "EXT" ? styles.irBadgeExt : styles.irBadgeInt
+                      selected.source === "EXT" ? styles.irBadgeExt : styles.irBadgeInt,
                     )}>
-                      {selected.source === "EXT" ? "External Fraud" : "Insider Threat"}
+                      {selected.source === "EXT" ? "External" : "Internal"}
                     </span>
+                    {selected.taxonomy_risk_id && (
+                      <>
+                        <span className={styles.irDetailRefSep}>|</span>
+                        <span>{selected.taxonomy_risk_id}</span>
+                      </>
+                    )}
+                    <span className={styles.irDetailRefSep}>—</span>
                     <span className={styles.irDetailCategory}>{selected.category}</span>
                   </div>
-                </div>
-                <div className={styles.irNavBtns}>
-                  <button
-                    type="button"
-                    className={styles.irNavBtn}
-                    onClick={goPrev}
-                    disabled={selectedIdx <= 0}
-                  >← Prev</button>
-                  <span className={styles.irNavCount}>{selectedIdx + 1} / {risks.length}</span>
-                  <button
-                    type="button"
-                    className={styles.irNavBtn}
-                    onClick={goNext}
-                    disabled={selectedIdx >= risks.length - 1}
-                  >Next →</button>
-                </div>
-              </div>
-
-              {/* Rating panels */}
-              <div className={styles.irRatingPanels}>
-                {/* Likelihood */}
-                <div className={styles.irRatingPanel}>
-                  <div className={styles.irRatingPanelLabel}>Likelihood</div>
-                  <p className={styles.irRatingPanelHint}>How likely is this risk to materialise?</p>
-                  <div className={styles.irLevelButtons}>
-                    {LEVELS.map((l) => (
-                      <button
-                        key={l.value}
-                        type="button"
-                        className={clsx(
-                          styles.irLevelBtn,
-                          styles[`irLevel_${l.value}`],
-                          { [styles.irLevelActive]: selected.inherent_likelihood === l.value }
-                        )}
-                        onClick={() => setLevel(selected.id, "inherent_likelihood", l.value)}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
+                  <div className={styles.irDetailTitle}>{selected.name}</div>
                 </div>
 
-                {/* Impact */}
-                <div className={styles.irRatingPanel}>
-                  <div className={styles.irRatingPanelLabel}>Impact</div>
-                  <p className={styles.irRatingPanelHint}>What is the severity if this risk occurs?</p>
-                  <div className={styles.irLevelButtons}>
-                    {LEVELS.map((l) => (
-                      <button
-                        key={l.value}
-                        type="button"
-                        className={clsx(
-                          styles.irLevelBtn,
-                          styles[`irLevel_${l.value}`],
-                          { [styles.irLevelActive]: selected.inherent_impact === l.value }
-                        )}
-                        onClick={() => setLevel(selected.id, "inherent_impact", l.value)}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
+                <div className={styles.irDetailHeaderRight}>
+                  <span className={clsx(styles.irDetailInherentBadge, scoreBadgeClass(selInherentRating))}>
+                    Inherent Risk:{" "}
+                    {selInherentRating !== null ? IMPACT_LABELS[selInherentRating] : "Pending"}
+                  </span>
+                  <div className={styles.irNavBtns}>
+                    <button type="button" className={styles.irNavBtn} onClick={goPrev} disabled={selectedIdx <= 0}>
+                      ← Prev
+                    </button>
+                    <span className={styles.irNavCount}>{selectedIdx + 1} / {risks.length}</span>
+                    <button type="button" className={styles.irNavBtn} onClick={goNext} disabled={selectedIdx >= risks.length - 1}>
+                      Next →
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Computed rating */}
-              {computedRating ? (
-                <div className={styles.irComputedRow}>
-                  <span className={styles.irComputedLabel}>Inherent Risk Rating</span>
-                  <span className={clsx(styles.irComputedBadge, styles[`irRating_${computedRating}`])}>
-                    {RATING_LABELS[computedRating]}
-                  </span>
-                  <span className={styles.irComputedFormula}>
-                    {RATING_LABELS[selected.inherent_likelihood!]} likelihood ×{" "}
-                    {RATING_LABELS[selected.inherent_impact!]} impact
-                  </span>
+              {/* ── Likelihood Section ── */}
+              <div className={styles.irSection}>
+                <div className={styles.irSectionHeader}>
+                  <span className={styles.irSectionTitle}>Likelihood</span>
+                  {selLikelihood !== null && (
+                    <span className={clsx(styles.irOverallBadge, scoreBadgeClass(selLikelihood))}>
+                      {likelihoodLabel(selLikelihood)}
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div className={styles.irComputedRow}>
-                  <span className={styles.irComputedLabel}>Inherent Risk Rating</span>
-                  <span className={styles.irComputedPending}>Rate both likelihood and impact to compute</span>
+                <div className={styles.irDimRow}>
+                  <div className={styles.irDimLeft}>
+                    <div className={styles.irDimLabel}>Rating</div>
+                    <div className={styles.irDimSliderRow}>
+                      <span className={styles.irDimSliderEdge}>1</span>
+                      <input
+                        type="range"
+                        min={1} max={4} step={1}
+                        className={styles.irSliderInput}
+                        value={selLikelihood ?? 2}
+                        onChange={(e) => handleScoreChange(selected.id, "likelihood", Number(e.target.value))}
+                        onMouseUp={() => commitScore(selected.id, "likelihood")}
+                        onTouchEnd={() => commitScore(selected.id, "likelihood")}
+                      />
+                      <span className={styles.irDimSliderEdge}>4</span>
+                      <span className={clsx(styles.irDimValue, scoreBadgeClass(selLikelihood))}>
+                        {likelihoodLabel(selLikelihood)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={styles.irDimRight}>
+                    <textarea
+                      className={styles.irDimRationale}
+                      placeholder="Describe the reasoning for this likelihood rating…"
+                      value={getRationale(selected.id, "likelihood")}
+                      onChange={(e) => handleRationaleChange(selected.id, "likelihood", e.target.value)}
+                      onBlur={() => commitRationale(selected.id, "likelihood")}
+                    />
+                  </div>
                 </div>
-              )}
-
-              {/* Rationale */}
-              <div className={styles.irRationaleSection}>
-                <div className={styles.irRatingPanelLabel}>Rationale</div>
-                <textarea
-                  className={styles.irRationaleInput}
-                  placeholder="Document the reasoning behind these ratings…"
-                  rows={3}
-                  value={rationaleMap[selected.id] ?? ""}
-                  onChange={(e) => setRationaleMap((m) => ({ ...m, [selected.id]: e.target.value }))}
-                  onBlur={() => saveRationale(selected.id)}
-                />
               </div>
 
-              {/* Next button */}
+              {/* ── Impact Ratings by Category ── */}
+              <div className={styles.irSection}>
+                <div className={styles.irSectionHeader}>
+                  <span className={styles.irSectionTitle}>Impact Ratings by Category</span>
+                  {selOverallImpact !== null && (
+                    <span className={clsx(styles.irOverallBadge, scoreBadgeClass(selOverallImpact))}>
+                      Overall Impact: {impactLabel(selOverallImpact)}
+                    </span>
+                  )}
+                </div>
+
+                {IMPACT_DIMS.map((dim) => {
+                  const score = getScore(selected.id, dim.key);
+                  return (
+                    <div key={dim.key} className={styles.irDimRow}>
+                      <div className={styles.irDimLeft}>
+                        <div className={styles.irDimLabel}>
+                          <em className={styles.irDimIcon}>{dim.icon}</em>
+                          {dim.label}
+                        </div>
+                        <div className={styles.irDimSliderRow}>
+                          <span className={styles.irDimSliderEdge}>1</span>
+                          <input
+                            type="range"
+                            min={1} max={4} step={1}
+                            className={styles.irSliderInput}
+                            value={score ?? 2}
+                            onChange={(e) => handleScoreChange(selected.id, dim.key, Number(e.target.value))}
+                            onMouseUp={() => commitScore(selected.id, dim.key)}
+                            onTouchEnd={() => commitScore(selected.id, dim.key)}
+                          />
+                          <span className={styles.irDimSliderEdge}>4</span>
+                          <span className={clsx(styles.irDimValue, scoreBadgeClass(score))}>
+                            {impactLabel(score)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.irDimRight}>
+                        <textarea
+                          className={styles.irDimRationale}
+                          placeholder={`Describe the ${dim.label.toLowerCase()} impact reasoning…`}
+                          value={getRationale(selected.id, dim.key)}
+                          onChange={(e) => handleRationaleChange(selected.id, dim.key, e.target.value)}
+                          onBlur={() => commitRationale(selected.id, dim.key)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {selectedIdx < risks.length - 1 && (
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button type="button" className={styles.confirmBtn} onClick={goNext}>
                     Next Risk →
                   </button>
