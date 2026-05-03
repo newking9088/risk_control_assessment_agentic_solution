@@ -1,6 +1,6 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
@@ -8,6 +8,19 @@ import { RatingBadge } from "@/components/RatingBadge";
 import { ChatWidget } from "@/features/chat/ChatWidget";
 import { SettingsDrawer } from "@/features/settings/SettingsDrawer";
 import styles from "./assessments.module.scss";
+
+const SUGGESTED_NAMES = [
+  "Contact Center",
+  "Wealth Management",
+  "Credit Card Opening",
+  "Consumer Lending",
+  "Mortgage Origination",
+  "Retail Banking Operations",
+  "Treasury Operations",
+  "Trade Finance",
+  "Digital Banking",
+  "Insurance Claims",
+];
 
 export const Route = createRoute({
   getParentRoute: () => RootRoute,
@@ -62,6 +75,13 @@ function AssessmentsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (createOpen) setTimeout(() => inputRef.current?.focus(), 50);
+  }, [createOpen]);
 
   const { data: all = [], isLoading } = useQuery<Assessment[]>({
     queryKey: ["assessments"],
@@ -78,7 +98,15 @@ function AssessmentsPage() {
   });
 
   function handleNew() {
-    create.mutate(`Assessment ${new Date().toLocaleDateString()}`);
+    setNewTitle("");
+    setCreateOpen(true);
+  }
+
+  function handleCreate() {
+    const name = newTitle.trim();
+    if (!name) return;
+    create.mutate(name);
+    setCreateOpen(false);
   }
 
   // Stats
@@ -362,6 +390,53 @@ function AssessmentsPage() {
 
       <ChatWidget />
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {/* ── Create Assessment Modal ── */}
+      {createOpen && (
+        <div className={styles.modalOverlay} onClick={() => setCreateOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h2 className={styles.modalTitle}>New Assessment Unit</h2>
+            <p className={styles.modalSubtitle}>
+              Enter the name of the business unit or process being assessed.
+            </p>
+            <input
+              ref={inputRef}
+              className={styles.modalInput}
+              type="text"
+              placeholder="e.g. Contact Center, Credit Card Opening…"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); if (e.key === "Escape") setCreateOpen(false); }}
+            />
+            <div className={styles.modalSuggestLabel}>Suggested names</div>
+            <div className={styles.modalSuggestions}>
+              {SUGGESTED_NAMES.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={styles.modalSuggestChip}
+                  onClick={() => setNewTitle(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <div className={styles.modalActions}>
+              <button type="button" className={styles.modalCancelBtn} onClick={() => setCreateOpen(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.modalCreateBtn}
+                disabled={!newTitle.trim() || create.isPending}
+                onClick={handleCreate}
+              >
+                {create.isPending ? "Creating…" : "Create Assessment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

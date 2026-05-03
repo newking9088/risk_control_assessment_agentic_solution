@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
@@ -174,6 +174,12 @@ export function StepSummary({ assessmentId, onValidChange }: StepProps) {
 
   useEffect(() => { onValidChange(true); }, [onValidChange]);
 
+  const ratingsSaved = useRef(false);
+  const patchAssessment = useMutation({
+    mutationFn: (body: Record<string, string>) =>
+      api.patch(`/api/v1/assessments/${assessmentId}`, body).then(r => r.json()),
+  });
+
   const risks = allRisks.filter(r => r.applicable === true);
 
   // ── Per-risk maps ─────────────────────────────────────────
@@ -199,6 +205,19 @@ export function StepSummary({ assessmentId, onValidChange }: StepProps) {
     const eff = ctrlEffMap[r.id];
     return eff === "Ineffective" || eff === "Needs Improvement";
   }).length;
+
+  // Auto-save computed ratings back to the assessment record so the
+  // dashboard shows up-to-date ratings without manual entry.
+  useEffect(() => {
+    if (ratingsSaved.current) return;
+    if (worstInherent === null || worstResidual === null) return;
+    ratingsSaved.current = true;
+    patchAssessment.mutate({
+      inherent_risk_rating:          SCORE_LABELS[worstInherent],
+      controls_effectiveness_rating: overallCtrlEff ?? "Not Assessed",
+      residual_risk_rating:          SCORE_LABELS[worstResidual],
+    });
+  }, [worstInherent, worstResidual, overallCtrlEff]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Chart data ────────────────────────────────────────────
   const inherentDistrib = ([1, 2, 3, 4] as const).map(s => ({

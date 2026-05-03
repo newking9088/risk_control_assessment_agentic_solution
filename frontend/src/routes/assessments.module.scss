@@ -367,3 +367,117 @@
   a { color: #94a3b8; text-decoration: none; &:hover { color: #64748b; } }
 }
 
+/* ── Create Assessment Modal ─────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  width: 500px;
+  max-width: calc(100vw - 2rem);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.modalTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.3rem;
+}
+
+.modalSubtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0 0 1.1rem;
+}
+
+.modalInput {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 0.85rem;
+  font-family: inherit;
+
+  &:focus { border-color: #2563eb; }
+  &::placeholder { color: #cbd5e1; }
+}
+
+.modalSuggestLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.45rem;
+}
+
+.modalSuggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.4rem;
+}
+
+.modalSuggestChip {
+  padding: 0.25rem 0.7rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 99px;
+  font-size: 0.76rem;
+  color: #475569;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+
+  &:hover { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modalCancelBtn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover { background: #f8fafc; }
+}
+
+.modalCreateBtn {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover:not(:disabled) { background: #1d4ed8; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
