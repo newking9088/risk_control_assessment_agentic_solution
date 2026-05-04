@@ -213,13 +213,24 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
 
     async with get_tenant_cursor(tenant_id) as cur:
         for row in reader:
-            name = (row.get("name") or row.get("Name") or "").strip()
+            # Accepts both our standard headers and NGC-style headers:
+            #   name         | Name          | Control Name  | control_name
+            #   description  | Description
+            #   control_type | Type                               (Preventive / Prevent / …)
+            #   is_key_control | Key Control                     (TRUE/YES/Y/1/Key)
+            #   source       | Source                            (NGC / FFIEC / …)
+            #   category     | Category      | Control Type       (External / Internal)
+            #   display_label| Label         | Control ID | control_id
+            name = (
+                row.get("name") or row.get("Name") or
+                row.get("control_name") or row.get("Control Name") or ""
+            ).strip()
             if not name:
                 skipped += 1
                 continue
 
             raw_key = (row.get("is_key_control") or row.get("Key Control") or "").strip().upper()
-            is_key = raw_key in ("TRUE", "YES", "Y", "1")
+            is_key = raw_key in ("TRUE", "YES", "Y", "1", "KEY")
 
             try:
                 await cur.execute(
@@ -236,8 +247,14 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
                         (row.get("control_type") or row.get("Type") or "").strip() or None,
                         is_key,
                         (row.get("source") or row.get("Source") or "").strip() or None,
-                        (row.get("category") or row.get("Category") or "").strip() or None,
-                        (row.get("display_label") or row.get("Label") or "").strip() or None,
+                        (
+                            row.get("category") or row.get("Category") or
+                            row.get("Control Type") or ""
+                        ).strip() or None,
+                        (
+                            row.get("display_label") or row.get("Label") or
+                            row.get("control_id") or row.get("Control ID") or ""
+                        ).strip() or None,
                         user.get("email"),
                     ),
                 )

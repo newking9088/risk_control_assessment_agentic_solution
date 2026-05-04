@@ -288,6 +288,47 @@ class TestColumnAliases:
         assert resp.status_code == 200
         assert resp.json()["inserted"] == 1
 
+    def test_ngc_column_headers(self, upload_client):
+        # Exact column names from docs/ngc_controls.xlsx:
+        # Control ID, Control Type, Control Name, Description, Type, Key Control, Source
+        uid = _uid()
+        csv = (
+            "Control ID,Control Type,Control Name,Description,Type,Key Control,Source\n"
+            f"EFC-001,External,NGC Control {uid},Verifies federal ID documents,Prevent,Non-key,NGC\n"
+            f"EFC-002,Internal,NGC Key Control {uid},Transaction monitoring,Detect,Key,NGC"
+        )
+        resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json() == {"inserted": 2, "skipped": 0}
+
+    def test_ngc_key_value_parsed_as_true(self, upload_client):
+        uid = _uid()
+        csv = f"Control Name,Key Control\nKey NGC {uid},Key"
+        resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_ngc_non_key_value_parsed_as_false(self, upload_client):
+        uid = _uid()
+        csv = f"Control Name,Key Control\nNon-key NGC {uid},Non-key"
+        resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_control_id_stored_as_display_label(self, upload_client):
+        uid = _uid()
+        csv = f"Control ID,Control Name\nEFC-{uid},Label Test {uid}"
+        resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_control_type_stored_as_category(self, upload_client):
+        uid = _uid()
+        csv = f"Control Name,Control Type\nCatType {uid},External"
+        resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
 
 # ── Quoted fields ─────────────────────────────────────────────────────────────
 
