@@ -38,7 +38,7 @@ db-schema:  ## Apply all SQL migrations (001–015) in order via docker exec
 	@echo "Done."
 
 db-seed:  ## Seed demo users via auth-service (analyst / lead / viewer / admin)
-	cd auth-service && npx tsx src/seed.ts
+	cd auth-service && npm run seed
 
 db-fresh: db-down  ## Full DB reset: down → up → all migrations → seed demo users
 	docker compose up -d db redis
