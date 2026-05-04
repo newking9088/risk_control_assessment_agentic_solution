@@ -84,7 +84,8 @@ def _parse_excel(content: bytes) -> tuple[list[dict], list[dict]]:
 
 
 def _parse_csv(content: bytes) -> tuple[list[dict], list[dict]]:
-    text = content.decode("utf-8", errors="replace")
+    text = content.decode("utf-8-sig", errors="replace")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     reader = csv.DictReader(io.StringIO(text))
     rows = list(reader)
     if not rows:
@@ -228,6 +229,10 @@ async def get_taxonomy(taxonomy_id: str, request: Request):
             "source_type": "both", "risks_data": [], "controls_data": [],
             "risk_count": 0, "control_count": 0, "file_name": None, "uploaded_at": None,
         }
+    else:
+        # psycopg3 decodes an empty/non-array JSONB column as {} (dict) — coerce to []
+        row["risks_data"]    = row.get("risks_data")    if isinstance(row.get("risks_data"),    list) else []
+        row["controls_data"] = row.get("controls_data") if isinstance(row.get("controls_data"), list) else []
     return row
 
 

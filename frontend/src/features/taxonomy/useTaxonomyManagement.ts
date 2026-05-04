@@ -62,10 +62,12 @@ export function useTaxonomyManagement() {
     try {
       const t = await taxonomyApi.fetch(id);
       setTaxonomy(t);
-      setEditRisks(t.risks_data ?? []);
-      setEditControls(t.controls_data ?? []);
-      originalRisks.current    = t.risks_data ?? [];
-      originalControls.current = t.controls_data ?? [];
+      const risks    = Array.isArray(t.risks_data)    ? t.risks_data    : [];
+      const controls = Array.isArray(t.controls_data) ? t.controls_data : [];
+      setEditRisks(risks);
+      setEditControls(controls);
+      originalRisks.current    = risks;
+      originalControls.current = controls;
       setRiskPage(1);
       setControlPage(1);
     } catch (e) {
