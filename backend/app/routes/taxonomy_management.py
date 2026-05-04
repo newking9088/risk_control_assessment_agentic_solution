@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 from pydantic import BaseModel
 
 from app.config.constants import DEFAULT_TENANT_ID
@@ -97,6 +98,12 @@ def _parse_csv(content: bytes) -> tuple[list[dict], list[dict]]:
 
 
 def _normalise_risks(rows: list[dict]) -> list[dict]:
+    if not rows:
+        return []
+    # Detect NGC hierarchical format: any key starts with "L" and contains "Risk"
+    if any(k.startswith("L") and "Risk" in k for k in rows[0].keys()):
+        return _normalise_risks_hierarchical(rows)
+
     out = []
     for r in rows:
         name = r.get("name") or r.get("Name") or r.get("Risk Name") or ""
@@ -109,6 +116,45 @@ def _normalise_risks(rows: list[dict]) -> list[dict]:
             "description": (r.get("description") or r.get("Description") or "").strip(),
             "source":      (r.get("source") or r.get("Source") or "EXT").strip().upper(),
         })
+    return out
+
+
+def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
+    """Parse NGC-style L1/L2/L3/L4 hierarchical risk rows, carrying forward parent values."""
+    out = []
+    l1 = l2 = l3 = l3_desc = risk_id = ""
+
+    for r in rows:
+        new_l1 = r.get("L1 Risk", "").strip()
+        new_l2 = r.get("L2 Risk", "").strip()
+        new_l3 = r.get("L3 Risk", "").strip()
+        new_l3_desc = r.get("L3 Risk Description", "").strip()
+
+        if new_l1:
+            l1 = new_l1
+        if new_l2:
+            l2 = new_l2
+        if new_l3:
+            l3 = new_l3
+            l3_desc = new_l3_desc
+            # Extract code: "A001E - Altered Payment" → "A001E"
+            risk_id = l3.split(" - ")[0].strip() if " - " in l3 else f"R-{uuid.uuid4().hex[:6].upper()}"
+
+        l4 = r.get("L4 Risk", "").strip()
+        l4_desc = r.get("L4 Risk Description", "").strip()
+
+        name = l4 if l4 else l3
+        if not name:
+            continue
+
+        out.append({
+            "risk_id":     risk_id,
+            "category":    l1,
+            "name":        name,
+            "description": l4_desc if l4_desc else l3_desc,
+            "source":      (r.get("Source") or r.get("source") or "EXT").strip().upper(),
+        })
+
     return out
 
 
@@ -298,7 +344,7 @@ async def upload_taxonomy_file(taxonomy_id: str, request: Request, file: UploadF
                    file_name = %s, file_sha256 = %s,
                    uploaded_at = NOW(), updated_at = NOW()
                WHERE id = %s AND tenant_id = %s""",
-            (risks, controls, len(risks), len(controls), fname, sha256, taxonomy_id, tenant_id),
+            (Jsonb(risks), Jsonb(controls), len(risks), len(controls), fname, sha256, taxonomy_id, tenant_id),
         )
 
     return {"risks": len(risks), "controls": len(controls)}
@@ -340,7 +386,7 @@ async def patch_taxonomy_items(taxonomy_id: str, body: ItemsPatch, request: Requ
     async with get_tenant_cursor(tenant_id) as cur:
         await cur.execute(
             f"UPDATE app.taxonomy_schemas SET {col} = %s, {count_col} = %s, updated_at = NOW() WHERE id = %s AND tenant_id = %s",
-            (items_list, len(items_list), taxonomy_id, tenant_id),
+            (Jsonb(items_list), len(items_list), taxonomy_id, tenant_id),
         )
 
     return {"updated": len(patch_map)}

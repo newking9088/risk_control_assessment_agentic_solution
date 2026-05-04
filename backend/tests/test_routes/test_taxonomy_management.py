@@ -8,6 +8,8 @@ Coverage:
   - _parse_csv: risk vs control column detection
   - GET /{taxonomy_id}: coerces {} / None risks_data & controls_data to []
   - GET /{taxonomy_id}: leaves list values unchanged
+  - _normalise_risks: flat format (name/Name/Risk Name headers)
+  - _normalise_risks: NGC hierarchical format (L1 Risk through L4 Risk headers)
 """
 import io
 import uuid
@@ -21,7 +23,7 @@ from fastapi.testclient import TestClient
 import app.routes.taxonomy_management as tax_mod
 from app.main import app
 from app.middleware.auth import get_current_user
-from app.routes.taxonomy_management import _parse_csv
+from app.routes.taxonomy_management import _parse_csv, _normalise_risks
 from tests.conftest import MOCK_AUTH_USER, TEST_TENANT_ID
 
 
@@ -236,3 +238,108 @@ class TestFetchTaxonomyCoercion:
         with _taxonomy_client(row) as client:
             resp = client.get("/api/v1/taxonomy/tax-001")
         assert resp.json()["controls_data"] == controls
+
+
+# ── _normalise_risks — flat format ────────────────────────────────────────────
+
+class TestNormaliseRisksFlat:
+    def test_name_header(self):
+        risks = _normalise_risks([{"name": "Fraud Risk", "category": "Fraud", "source": "EXT"}])
+        assert len(risks) == 1
+        assert risks[0]["name"] == "Fraud Risk"
+        assert risks[0]["category"] == "Fraud"
+
+    def test_Name_header(self):
+        risks = _normalise_risks([{"Name": "Payment Risk"}])
+        assert len(risks) == 1
+        assert risks[0]["name"] == "Payment Risk"
+
+    def test_Risk_Name_header(self):
+        risks = _normalise_risks([{"Risk Name": "Compliance Risk", "Category": "Compliance"}])
+        assert len(risks) == 1
+        assert risks[0]["name"] == "Compliance Risk"
+
+    def test_blank_name_skipped(self):
+        risks = _normalise_risks([{"name": ""}, {"name": "   "}, {"name": "Good Risk"}])
+        assert len(risks) == 1
+        assert risks[0]["name"] == "Good Risk"
+
+    def test_auto_generated_risk_id(self):
+        risks = _normalise_risks([{"name": "Risk A"}])
+        assert risks[0]["risk_id"].startswith("R-")
+
+
+# ── _normalise_risks — NGC hierarchical format ────────────────────────────────
+
+def _hier_row(**kwargs) -> dict:
+    """Return a minimal hierarchical row dict with all L-columns present."""
+    base = {
+        "L1 Risk": "", "L2 Risk": "", "L3 Risk": "",
+        "L3 Risk Description": "", "L4 Risk": "",
+        "L4 Risk Description": "", "Source": "NGC",
+    }
+    base.update(kwargs)
+    return base
+
+
+class TestNormaliseRisksHierarchical:
+    def test_basic_l1_l4_parsing(self):
+        """L1 → category, L4 → name, L3 code → risk_id."""
+        rows = [_hier_row(
+            **{"L1 Risk": "Fraud",
+               "L3 Risk": "A001E - Altered Payment",
+               "L3 Risk Description": "Altered cheque",
+               "L4 Risk": "A001E.01 - Cheque Alteration",
+               "L4 Risk Description": "Physical alteration"}
+        )]
+        risks = _normalise_risks(rows)
+        assert len(risks) == 1
+        assert risks[0]["category"] == "Fraud"
+        assert risks[0]["name"] == "A001E.01 - Cheque Alteration"
+        assert risks[0]["risk_id"] == "A001E"
+        assert risks[0]["description"] == "Physical alteration"
+
+    def test_l1_l3_carry_forward_across_rows(self):
+        """L1/L3 filled only on first row; subsequent rows inherit them."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
+                         "L4 Risk": "A001E.01 - Row One"}),
+            _hier_row(**{"L4 Risk": "A001E.02 - Row Two"}),   # L1/L3 empty → carry forward
+        ]
+        risks = _normalise_risks(rows)
+        assert len(risks) == 2
+        assert risks[1]["category"] == "Fraud"
+        assert risks[1]["risk_id"] == "A001E"
+        assert risks[1]["name"] == "A001E.02 - Row Two"
+
+    def test_new_l3_updates_risk_id(self):
+        """When a new L3 value appears in a row, risk_id is re-extracted."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
+                         "L4 Risk": "A001E.01 - First"}),
+            _hier_row(**{"L3 Risk": "B002F - Transfer Fraud",
+                         "L4 Risk": "B002F.01 - Wire Transfer"}),
+        ]
+        risks = _normalise_risks(rows)
+        assert risks[0]["risk_id"] == "A001E"
+        assert risks[1]["risk_id"] == "B002F"
+
+    def test_fallback_to_l3_when_l4_empty(self):
+        """If L4 Risk is empty, L3 Risk is used as the risk name."""
+        rows = [_hier_row(**{"L1 Risk": "Fraud",
+                             "L3 Risk": "A001E - Altered Payment",
+                             "L3 Risk Description": "Altered cheques"})]
+        risks = _normalise_risks(rows)
+        assert len(risks) == 1
+        assert risks[0]["name"] == "A001E - Altered Payment"
+        assert risks[0]["description"] == "Altered cheques"
+
+    def test_empty_rows_skipped(self):
+        """Rows with no L3 or L4 Risk value produce no output."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud"}),   # no L3/L4 → skip
+            _hier_row(**{"L3 Risk": "A001E - Payment", "L4 Risk": "A001E.01 - Sub"}),
+        ]
+        risks = _normalise_risks(rows)
+        assert len(risks) == 1
+        assert risks[0]["name"] == "A001E.01 - Sub"
