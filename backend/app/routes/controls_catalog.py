@@ -3,6 +3,7 @@ import io
 import uuid
 from typing import Optional
 
+import openpyxl
 from fastapi import APIRouter, Request, UploadFile, File, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -15,6 +16,68 @@ from app.middleware.permissions import require_minimum_role
 router = APIRouter(prefix="/v1/controls", tags=["controls-catalog"])
 
 analyst_gate = Depends(require_minimum_role("analyst"))
+
+_CTRL_TYPE_MAP = {
+    "prevent": "Preventive",
+    "detect":  "Detective",
+    "correct": "Corrective",
+    "direct":  "Directive",
+}
+
+
+def _normalise_control_type(raw: str) -> str:
+    lower = raw.strip().lower()
+    for prefix, full in _CTRL_TYPE_MAP.items():
+        if lower.startswith(prefix):
+            return full
+    return raw.strip()
+
+
+def _str(v) -> str:
+    return "" if v is None else str(v).strip()
+
+
+def _extract_fields(row: dict) -> tuple:
+    name = (
+        _str(row.get("name")) or _str(row.get("Name")) or
+        _str(row.get("control_name")) or _str(row.get("Control Name"))
+    )
+    raw_key = (
+        _str(row.get("is_key_control")) or _str(row.get("Key Control"))
+    ).upper()
+    is_key = raw_key in ("TRUE", "YES", "Y", "1", "KEY")
+
+    raw_type = _str(row.get("control_type")) or _str(row.get("Type"))
+    control_type = _normalise_control_type(raw_type) if raw_type else None
+
+    description = _str(row.get("description")) or _str(row.get("Description")) or None
+    source = _str(row.get("source")) or _str(row.get("Source")) or None
+    category = (
+        _str(row.get("category")) or _str(row.get("Category")) or
+        _str(row.get("Control Type"))
+    ) or None
+    display_label = (
+        _str(row.get("display_label")) or _str(row.get("Label")) or
+        _str(row.get("control_id")) or _str(row.get("Control ID"))
+    ) or None
+
+    return name, is_key, description, control_type, source, category, display_label
+
+
+def _iter_xlsx_rows(content: bytes):
+    wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    ws = wb.active
+    rows = ws.iter_rows(values_only=True)
+    headers = [_str(h) for h in next(rows, [])]
+    for row_vals in rows:
+        yield {headers[i]: _str(v) for i, v in enumerate(row_vals) if i < len(headers)}
+    wb.close()
+
+
+def _iter_csv_rows(content: bytes):
+    text = content.decode("utf-8-sig", errors="replace")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    yield from csv.DictReader(io.StringIO(text))
 
 
 class ControlCreate(BaseModel):
@@ -199,38 +262,21 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
 
     content = await file.read()
 
-    # utf-8-sig strips Excel BOM; errors='replace' prevents UnicodeDecodeError
-    text = content.decode("utf-8-sig", errors="replace")
-    # Normalise all newline styles (\r\n, \r) before the csv reader sees them.
-    # io.StringIO default newline='\n' leaves bare \r in the stream, which the
-    # csv module misreads as a line terminator inside unquoted fields (_csv.Error).
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    fname = (file.filename or "").lower()
+    ctype = (file.content_type or "").lower()
+    is_xlsx = fname.endswith((".xlsx", ".xls")) or "spreadsheet" in ctype or "ms-excel" in ctype
 
-    reader = csv.DictReader(io.StringIO(text))
+    row_iter = _iter_xlsx_rows(content) if is_xlsx else _iter_csv_rows(content)
 
     inserted = 0
     skipped = 0
 
     async with get_tenant_cursor(tenant_id) as cur:
-        for row in reader:
-            # Accepts both our standard headers and NGC-style headers:
-            #   name         | Name          | Control Name  | control_name
-            #   description  | Description
-            #   control_type | Type                               (Preventive / Prevent / …)
-            #   is_key_control | Key Control                     (TRUE/YES/Y/1/Key)
-            #   source       | Source                            (NGC / FFIEC / …)
-            #   category     | Category      | Control Type       (External / Internal)
-            #   display_label| Label         | Control ID | control_id
-            name = (
-                row.get("name") or row.get("Name") or
-                row.get("control_name") or row.get("Control Name") or ""
-            ).strip()
+        for row in row_iter:
+            name, is_key, description, control_type, source, category, display_label = _extract_fields(row)
             if not name:
                 skipped += 1
                 continue
-
-            raw_key = (row.get("is_key_control") or row.get("Key Control") or "").strip().upper()
-            is_key = raw_key in ("TRUE", "YES", "Y", "1", "KEY")
 
             try:
                 await cur.execute(
@@ -243,18 +289,12 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
                         str(uuid.uuid4()),
                         tenant_id,
                         name,
-                        (row.get("description") or row.get("Description") or "").strip() or None,
-                        (row.get("control_type") or row.get("Type") or "").strip() or None,
+                        description,
+                        control_type,
                         is_key,
-                        (row.get("source") or row.get("Source") or "").strip() or None,
-                        (
-                            row.get("category") or row.get("Category") or
-                            row.get("Control Type") or ""
-                        ).strip() or None,
-                        (
-                            row.get("display_label") or row.get("Label") or
-                            row.get("control_id") or row.get("Control ID") or ""
-                        ).strip() or None,
+                        source,
+                        category,
+                        display_label,
                         user.get("email"),
                     ),
                 )

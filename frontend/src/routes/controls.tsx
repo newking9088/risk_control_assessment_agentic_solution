@@ -83,7 +83,7 @@ export function ControlsLibraryPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               style={{ display: "none" }}
               onChange={handleFileChange}
             />
@@ -92,7 +92,7 @@ export function ControlsLibraryPage() {
               disabled={uploadStatus === "uploading"}
               onClick={triggerUpload}
             >
-              {uploadStatus === "uploading" ? "Uploading…" : "⬆ Upload CSV"}
+              {uploadStatus === "uploading" ? "Uploading…" : "⬆ Upload CSV / XLSX"}
             </button>
             <button className={styles.exportBtn} onClick={exportCSV}>
               ⬇ Export CSV
@@ -177,9 +177,9 @@ export function ControlsLibraryPage() {
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>🗂</div>
               <h3>No controls yet</h3>
-              <p>Upload a CSV to bulk-import controls or create one manually.</p>
+              <p>Upload a CSV or XLSX to bulk-import controls or create one manually.</p>
               <button className={styles.exportBtn} onClick={triggerUpload}>
-                ⬆ Upload CSV
+                ⬆ Upload CSV / XLSX
               </button>
             </div>
           ) : filtered.length === 0 ? (

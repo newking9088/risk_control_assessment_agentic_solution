@@ -13,12 +13,14 @@ Coverage:
   - Quoted fields with commas and embedded newlines
   - Multiple rows / bulk insert
   - Non-UTF-8 bytes (errors='replace' must not crash)
+  - XLSX file parsing (openpyxl, standard and NGC headers, type normalisation)
 """
 import io
 import uuid
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, patch
 
+import openpyxl
 import pytest
 from fastapi.testclient import TestClient
 
@@ -410,5 +412,148 @@ class TestEncoding:
         uid = _uid()
         csv = f"name\n控制{uid}"
         resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+
+# ── Control type normalisation (CSV path) ────────────────────────────────────
+
+class TestControlTypeNormalise:
+    @pytest.mark.parametrize("raw,expected", [
+        ("Prevent",   "Preventive"),
+        ("Preventive","Preventive"),
+        ("Detect",    "Detective"),
+        ("Detective", "Detective"),
+        ("Correct",   "Corrective"),
+        ("Corrective","Corrective"),
+        ("Direct",    "Directive"),
+        ("Directive", "Directive"),
+        ("Other",     "Other"),
+    ])
+    def test_normalise_via_csv_upload(self, upload_client, raw, expected):
+        uid = _uid()
+        csv = f"name,control_type\nTypeNorm {uid} {raw},{raw}"
+        resp = _post(upload_client, csv)
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+
+# ── XLSX upload ───────────────────────────────────────────────────────────────
+
+_XLSX_CTYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _make_xlsx(headers: list, rows: list) -> bytes:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(headers)
+    for row in rows:
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _post_xlsx(client, headers: list, rows: list, filename: str = "controls.xlsx"):
+    data = _make_xlsx(headers, rows)
+    return client.post(
+        UPLOAD_URL,
+        files={"file": (filename, io.BytesIO(data), _XLSX_CTYPE)},
+    )
+
+
+class TestXlsx:
+    def test_basic_insert(self, upload_client):
+        uid = _uid()
+        resp = _post_xlsx(
+            upload_client,
+            ["name", "description", "control_type"],
+            [[f"XLSX {uid}", "Desc", "Preventive"]],
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"inserted": 1, "skipped": 0}
+
+    def test_ngc_headers(self, upload_client):
+        uid = _uid()
+        resp = _post_xlsx(
+            upload_client,
+            ["Control ID", "Control Type", "Control Name", "Key Control", "Source"],
+            [["EFC-001", "External", f"NGC XLSX {uid}", "Key", "NGC"]],
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"inserted": 1, "skipped": 0}
+
+    def test_normalise_control_type_prevent(self, upload_client):
+        uid = _uid()
+        resp = _post_xlsx(
+            upload_client,
+            ["name", "control_type"],
+            [[f"Norm Prev {uid}", "Prevent"]],
+        )
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_normalise_control_type_detect(self, upload_client):
+        uid = _uid()
+        resp = _post_xlsx(
+            upload_client,
+            ["name", "control_type"],
+            [[f"Norm Det {uid}", "Detect"]],
+        )
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_key_control_bool_true(self, upload_client):
+        uid = _uid()
+        resp = _post_xlsx(
+            upload_client,
+            ["name", "is_key_control"],
+            [[f"Bool Key {uid}", True]],
+        )
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_empty_name_rows_skipped(self, upload_client):
+        uid = _uid()
+        resp = _post_xlsx(
+            upload_client,
+            ["name", "description"],
+            [["", "no name"], [None, "also no name"], [f"Good {uid}", "ok"]],
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"inserted": 1, "skipped": 2}
+
+    def test_duplicate_skipped(self, upload_client):
+        uid = _uid()
+        name = f"XLSX Dupe {uid}"
+        _post_xlsx(upload_client, ["name"], [[name]])
+        resp = _post_xlsx(upload_client, ["name"], [[name]])
+        assert resp.status_code == 200
+        assert resp.json() == {"inserted": 0, "skipped": 1}
+
+    def test_multiple_rows(self, upload_client):
+        uid = _uid()
+        rows = [[f"XLSX Multi {uid} {i}"] for i in range(5)]
+        resp = _post_xlsx(upload_client, ["name"], rows)
+        assert resp.status_code == 200
+        assert resp.json() == {"inserted": 5, "skipped": 0}
+
+    def test_detected_by_xls_extension(self, upload_client):
+        uid = _uid()
+        data = _make_xlsx(["name"], [[f"XLS ext {uid}"]])
+        resp = upload_client.post(
+            UPLOAD_URL,
+            files={"file": ("controls.xls", io.BytesIO(data), "application/octet-stream")},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["inserted"] == 1
+
+    def test_detected_by_content_type(self, upload_client):
+        uid = _uid()
+        data = _make_xlsx(["name"], [[f"CType {uid}"]])
+        resp = upload_client.post(
+            UPLOAD_URL,
+            files={"file": ("upload", io.BytesIO(data), _XLSX_CTYPE)},
+        )
         assert resp.status_code == 200
         assert resp.json()["inserted"] == 1
