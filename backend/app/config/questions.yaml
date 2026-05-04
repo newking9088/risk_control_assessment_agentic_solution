@@ -1,0 +1,529 @@
+# Fraud Risk Assessment Question Bank
+# Pass 1: mandatory AUP questions (always answered)
+# Pass 2: situational FRE questions (triggered by Pass-1 yes answers)
+
+mandatory:
+  - id: AUP-001
+    category: entity_customer
+    text: "Does this assessment unit involve individual consumers?"
+    criteria: "Yes if this unit serves retail or personal banking customers (not solely businesses)."
+    triggers_if_yes: [FRE-076, FRE-077, FRE-078, FRE-079, FRE-080, FRE-081]
+
+  - id: AUP-002
+    category: entity_customer
+    text: "Does this assessment unit involve business or commercial entities?"
+    criteria: "Yes if this unit serves corporate, small-business, or commercial clients."
+
+  - id: AUP-003
+    category: entity_customer
+    text: "Does this assessment unit involve high-net-worth or wealth customers?"
+    criteria: "Yes if this unit specifically handles private banking, wealth, or affluent customer segments."
+
+  - id: AUP-004
+    category: entity_customer
+    text: "Does this assessment unit involve elderly or vulnerable populations?"
+    criteria: >
+      Yes if this unit interacts with customers who may be elderly, disabled, or otherwise
+      vulnerable to exploitation. Any unit serving a broad, unscreened consumer population
+      inherently includes vulnerable individuals.
+
+  - id: AUP-005
+    category: entity_customer
+    text: "Does this assessment unit perform onboarding, account opening, or application intake for new customers or prospects?"
+    criteria: "Yes if this unit opens new accounts or accepts applications, not just serves first-time callers."
+
+  - id: AUP-006
+    category: entity_customer
+    text: "Does this assessment unit service, transact with, or manage accounts for existing customers?"
+    criteria: "Yes if this unit handles requests, transactions, or account changes for already-enrolled customers."
+    triggers_if_yes: [FRE-007, FRE-008, FRE-009, FRE-010, FRE-011, FRE-012, FRE-013]
+
+  - id: AUP-007
+    category: product_service
+    text: "Does this assessment unit involve deposit accounts?"
+    criteria: >
+      Yes if this unit handles, services, or supports customers with checking, savings, CD,
+      or money market accounts — including account inquiries, balance lookups, or account
+      maintenance for deposit products.
+
+  - id: AUP-008
+    category: product_service
+    text: "Does this assessment unit involve credit products (loans, credit cards, lines of credit)?"
+    criteria: >
+      Yes if this unit originates, services, or supports any credit product. This includes
+      credit card activation, blocking, status changes, balance inquiries, or any post-issuance
+      servicing of credit cards, loans, or lines of credit.
+    triggers_if_yes: [FRE-024, FRE-025, FRE-026, FRE-027, FRE-028, FRE-029, FRE-030, FRE-041, FRE-042, FRE-043]
+
+  - id: AUP-009
+    category: product_service
+    text: "Does this assessment unit involve debit or prepaid cards?"
+    criteria: "Yes if this unit issues, services, activates, blocks, replaces, or processes transactions for debit or prepaid cards."
+    triggers_if_yes: [FRE-041, FRE-042, FRE-043, FRE-044, FRE-045]
+
+  - id: AUP-010
+    category: product_service
+    text: "Does this assessment unit initiate, process, or authorize payments or money transfers?"
+    criteria: >
+      Yes if this unit initiates, facilitates, or supports fund transfers, payment requests,
+      or transaction processing — not just displays balances.
+    triggers_if_yes: [FRE-014, FRE-015, FRE-016, FRE-017, FRE-018, FRE-019, FRE-020, FRE-021, FRE-022, FRE-023]
+
+  - id: AUP-011
+    category: product_service
+    text: "Does this assessment unit involve check products or processing?"
+    criteria: "Yes if this unit handles check issuance, deposits, or clearing."
+
+  - id: AUP-012
+    category: product_service
+    text: "Does this assessment unit involve investment or wealth management products?"
+    criteria: "Yes if this unit handles brokerage, mutual funds, or portfolio management services."
+
+  - id: AUP-013
+    category: product_service
+    text: "Does this assessment unit involve insurance products?"
+    criteria: "Yes if this unit sells, services, or processes claims for insurance policies."
+
+  - id: AUP-014
+    category: channel
+    text: "Does this assessment unit involve digital channels (web, mobile app)?"
+    criteria: "Yes if customers interact through online banking, a mobile app, or a web portal."
+    triggers_if_yes: [FRE-046, FRE-047, FRE-048, FRE-049, FRE-050, FRE-051, FRE-053, FRE-054, FRE-055]
+
+  - id: AUP-015
+    category: channel
+    text: "Does this assessment unit involve branch or in-person channels?"
+    criteria: "Yes if customers visit a physical location to conduct business."
+
+  - id: AUP-016
+    category: channel
+    text: "Does this assessment unit involve call center or phone channels?"
+    criteria: "Yes if customers contact this unit by phone, or agents make outbound calls."
+    triggers_if_yes: [FRE-052, FRE-053, FRE-054, FRE-055, FRE-056]
+
+  - id: AUP-017
+    category: channel
+    text: "Does this assessment unit involve ATM or self-service kiosk channels?"
+    criteria: "Yes if customers use ATMs or self-service terminals to conduct transactions."
+
+  - id: AUP-018
+    category: channel
+    text: "Does this assessment unit involve third-party or agent channels?"
+    criteria: "Yes if external partners, agents, or intermediaries interact with customers on behalf of this unit."
+
+  - id: AUP-019
+    category: channel
+    text: "Does this assessment unit involve API or system-to-system channels?"
+    criteria: "Yes if external systems connect via API, file transfer, or automated integration."
+
+  - id: AUP-020
+    category: channel
+    text: "Does this assessment unit involve mail or physical document channels?"
+    criteria: "Yes if this unit sends or receives physical mail, statements, cards, or documents."
+
+  - id: AUP-021
+    category: process
+    text: "Does this assessment unit perform customer onboarding, identity verification, or account opening processes?"
+    criteria: "Yes if this unit creates new customer relationships or accounts, including KYC and identity verification."
+
+  - id: AUP-022
+    category: process
+    text: "Does this assessment unit involve customer authentication or login?"
+    criteria: "Yes if customers must verify their identity (password, PIN, security question) to access services."
+
+  - id: AUP-023
+    category: process
+    text: "Does this assessment unit initiate, authorize, or execute financial transactions on behalf of or for customers?"
+    criteria: >
+      Yes if this unit can initiate, facilitate, or process fund transfers, payments, debits,
+      credits, or other monetary transactions on behalf of customers.
+
+  - id: AUP-024
+    category: process
+    text: "Does this assessment unit perform account updates, information changes, or ongoing account servicing for customers?"
+    criteria: "Yes if this unit modifies account details, contact info, beneficiaries, or account settings."
+
+  - id: AUP-025
+    category: process
+    text: "Does this assessment unit involve dispute or claim handling?"
+    criteria: "Yes if this unit handles, escalates, investigates, or resolves customer complaints, disputes, or fraud claims."
+    triggers_if_yes: [FRE-036, FRE-037, FRE-038, FRE-039, FRE-040]
+
+  - id: AUP-026
+    category: process
+    text: "Does this assessment unit involve credit decisioning or underwriting?"
+    criteria: "Yes if this unit evaluates creditworthiness, approves loans, or sets credit limits."
+
+  - id: AUP-027
+    category: employee_internal
+    text: "Do employees in this assessment unit have access to customer personally identifiable information (PII) or account data?"
+    criteria: "Yes if employees can view names, SSNs, addresses, balances, or transaction histories."
+    triggers_if_yes: [FRE-057, FRE-058, FRE-059, FRE-060, FRE-061, FRE-062, FRE-063, FRE-064, FRE-065, FRE-066, FRE-067, FRE-068, FRE-069, FRE-070]
+
+  - id: AUP-028
+    category: employee_internal
+    text: "Do employees in this assessment unit have the ability to initiate, approve, or process financial transactions?"
+    criteria: "Yes if employees can initiate, facilitate, or process fund transfers, payments, adjustments, or credits on behalf of customers."
+
+  - id: AUP-029
+    category: employee_internal
+    text: "Does this assessment unit involve employees with access to funds or physical assets?"
+    criteria: "Yes if employees handle cash, checks, cards, or other tangible financial instruments."
+
+  - id: AUP-030
+    category: employee_internal
+    text: "Does this assessment unit involve employees who interact directly with customers?"
+    criteria: "Yes if employees speak with, message, or otherwise communicate directly with customers."
+
+  - id: AUP-031
+    category: employee_internal
+    text: "Does this assessment unit involve third-party vendors or contractors?"
+    criteria: "Yes if external vendors, contractors, or outsourced staff perform work for this unit."
+
+situational:
+  # ── Authentication & Access ───────────────────────────────────
+  - id: FRE-007
+    category: auth_access
+    text: "Does this assessment unit allow customers to view or interact with their existing account information (balances, statements, transactions)?"
+    criteria: >
+      Yes if customers can access, view, inquire about, or take action on their account
+      information through this unit — whether directly or via an agent.
+
+  - id: FRE-008
+    category: auth_access
+    text: "Does this assessment unit authenticate customer identity before granting access?"
+    criteria: "Yes if customers must prove who they are (password, PIN, security question) before proceeding."
+
+  - id: FRE-009
+    category: auth_access
+    text: "Does this assessment unit support password or credential reset?"
+    criteria: "Yes if customers or agents can reset passwords, PINs, or security questions."
+
+  - id: FRE-010
+    category: auth_access
+    text: "Does this assessment unit allow changes to security settings (password, MFA, security questions)?"
+    criteria: >
+      Yes if customers or agents can modify authentication methods or security configurations,
+      including password resets, PIN changes, or security question updates.
+
+  - id: FRE-011
+    category: auth_access
+    text: "Does this assessment unit allow changes to contact information (phone, email, address)?"
+    criteria: "Yes if customers or agents can update phone numbers, email addresses, or mailing addresses on accounts."
+
+  - id: FRE-012
+    category: auth_access
+    text: "Does this assessment unit allow adding authorized users or signers to accounts?"
+    criteria: "Yes if additional people can be granted access or signing authority on an account."
+
+  - id: FRE-013
+    category: auth_access
+    text: "Can customers access accounts through multiple devices?"
+    criteria: "Yes if the same account can be accessed from different phones, computers, or tablets."
+
+  # ── Transaction & Payment ─────────────────────────────────────
+  - id: FRE-014
+    category: transaction_payment
+    text: "Does this assessment unit process outgoing payments or transfers?"
+    criteria: "Yes if this unit sends money out of customer accounts (bill pay, wire, ACH, P2P)."
+
+  - id: FRE-015
+    category: transaction_payment
+    text: "Does this assessment unit process incoming payments or deposits?"
+    criteria: "Yes if this unit receives funds into customer accounts (direct deposit, transfers in, check deposit)."
+
+  - id: FRE-016
+    category: transaction_payment
+    text: "Does this assessment unit process card transactions (credit, debit, prepaid)?"
+    criteria: >
+      Yes if this unit authorizes, clears, settles, activates, blocks, or otherwise services
+      card-based transactions or card accounts.
+
+  - id: FRE-017
+    category: transaction_payment
+    text: "Does this assessment unit process electronic transfers (ACH, wire)?"
+    criteria: "Yes if this unit handles ACH originations, wire transfers, or other electronic fund movements."
+
+  - id: FRE-018
+    category: transaction_payment
+    text: "Does this assessment unit process real-time or instant payments?"
+    criteria: "Yes if this unit supports Zelle, RTP, FedNow, or other near-instant fund transfers."
+
+  - id: FRE-019
+    category: transaction_payment
+    text: "Does this assessment unit process check deposits or payments?"
+    criteria: "Yes if this unit handles paper or mobile check deposits, or issues outgoing checks."
+
+  - id: FRE-020
+    category: transaction_payment
+    text: "Does this assessment unit allow adding external accounts or payment recipients?"
+    criteria: "Yes if customers can link external bank accounts or register new payees for transfers."
+
+  - id: FRE-021
+    category: transaction_payment
+    text: "Does this assessment unit process transactions that exceed standard thresholds or require elevated approval (e.g., large wire transfers, bulk payments)?"
+    criteria: "Yes if there are transactions above normal limits that require special handling."
+
+  - id: FRE-022
+    category: transaction_payment
+    text: "Does this assessment unit process international transactions?"
+    criteria: "Yes if this unit handles cross-border payments, foreign currency, or international wires."
+
+  - id: FRE-023
+    category: transaction_payment
+    text: "Does this assessment unit allow card-not-present transactions?"
+    criteria: "Yes if card purchases can occur without the physical card (online, phone, mail order)."
+
+  # ── Credit & Application ──────────────────────────────────────
+  - id: FRE-024
+    category: credit_application
+    text: "Does this assessment unit accept applications for credit or loans?"
+    criteria: "Yes if customers submit credit card, loan, or line-of-credit applications through this unit."
+
+  - id: FRE-025
+    category: credit_application
+    text: "Does this assessment unit accept income, employment, or financial information?"
+    criteria: "Yes if applicants provide salary, employer, or asset details as part of the process."
+
+  - id: FRE-026
+    category: credit_application
+    text: "Does this assessment unit accept supporting documents (pay stubs, tax returns, bank statements)?"
+    criteria: "Yes if applicants upload or submit financial documents to support their application."
+
+  - id: FRE-027
+    category: credit_application
+    text: "Does this assessment unit make credit or lending decisions?"
+    criteria: "Yes if this unit approves, denies, or conditions credit or loan applications."
+
+  - id: FRE-028
+    category: credit_application
+    text: "Does this assessment unit provide same-session or automated approval decisions for credit or account applications?"
+    criteria: "Yes if approval can happen in real time or within minutes, without manual underwriting."
+
+  - id: FRE-029
+    category: credit_application
+    text: "Does this assessment unit disburse loan proceeds or credit?"
+    criteria: "Yes if this unit releases funds to borrowers after approval (loan funding, credit line draws)."
+
+  - id: FRE-030
+    category: credit_application
+    text: "Does this assessment unit allow credit limit increases?"
+    criteria: "Yes if customers can request or receive automatic increases to their credit limits."
+
+  # ── Dispute & Claim ───────────────────────────────────────────
+  - id: FRE-036
+    category: dispute_claim
+    text: "Does this assessment unit handle transaction disputes?"
+    criteria: >
+      Yes if customers can raise complaints about transactions, contest charges, report errors,
+      or request transaction reversals.
+
+  - id: FRE-037
+    category: dispute_claim
+    text: "Does this assessment unit handle fraud claims?"
+    criteria: "Yes if customers can report suspected fraud and this unit investigates or processes the claim."
+
+  - id: FRE-038
+    category: dispute_claim
+    text: "Does this assessment unit issue provisional credits during investigations?"
+    criteria: "Yes if customers receive temporary refunds while a dispute or fraud claim is being investigated."
+
+  - id: FRE-039
+    category: dispute_claim
+    text: "Does this assessment unit process chargebacks?"
+    criteria: "Yes if this unit initiates or resolves card network chargebacks on behalf of customers."
+
+  - id: FRE-040
+    category: dispute_claim
+    text: "Does this assessment unit allow customers to claim transactions as unauthorized?"
+    criteria: "Yes if customers can formally report that they did not authorize a specific transaction."
+
+  # ── Card & Physical Instrument ────────────────────────────────
+  - id: FRE-041
+    category: card_physical
+    text: "Does this assessment unit issue cards (credit, debit, prepaid)?"
+    criteria: "Yes if this unit produces, orders, or activates new payment cards for customers."
+
+  - id: FRE-042
+    category: card_physical
+    text: "Does this assessment unit handle card activation?"
+    criteria: "Yes if customers or agents activate newly issued cards through this unit."
+
+  - id: FRE-043
+    category: card_physical
+    text: "Does this assessment unit handle card replacement or reissuance?"
+    criteria: "Yes if lost, stolen, or damaged cards can be replaced through this unit."
+
+  - id: FRE-044
+    category: card_physical
+    text: "Does this assessment unit issue or process checks?"
+    criteria: "Yes if this unit prints, orders, or processes physical checks for customers."
+
+  - id: FRE-045
+    category: card_physical
+    text: "Does this assessment unit mail physical items to customers (cards, PINs, statements, checks)?"
+    criteria: "Yes if physical documents or instruments are sent via postal mail to customer addresses."
+
+  # ── Digital & Technical ───────────────────────────────────────
+  - id: FRE-046
+    category: digital_technical
+    text: "Does this assessment unit involve web application access?"
+    criteria: >
+      Yes if customers or employees use a browser-based web application (e.g., online banking
+      portal) for this unit's functions.
+
+  - id: FRE-047
+    category: digital_technical
+    text: "Does this assessment unit involve mobile application access?"
+    criteria: "Yes if customers or employees use a native mobile app for this unit's functions."
+
+  - id: FRE-048
+    category: digital_technical
+    text: "Does this assessment unit involve API or programmatic access?"
+    criteria: "Yes if external systems connect to this unit's functions via APIs or automated integrations."
+
+  - id: FRE-049
+    category: digital_technical
+    text: "Does this assessment unit rely on mobile devices for authentication (SMS, push, authenticator)?"
+    criteria: "Yes if login or transaction approval depends on a customer's mobile phone (OTP, push notification)."
+
+  - id: FRE-050
+    category: digital_technical
+    text: "Does this assessment unit process batch, scripted, or high-frequency automated transactions (e.g., via API or scheduled jobs)?"
+    criteria: "Yes if transactions can be submitted programmatically or in bulk, not just individually by a human."
+
+  - id: FRE-051
+    category: digital_technical
+    text: "Does this assessment unit involve session management (login sessions, timeouts)?"
+    criteria: "Yes if users maintain authenticated sessions that can be hijacked, timed out, or replayed."
+
+  # ── Communication & Notification ──────────────────────────────
+  - id: FRE-052
+    category: communication
+    text: "Does this assessment unit involve phone-based customer interaction?"
+    criteria: "Yes if customers speak with agents or use IVR systems through this unit."
+
+  - id: FRE-053
+    category: communication
+    text: "Does this assessment unit involve email communication with customers?"
+    criteria: "Yes if this unit sends or receives emails related to customer accounts or services."
+
+  - id: FRE-054
+    category: communication
+    text: "Does this assessment unit send account alerts or notifications?"
+    criteria: "Yes if customers receive automated alerts (SMS, email, push) about account activity."
+
+  - id: FRE-055
+    category: communication
+    text: "Does this assessment unit allow customers to modify alert preferences?"
+    criteria: "Yes if customers can change which alerts they receive, or how they receive them."
+
+  - id: FRE-056
+    category: communication
+    text: "Does this assessment unit involve customer callbacks or outbound contact?"
+    criteria: "Yes if agents call customers proactively (verification callbacks, follow-ups, marketing)."
+
+  # ── Employee Access & Capability ──────────────────────────────
+  - id: FRE-057
+    category: employee_access
+    text: "Do employees have access to customer PII (name, SSN, DOB, address)?"
+    criteria: "Yes if employees can view, search, or retrieve personally identifiable customer information."
+
+  - id: FRE-058
+    category: employee_access
+    text: "Do employees have access to customer financial data (balances, transactions)?"
+    criteria: "Yes if employees can view account balances, transaction history, or statements."
+
+  - id: FRE-059
+    category: employee_access
+    text: "Do employees have the ability to view customer authentication credentials?"
+    criteria: "Yes if employees own passwords, PINs, security answers, or token seed materials."
+
+  - id: FRE-060
+    category: employee_access
+    text: "Do employees have the ability to reset customer credentials?"
+    criteria: "Yes if employees can reset passwords, PINs, or unlock accounts on behalf of customers."
+
+  - id: FRE-061
+    category: employee_access
+    text: "Do employees have the ability to modify customer account information?"
+    criteria: "Yes if employees can change contact details, beneficiaries, or account settings on file."
+
+  - id: FRE-062
+    category: employee_access
+    text: "Do employees have the ability to initiate or approve transactions?"
+    criteria: "Yes if employees can initiate, facilitate, or process fund transfers, payments, or credits on behalf of customers."
+
+  - id: FRE-063
+    category: employee_access
+    text: "Do employees have the ability to override limits, alerts, or controls?"
+    criteria: "Yes if employees can bypass transaction limits, suppress fraud alerts, or override system controls."
+
+  - id: FRE-064
+    category: employee_access
+    text: "Do employees have the ability to issue credits, refunds, or adjustments?"
+    criteria: "Yes if employees can post credits, fee waivers, or account adjustments."
+
+  - id: FRE-065
+    category: employee_access
+    text: "Do employees have the ability to waive fees?"
+    criteria: "Yes if employees can reverse service charges, penalties, or late fees."
+
+  - id: FRE-066
+    category: employee_access
+    text: "Do employees have access to cash or physical assets?"
+    criteria: "Yes if employees handle currency, cash drawers, vaults, or other tangible financial instruments."
+
+  - id: FRE-067
+    category: employee_access
+    text: "Do employees have the ability to create or modify system records without a maker-checker control?"
+    criteria: "Yes if a single employee can both initiate and complete a transaction or record change with no secondary approval."
+
+  - id: FRE-068
+    category: employee_access
+    text: "Do employees have access to customer contact channels (phone, email, messaging) outside of supervised systems?"
+    criteria: "Yes if employees can contact customers using personal devices or unsupervised channels."
+
+  - id: FRE-069
+    category: employee_access
+    text: "Do employees have access outside normal business hours?"
+    criteria: "Yes if employees can log in or perform operations after hours, on weekends, or remotely."
+
+  - id: FRE-070
+    category: employee_access
+    text: "Do employees have the ability to bypass security controls?"
+    criteria: "Yes if employees can disable, skip, or override fraud detection, authentication, or compliance controls."
+
+  # ── Customer Behavior & Manipulation ─────────────────────────
+  - id: FRE-076
+    category: customer_behavior
+    text: "Are customers of this assessment unit at risk of being contacted, deceived, or coerced by external fraudsters (e.g., via phone scams, phishing, or romance fraud)?"
+    criteria: "Yes if customers interact through channels where external parties could reach and influence them."
+
+  - id: FRE-077
+    category: customer_behavior
+    text: "Could customers be coached or scripted by a third party while interacting with this assessment unit (e.g., during a phone call or in-branch visit)?"
+    criteria: "Yes if there is a live interaction channel where a fraudster could simultaneously direct the customer."
+
+  - id: FRE-078
+    category: customer_behavior
+    text: "Does this assessment unit process transactions that are irrevocable or difficult to recover once completed (e.g., wire transfers, cryptocurrency, cash withdrawals)?"
+    criteria: "Yes if funds leave the institution through channels with limited or no recall capability."
+
+  - id: FRE-079
+    category: customer_behavior
+    text: "Could customers intentionally misrepresent information for financial gain?"
+    criteria: "Yes if customers could inflate income, falsify documents, or lie about their identity to obtain products."
+
+  - id: FRE-080
+    category: customer_behavior
+    text: "Could customers intentionally default on obligations?"
+    criteria: >
+      Yes if the unit extends credit, loans, or financial obligations that customers could take
+      with no intent to repay (bust-out fraud). Units that only service accounts without
+      extending credit do not have this exposure.
+
+  - id: FRE-081
+    category: customer_behavior
+    text: "Could customers file false claims or disputes?"
+    criteria: "Yes if customers could fabricate unauthorized transaction claims or disputes to receive undeserved refunds."

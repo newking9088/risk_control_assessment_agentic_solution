@@ -13,6 +13,7 @@ from app.infra.redis_client import init_redis, close_redis
 from app.middleware.permissions import require_minimum_role
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.routes import assessments, documents, risks, controls, approvals, chat, health, admin, settings as settings_route, controls_catalog, taxonomy_management, collaborators, notifications
+from app.routes import preparation, questionnaire
 from app.routes.risks import agent_router
 
 settings = get_settings()
@@ -74,6 +75,8 @@ app.include_router(controls_catalog.router,    prefix="/api", dependencies=[view
 app.include_router(taxonomy_management.router, prefix="/api", dependencies=[viewer_dep])
 app.include_router(collaborators.router,       prefix="/api", dependencies=[viewer_dep])
 app.include_router(notifications.router,       prefix="/api", dependencies=[viewer_dep])
+app.include_router(preparation.router,         prefix="/api", dependencies=[analyst_dep])
+app.include_router(questionnaire.router,       prefix="/api", dependencies=[analyst_dep])
 app.include_router(agent_router,       prefix="/api", dependencies=[analyst_dep])
 
 # ── Prometheus metrics (optional) ─────────────────────────────
