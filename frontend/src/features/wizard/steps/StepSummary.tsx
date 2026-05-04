@@ -47,8 +47,7 @@ const SCORE_LABELS: Record<number, string> = {
 };
 
 const EFF_SCORE: Record<string, number> = {
-  "Effective": 4, "Partially Effective": 2.5,
-  "Needs Improvement": 1.5, "Ineffective": 1,
+  "Effective": 3, "Moderately Effective": 2, "Ineffective": 1,
 };
 
 function computeOverallImpact(r: Risk): number | null {
@@ -66,7 +65,7 @@ function computeInherentRating(r: Risk): number | null {
 
 function computeResidualRating(inherent: number | null, ctrlEff: string | null): number | null {
   if (inherent === null) return null;
-  const reduction = ctrlEff === "Effective" ? 2 : ctrlEff === "Partially Effective" ? 1 : 0;
+  const reduction = ctrlEff === "Effective" ? 2 : ctrlEff === "Moderately Effective" ? 1 : 0;
   return Math.max(1, inherent - reduction);
 }
 
@@ -76,9 +75,8 @@ function aggregateCtrlEff(ctrlList: Control[]): string | null {
     .filter(s => s > 0);
   if (scores.length === 0) return null;
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  if (avg >= 3.5) return "Effective";
-  if (avg >= 2.5) return "Partially Effective";
-  if (avg >= 1.5) return "Needs Improvement";
+  if (avg >= 2.5) return "Effective";
+  if (avg >= 1.5) return "Moderately Effective";
   return "Ineffective";
 }
 
@@ -96,9 +94,8 @@ function scoreBadgeClass(score: number | null): string {
 
 function ctrlEffBadgeClass(label: string | null): string {
   if (!label) return styles.rrEffNull;
-  if (label === "Effective")           return styles.rrEffEffective;
-  if (label === "Partially Effective") return styles.rrEffPartial;
-  if (label === "Needs Improvement")   return styles.rrEffNeeds;
+  if (label === "Effective")            return styles.rrEffEffective;
+  if (label === "Moderately Effective") return styles.rrEffPartial;
   return styles.rrEffIneffective;
 }
 
@@ -113,9 +110,8 @@ function inherentNarrative(worst: number | null, highCount: number, total: numbe
 function ctrlNarrative(label: string | null, count: number): string {
   if (!label) return "No controls have been evaluated yet. Map controls in Step 5 to assess effectiveness.";
   const suffix =
-    label === "Effective"           ? "Controls are operating as designed." :
-    label === "Partially Effective" ? "Some gaps in control coverage remain." :
-    label === "Needs Improvement"   ? "Significant control improvements are recommended." :
+    label === "Effective"            ? "Controls are operating as designed." :
+    label === "Moderately Effective" ? "Some gaps in control coverage remain." :
     "Controls are not providing effective risk mitigation.";
   return `${count} control${count !== 1 ? "s" : ""} ${count !== 1 ? "have" : "has"} been evaluated with aggregate effectiveness rated ${label}. ${suffix}`;
 }
@@ -203,7 +199,7 @@ export function StepSummary({ assessmentId, onValidChange }: StepProps) {
   const highVeryHighInherent = inherentScores.filter(s => s >= 3).length;
   const notEffectiveRisks    = risks.filter(r => {
     const eff = ctrlEffMap[r.id];
-    return eff === "Ineffective" || eff === "Needs Improvement";
+    return eff === "Ineffective" || eff === "Moderately Effective";
   }).length;
 
   // Auto-save computed ratings back to the assessment record so the

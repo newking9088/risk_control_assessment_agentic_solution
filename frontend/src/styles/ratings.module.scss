@@ -24,12 +24,13 @@
 .notRated  { background: var(--nr-bg);    color: var(--nr-fg);    }
 
 /* ── Controls Effectiveness ───────────────────────────────── */
-.satisfactory     { background: var(--ce-1-bg); color: var(--ce-1-fg); }
-.effective        { background: var(--ce-1-bg); color: var(--ce-1-fg); }
-.partial          { background: var(--ce-2-bg); color: var(--ce-2-fg); }
-.weak             { background: var(--ce-3-bg); color: var(--ce-3-fg); }
-.needsImprovement { background: var(--ce-3-bg); color: var(--ce-3-fg); }
-.ineffective      { background: var(--ce-3-bg); color: var(--ce-3-fg); }
+.satisfactory        { background: var(--ce-1-bg); color: var(--ce-1-fg); }
+.effective           { background: var(--ce-1-bg); color: var(--ce-1-fg); }
+.moderatelyEffective { background: var(--ce-2-bg); color: var(--ce-2-fg); }
+.partial             { background: var(--ce-2-bg); color: var(--ce-2-fg); }
+.weak                { background: var(--ce-3-bg); color: var(--ce-3-fg); }
+.needsImprovement    { background: var(--ce-3-bg); color: var(--ce-3-fg); }
+.ineffective         { background: var(--ce-3-bg); color: var(--ce-3-fg); }
 
 /* ── Assessment Status ────────────────────────────────────── */
 .inProgress { background: var(--status-inprogress-bg); color: var(--status-inprogress-fg); }

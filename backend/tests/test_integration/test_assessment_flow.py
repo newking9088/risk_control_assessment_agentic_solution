@@ -39,7 +39,7 @@ async def test_full_assessment_flow(db_conn):
     # 5. Rate control effectiveness
     await db_conn.execute(
         "UPDATE app.assessment_controls SET design_effectiveness = 2, operating_effectiveness = 2, "
-        "overall_effectiveness = 'Partially Effective' WHERE id = %s",
+        "overall_effectiveness = 'Moderately Effective' WHERE id = %s",
         (cid,),
     )
 
@@ -54,4 +54,4 @@ async def test_full_assessment_flow(db_conn):
     row = await cur.fetchone()
     assert row["inherent_likelihood"] == "high"
     assert row["inherent_impact"] == "critical"
-    assert row["overall_effectiveness"] == "Partially Effective"
+    assert row["overall_effectiveness"] == "Moderately Effective"

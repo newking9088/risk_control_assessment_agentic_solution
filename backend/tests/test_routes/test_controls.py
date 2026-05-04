@@ -51,7 +51,7 @@ async def test_patch_effectiveness(db_conn):
         (cid, aid, rid, "Eff Control"),
     )
     await db_conn.execute(
-        "UPDATE app.assessment_controls SET design_effectiveness = 3, operating_effectiveness = 4, "
+        "UPDATE app.assessment_controls SET design_effectiveness = 3, operating_effectiveness = 3, "
         "overall_effectiveness = 'Effective' WHERE id = %s",
         (cid,),
     )

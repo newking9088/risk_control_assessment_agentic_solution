@@ -236,10 +236,9 @@ export function MethodologyPage() {
             </p>
 
             <div className={styles.scaleRow}>
-              <ScoreCircle value={1} label="Satisfactory"      color={CONTROL_COLORS.effective.bg} />
-              <ScoreCircle value={2} label="Partial"           color={CONTROL_COLORS.partial.bg} />
-              <ScoreCircle value={3} label="Needs Improvement" color={RATING_COLORS.high.bg} />
-              <ScoreCircle value={4} label="Weak"              color={CONTROL_COLORS.weak.bg} />
+              <ScoreCircle value={1} label="Ineffective"        color={CONTROL_COLORS.ineffective.bg} />
+              <ScoreCircle value={2} label="Moderately Effective" color={CONTROL_COLORS.moderatelyEffective.bg} />
+              <ScoreCircle value={3} label="Effective"          color={CONTROL_COLORS.effective.bg} />
             </div>
 
             <div className={styles.tableWrapper}>
@@ -247,10 +246,9 @@ export function MethodologyPage() {
                 <thead>
                   <tr>
                     <th>Criteria</th>
-                    <th>1 — Satisfactory</th>
-                    <th>2 — Partial</th>
-                    <th>3 — Needs Improvement</th>
-                    <th>4 — Weak</th>
+                    <th>1 — Ineffective</th>
+                    <th>2 — Moderately Effective</th>
+                    <th>3 — Effective</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,40 +257,36 @@ export function MethodologyPage() {
                       <strong>Control Design</strong>
                       <br /><span className={styles.dimText}>How well the control mitigates identified risks</span>
                     </td>
-                    <td>Mitigates most identified risks</td>
-                    <td>Mitigates a portion of the risk</td>
-                    <td>Does not fully mitigate risks</td>
                     <td>Does not mitigate risks</td>
+                    <td>Mitigates a portion of the risk</td>
+                    <td>Mitigates all identified risks</td>
                   </tr>
                   <tr>
                     <td>
                       <strong>Control Documentation</strong>
                       <br /><span className={styles.dimText}>Quality and completeness of control documentation</span>
                     </td>
-                    <td>Documented in controls library with evidence</td>
-                    <td>Documented in controls library</td>
-                    <td>Exists but not well documented</td>
                     <td>Not documented</td>
+                    <td>Documented in controls library</td>
+                    <td>Documented with evidence and sign-off</td>
                   </tr>
                   <tr>
                     <td>
                       <strong>Operating Effectiveness</strong>
                       <br /><span className={styles.dimText}>Control execution and error rates</span>
                     </td>
-                    <td>Within tolerance, errors &lt;5%</td>
-                    <td>Occasionally out of tolerance, &lt;10%</td>
-                    <td>Often out of tolerance, &lt;15%</td>
                     <td>Consistently out of tolerance, &gt;20%</td>
+                    <td>Occasionally out of tolerance, &lt;10%</td>
+                    <td>Within tolerance, errors &lt;5%</td>
                   </tr>
                   <tr>
                     <td>
                       <strong>Audit Findings</strong>
                       <br /><span className={styles.dimText}>Regulatory and internal audit examination results</span>
                     </td>
-                    <td>No findings/issues</td>
-                    <td>Low/moderate rated issues</td>
-                    <td>Moderate rated issues</td>
                     <td>Critical/High rated findings</td>
+                    <td>Low/moderate rated issues</td>
+                    <td>No findings/issues</td>
                   </tr>
                 </tbody>
               </table>

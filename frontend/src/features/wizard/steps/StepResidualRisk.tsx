@@ -68,8 +68,8 @@ function computeInherentRating(likelihood: number | null, impact: number | null)
 function computeResidualRating(inherent: number | null, ctrlEff: string | null): number | null {
   if (inherent === null) return null;
   const reduction =
-    ctrlEff === "Effective"           ? 2 :
-    ctrlEff === "Partially Effective" ? 1 :
+    ctrlEff === "Effective"            ? 2 :
+    ctrlEff === "Moderately Effective" ? 1 :
     0;
   return Math.max(1, inherent - reduction);
 }
@@ -92,16 +92,14 @@ function likelihoodBadgeClass(score: number | null): string {
 
 function ctrlEffBadgeClass(label: string | null): string {
   if (!label) return styles.rrEffNull;
-  if (label === "Effective")           return styles.rrEffEffective;
-  if (label === "Partially Effective") return styles.rrEffPartial;
-  if (label === "Needs Improvement")   return styles.rrEffNeeds;
+  if (label === "Effective")            return styles.rrEffEffective;
+  if (label === "Moderately Effective") return styles.rrEffPartial;
   return styles.rrEffIneffective;
 }
 
 // ── Control effectiveness aggregation ────────────────────────
 const EFF_SCORE: Record<string, number> = {
-  "Effective": 4, "Partially Effective": 2.5,
-  "Needs Improvement": 1.5, "Ineffective": 1,
+  "Effective": 3, "Moderately Effective": 2, "Ineffective": 1,
 };
 
 function aggregateCtrlEff(controls: Control[]): string | null {
@@ -110,9 +108,8 @@ function aggregateCtrlEff(controls: Control[]): string | null {
     .filter((s) => s > 0);
   if (scores.length === 0) return null;
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  if (avg >= 3.5) return "Effective";
-  if (avg >= 2.5) return "Partially Effective";
-  if (avg >= 1.5) return "Needs Improvement";
+  if (avg >= 2.5) return "Effective";
+  if (avg >= 1.5) return "Moderately Effective";
   return "Ineffective";
 }
 

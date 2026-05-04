@@ -67,10 +67,10 @@ CREATE TABLE IF NOT EXISTS app.assessment_controls (
     type                    TEXT CHECK (type IN ('Preventive','Detective','Corrective','Directive')),
     is_key                  BOOLEAN NOT NULL DEFAULT FALSE,
     description             TEXT,
-    design_effectiveness    INT CHECK (design_effectiveness    BETWEEN 1 AND 4),
-    operating_effectiveness INT CHECK (operating_effectiveness BETWEEN 1 AND 4),
+    design_effectiveness    INT CHECK (design_effectiveness    BETWEEN 1 AND 3),
+    operating_effectiveness INT CHECK (operating_effectiveness BETWEEN 1 AND 3),
     overall_effectiveness   TEXT CHECK (overall_effectiveness IN
-                              ('Effective','Partially Effective','Needs Improvement','Ineffective','Not Tested')),
+                              ('Effective','Moderately Effective','Ineffective')),
     rationale               TEXT,
     evidence_ref            TEXT,
     approved_by             TEXT,

@@ -22,17 +22,21 @@ describe("RatingBadge — type=risk", () => {
 
 describe("RatingBadge — type=control", () => {
   it.each([
-    ["satisfactory",        "satisfactory"],
-    ["effective",           "effective"],
-    ["partial",             "partial"],
-    ["partially",           "partial"],
-    ["Partially Effective", "partial"],
-    ["weak",                "weak"],
-    ["Weak",                "weak"],
-    ["needs improvement",   "needsImprovement"],
-    ["needsimprovement",    "needsImprovement"],
-    ["ineffective",         "ineffective"],
-    ["not tested",          "notRated"],
+    ["satisfactory",          "satisfactory"],
+    ["effective",             "effective"],
+    ["Effective",             "effective"],
+    ["Moderately Effective",  "moderatelyEffective"],
+    ["moderatelyeffective",   "moderatelyEffective"],
+    ["partial",               "moderatelyEffective"],
+    ["partially",             "moderatelyEffective"],
+    ["Partially Effective",   "moderatelyEffective"],
+    ["needs improvement",     "moderatelyEffective"],
+    ["needsimprovement",      "moderatelyEffective"],
+    ["weak",                  "ineffective"],
+    ["Weak",                  "ineffective"],
+    ["ineffective",           "ineffective"],
+    ["Ineffective",           "ineffective"],
+    ["not tested",            "notRated"],
   ])('"%s" maps to class %s', (value, expectedClass) => {
     const { container } = render(<RatingBadge value={value} type="control" />);
     expect(container.firstChild).toHaveClass(expectedClass);

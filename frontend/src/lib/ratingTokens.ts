@@ -16,7 +16,7 @@ export const RATING_COLORS = {
 } as const;
 
 export const CONTROL_COLORS = {
-  effective: { bg: "#7BB972", fg: "#000000" },
-  partial:   { bg: "#F3CC65", fg: "#000000" },
-  weak:      { bg: "#B63831", fg: "#FFFFFF" },
+  effective:           { bg: "#7BB972", fg: "#000000" },
+  moderatelyEffective: { bg: "#F3CC65", fg: "#000000" },
+  ineffective:         { bg: "#B63831", fg: "#FFFFFF" },
 } as const;

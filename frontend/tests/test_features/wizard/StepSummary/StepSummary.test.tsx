@@ -62,7 +62,7 @@ const mockRisks = [
 
 const mockControls = [
   { id: "c1", risk_id: "r1", name: "Control A", overall_effectiveness: "Effective" },
-  { id: "c2", risk_id: "r2", name: "Control B", overall_effectiveness: "Partially Effective" },
+  { id: "c2", risk_id: "r2", name: "Control B", overall_effectiveness: "Moderately Effective" },
 ];
 
 function setup() {

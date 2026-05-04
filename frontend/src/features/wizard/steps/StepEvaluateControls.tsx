@@ -43,17 +43,14 @@ const TYPES = ["Preventive", "Detective", "Corrective", "Directive"];
 
 const EFF_INT_LABELS: Record<number, string> = {
   1: "Ineffective",
-  2: "Partially Effective",
-  3: "Needs Improvement",
-  4: "Effective",
+  2: "Moderately Effective",
+  3: "Effective",
 };
 
 const OVERALL_OPTIONS = [
   "Effective",
-  "Partially Effective",
-  "Needs Improvement",
+  "Moderately Effective",
   "Ineffective",
-  "Not Tested",
 ];
 
 const RATING_MATRIX: Record<string, Record<string, string>> = {
@@ -71,18 +68,16 @@ function computeInherentRating(likelihood: string | null, impact: string | null)
 function overallFromInts(design: number | null, operating: number | null): string | null {
   if (!design || !operating) return null;
   const avg = (design + operating) / 2;
-  if (avg >= 3.5) return "Effective";
-  if (avg >= 2.5) return "Needs Improvement";
-  if (avg >= 1.5) return "Partially Effective";
+  if (avg >= 2.5) return "Effective";
+  if (avg >= 1.5) return "Moderately Effective";
   return "Ineffective";
 }
 
 function effColor(val: string | null) {
   if (!val) return styles.ecEffNull;
-  if (val === "Effective")           return styles.ecEffEffective;
-  if (val === "Partially Effective") return styles.ecEffPartial;
-  if (val === "Needs Improvement")   return styles.ecEffNeeds;
-  if (val === "Ineffective")         return styles.ecEffIneffective;
+  if (val === "Effective")            return styles.ecEffEffective;
+  if (val === "Moderately Effective") return styles.ecEffModerate;
+  if (val === "Ineffective")          return styles.ecEffIneffective;
   return styles.ecEffNull;
 }
 
@@ -338,7 +333,7 @@ function ControlRow({
           onChange={(e) => handleDesign(e.target.value)}
         >
           <option value="">— Select —</option>
-          {[1, 2, 3, 4].map((v) => (
+          {[1, 2, 3].map((v) => (
             <option key={v} value={v}>{EFF_INT_LABELS[v]}</option>
           ))}
         </select>
@@ -352,7 +347,7 @@ function ControlRow({
           onChange={(e) => handleOperating(e.target.value)}
         >
           <option value="">— Select —</option>
-          {[1, 2, 3, 4].map((v) => (
+          {[1, 2, 3].map((v) => (
             <option key={v} value={v}>{EFF_INT_LABELS[v]}</option>
           ))}
         </select>
@@ -364,7 +359,7 @@ function ControlRow({
           onChange={(e) => onUpdate({ overall_effectiveness: e.target.value })}
         >
           <option value="">— Select —</option>
-          {["Effective","Partially Effective","Needs Improvement","Ineffective","Not Tested"].map((o) => (
+          {OVERALL_OPTIONS.map((o) => (
             <option key={o}>{o}</option>
           ))}
         </select>

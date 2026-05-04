@@ -73,9 +73,9 @@ describe("MethodologyPage — likelihood cards", () => {
 describe("MethodologyPage — control effectiveness scale", () => {
   it("renders control effectiveness labels", () => {
     wrap(<MethodologyPage />);
-    expect(screen.getByText("Satisfactory")).toBeInTheDocument();
-    expect(screen.getByText("Needs Improvement")).toBeInTheDocument();
-    expect(screen.getByText("Weak")).toBeInTheDocument();
+    expect(screen.getByText("Effective")).toBeInTheDocument();
+    expect(screen.getByText("Moderately Effective")).toBeInTheDocument();
+    expect(screen.getByText("Ineffective")).toBeInTheDocument();
   });
 });
 

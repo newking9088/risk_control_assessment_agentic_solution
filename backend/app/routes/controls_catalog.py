@@ -198,7 +198,14 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
 
     content = await file.read()
-    text = content.decode("utf-8", errors="replace")
+
+    # utf-8-sig strips Excel BOM; errors='replace' prevents UnicodeDecodeError
+    text = content.decode("utf-8-sig", errors="replace")
+    # Normalise all newline styles (\r\n, \r) before the csv reader sees them.
+    # io.StringIO default newline='\n' leaves bare \r in the stream, which the
+    # csv module misreads as a line terminator inside unquoted fields (_csv.Error).
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
     reader = csv.DictReader(io.StringIO(text))
 
     inserted = 0
@@ -234,7 +241,11 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
                         user.get("email"),
                     ),
                 )
-                inserted += 1
+                # rowcount=0 means ON CONFLICT DO NOTHING fired (duplicate)
+                if cur.rowcount:
+                    inserted += 1
+                else:
+                    skipped += 1
             except Exception:
                 skipped += 1
 

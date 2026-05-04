@@ -19,15 +19,16 @@ function riskClass(value: string): string {
 function controlClass(value: string): string {
   const v = value.toLowerCase().replace(/[\s_-]+/g, "");
   const map: Record<string, string> = {
-    satisfactory:      "satisfactory",
-    effective:         "effective",
-    partial:           "partial",
-    partially:         "partial",
-    partiallyeffective:"partial",
-    weak:              "weak",
-    needsimprovement:  "needsImprovement",
-    ineffective:       "ineffective",
-    nottested:         "notRated",
+    satisfactory:          "satisfactory",
+    effective:             "effective",
+    moderatelyeffective:   "moderatelyEffective",
+    partial:               "moderatelyEffective",
+    partially:             "moderatelyEffective",
+    partiallyeffective:    "moderatelyEffective",
+    needsimprovement:      "moderatelyEffective",
+    weak:                  "ineffective",
+    ineffective:           "ineffective",
+    nottested:             "notRated",
   };
   return map[v] ?? "notRated";
 }

@@ -44,7 +44,7 @@ const mockControls = [
     description: "Real-time transaction monitoring for fraud patterns",
     design_effectiveness: 3,
     operating_effectiveness: 3,
-    overall_effectiveness: "Partially Effective",
+    overall_effectiveness: "Moderately Effective",
     rationale: "Some gaps in coverage",
   },
 ];
