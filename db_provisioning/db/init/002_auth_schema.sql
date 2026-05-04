@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS auth."user" (
     "emailVerified"  BOOLEAN NOT NULL DEFAULT FALSE,
     image            TEXT,
     role             TEXT NOT NULL DEFAULT 'analyst'
-                     CHECK (role IN ('viewer','analyst','delivery_lead')),
+                     CHECK (role IN ('viewer','analyst','senior_analyst','team_lead','delivery_lead','admin')),
     "tenantId"       TEXT,
     "createdAt"      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "updatedAt"      TIMESTAMPTZ NOT NULL DEFAULT NOW()
