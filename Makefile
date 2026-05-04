@@ -1,6 +1,6 @@
-.PHONY: install db-up db-down db-schema db-seed db-fresh start stop logs ps test lint help
+.PHONY: install db-up db-down db-schema db-seed db-fresh start stop logs ps test lint fresh help
 
-# ── Install ──────────────────────────────────────────────────────────────────
+# ── Install ───────────────────────────────────────────────────────────────────
 install:  ## Install all dependencies
 	cd backend && uv sync --extra dev
 	cd frontend && npm install --legacy-peer-deps
@@ -13,15 +13,34 @@ db-up:  ## Start DB and Redis containers
 db-down:  ## Stop and remove containers
 	docker compose down
 
-db-schema:  ## Apply schema SQL files via docker exec
-	@echo "Applying schema..."
-	docker exec rca-db psql -U adminuser -d appdb -f /docker-entrypoint-initdb.d/001_app_schema.sql
-	docker exec rca-db psql -U adminuser -d appdb -f /docker-entrypoint-initdb.d/002_auth_schema.sql
+db-schema:  ## Apply all SQL migrations (001–015) in order via docker exec
+	@echo "Applying migrations..."
+	@for f in \
+	  001_app_schema.sql \
+	  002_auth_schema.sql \
+	  003_seed.sql \
+	  004_control_catalog.sql \
+	  005_taxonomy_evolution.sql \
+	  006_assessment_scope.sql \
+	  007_risk_applicability.sql \
+	  008_unit_id_doc_category.sql \
+	  009_rating_columns.sql \
+	  010_demo_assessments.sql \
+	  011_inherent_risk_dimensions.sql \
+	  012_admin_tables.sql \
+	  013_collaboration_tables.sql \
+	  014_step1_2_tables.sql \
+	  015_admin_user_seed.sql; do \
+	  echo "  → $$f"; \
+	  docker exec rca-db psql -U adminuser -d appdb -q \
+	    -f /docker-entrypoint-initdb.d/$$f; \
+	done
+	@echo "Done."
 
-db-seed:  ## Seed demo users via auth-service
+db-seed:  ## Seed demo users via auth-service (analyst / lead / viewer / admin)
 	cd auth-service && npx tsx src/seed.ts
 
-db-fresh: db-down  ## Full DB reset: down, up, schema, seed
+db-fresh: db-down  ## Full DB reset: down → up → all migrations → seed demo users
 	docker compose up -d db redis
 	@echo "Waiting for DB to be ready..."
 	@until docker exec rca-db pg_isready -U adminuser -d appdb -q 2>/dev/null; do sleep 1; done
@@ -38,9 +57,10 @@ start: db-up  ## Start auth, backend, and frontend (logs to /tmp/rca-*.log)
 	@echo "Services starting. Logs: /tmp/rca-{auth,backend,frontend}.log"
 	@echo ""
 	@echo "Demo logins:"
-	@echo "  analyst@example.com  / Analyst1234!"
-	@echo "  lead@example.com     / Lead1234!"
-	@echo "  viewer@example.com   / Viewer1234!"
+	@echo "  admin@rca.local      / Admin@1234     (admin)"
+	@echo "  analyst@example.com  / Analyst1234!   (analyst)"
+	@echo "  lead@example.com     / Lead1234!      (delivery_lead)"
+	@echo "  viewer@example.com   / Viewer1234!    (viewer)"
 
 stop:  ## Stop all services and containers
 	-pkill -f "uvicorn app.main" 2>/dev/null || true
@@ -55,7 +75,7 @@ ps:  ## Show running containers and service processes
 	docker compose ps
 	@pgrep -a -f "uvicorn|tsx src/index|vite" 2>/dev/null || true
 
-fresh: stop db-fresh start  ## Full reset: stop, wipe DB, start fresh
+fresh: stop db-fresh start  ## Full reset: stop everything, wipe DB, start fresh
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 test:  ## Run backend and frontend tests

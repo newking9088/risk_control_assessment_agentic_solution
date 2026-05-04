@@ -3,6 +3,7 @@ import { auth } from "./auth.js";
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 const SEED_USERS = [
+  { email: "admin@rca.local",      password: "Admin@1234",   role: "admin" },
   { email: "analyst@example.com",  password: "Analyst1234!", role: "analyst" },
   { email: "lead@example.com",     password: "Lead1234!",    role: "delivery_lead" },
   { email: "viewer@example.com",   password: "Viewer1234!",  role: "viewer" },
