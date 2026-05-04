@@ -1,0 +1,153 @@
+.wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover { background: #f1f5f9; color: #1e293b; }
+}
+
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  background: #dc2626;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #fff;
+  line-height: 1;
+}
+
+/* ── Drawer ──────────────────────────────────────────────── */
+.drawer {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+  z-index: 400;
+  overflow: hidden;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.drawerTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.markAll {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #2563eb;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.83rem;
+  color: #94a3b8;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f8fafc; }
+}
+
+.itemUnread {
+  background: #eff6ff;
+  &:hover { background: #dbeafe; }
+}
+
+.icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.itemBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemText {
+  font-size: 0.81rem;
+  color: #1e293b;
+  line-height: 1.4;
+  margin-bottom: 0.15rem;
+}
+
+.itemActor {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-bottom: 0.15rem;
+}
+
+.itemTime {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.unreadDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+  margin-top: 0.4rem;
+}

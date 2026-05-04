@@ -1,0 +1,255 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Invite row ──────────────────────────────────────────── */
+.inviteRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.emailInput {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  color: #1e293b;
+  background: #f8fafc;
+  transition: border-color 0.12s;
+
+  &::placeholder { color: #94a3b8; }
+  &:focus { outline: none; border-color: #2563eb; background: #fff; }
+}
+
+.roleSelect {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #475569;
+  background: #f8fafc;
+  cursor: pointer;
+
+  &:focus { outline: none; border-color: #2563eb; }
+}
+
+.inviteBtn {
+  padding: 0.45rem 0.9rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+
+  &:hover:not(:disabled) { background: #1d4ed8; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.errorMsg {
+  font-size: 0.78rem;
+  color: #dc2626;
+  margin: 0;
+}
+
+.loading, .empty {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0.25rem 0;
+}
+
+/* ── Collaborator list ───────────────────────────────────── */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid #f8fafc;
+  background: #fff;
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #fafafa; }
+}
+
+/* Avatar with presence dot */
+.avatar {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.presenceDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.email {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roleDropdown {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 0.76rem;
+  color: #475569;
+  background: #f8fafc;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:focus { outline: none; border-color: #2563eb; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+
+  &:hover { background: #fee2e2; color: #dc2626; }
+}
+
+.confirmRemove {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.confirmYes {
+  padding: 0.2rem 0.45rem;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.6; }
+}
+
+.confirmNo {
+  padding: 0.2rem 0.45rem;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.73rem;
+  cursor: pointer;
+}
+
+/* ── Presence avatars (wizard header) ────────────────────── */
+.presenceAvatars {
+  display: flex;
+  align-items: center;
+  gap: -0.4rem;
+}
+
+.presenceAvatar {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  margin-left: -6px;
+  flex-shrink: 0;
+  cursor: default;
+
+  &:first-child { margin-left: 0; }
+}
+
+.presenceOnlineDot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 1.5px solid #fff;
+}
+
+.presenceCount {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-left: 0.4rem;
+  white-space: nowrap;
+}

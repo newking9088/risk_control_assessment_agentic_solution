@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { LayoutDashboard, Settings } from "lucide-react";
 import { getSession, signOut } from "@/lib/auth";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 import styles from "./TopNav.module.scss";
 
 const SETTINGS_ROLES = new Set(["delivery_lead", "admin"]);
@@ -13,9 +14,10 @@ interface Props {
   onCreateNew?: () => void;
   createPending?: boolean;
   onSettingsOpen?: () => void;
+  children?: React.ReactNode;
 }
 
-export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettingsOpen }: Props) {
+export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettingsOpen, children }: Props) {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -94,6 +96,9 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
           {assessmentTitle}
         </div>
       )}
+
+      {children}
+      <NotificationBell userId={session?.userId ?? null} />
 
       {canOpenSettings && onSettingsOpen && (
         <button

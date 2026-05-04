@@ -7,6 +7,7 @@ import { TopNav } from "@/features/wizard/TopNav";
 import { RatingBadge } from "@/components/RatingBadge";
 import { ChatWidget } from "@/features/chat/ChatWidget";
 import { SettingsDrawer } from "@/features/settings/SettingsDrawer";
+import { CollaboratorPanel } from "@/features/collaborate/CollaboratorPanel";
 import styles from "./assessments.module.scss";
 
 const SUGGESTED_NAMES = [
@@ -44,9 +45,10 @@ interface Assessment {
   unit_id?: string;
   taxonomy_scope?: string;
   risk_sources?: string[];
+  collaborator_count?: number;
 }
 
-type FilterTab = "all" | "draft" | "in_progress" | "complete" | "archived";
+type FilterTab = "all" | "draft" | "in_progress" | "complete" | "archived" | "shared";
 
 const PAGE_SIZE = 10;
 
@@ -83,9 +85,10 @@ function AssessmentsPage() {
   const [editTarget, setEditTarget] = useState<Assessment | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editUnitId, setEditUnitId] = useState("");
-  const [colEmail, setColEmail] = useState("");
-  const [colList, setColList] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Collaborate modal (separate, triggered from Actions column)
+  const [collaborateTarget, setCollaborateTarget] = useState<Assessment | null>(null);
 
   useEffect(() => {
     if (createOpen) setTimeout(() => inputRef.current?.focus(), 50);
@@ -95,8 +98,6 @@ function AssessmentsPage() {
     setEditTarget(a);
     setEditTitle(a.title);
     setEditUnitId(a.unit_id ?? shortId(a.id));
-    setColList([]);
-    setColEmail("");
     setConfirmDelete(false);
   }
 
@@ -106,8 +107,11 @@ function AssessmentsPage() {
   }
 
   const { data: all = [], isLoading } = useQuery<Assessment[]>({
-    queryKey: ["assessments"],
-    queryFn: () => api.get("/api/v1/assessments").then((r) => r.json()),
+    queryKey: ["assessments", filter === "shared" ? "shared" : "all"],
+    queryFn: () =>
+      api
+        .get(filter === "shared" ? "/api/v1/assessments?shared_with_me=true" : "/api/v1/assessments")
+        .then((r) => r.json()),
   });
 
   const create = useMutation({
@@ -165,13 +169,17 @@ function AssessmentsPage() {
     in_progress: active.filter((a) => a.status === "in_progress").length,
     complete: active.filter((a) => a.status === "complete").length,
     archived: all.filter((a) => a.status === "archived").length,
+    shared: all.length, // backend already filters for shared_with_me when filter === "shared"
   };
 
   // Filtered rows
   const filtered = all.filter((a) => {
-    const matchesFilter = filter === "archived"
-      ? a.status === "archived"
-      : a.status !== "archived" && (filter === "all" || a.status === filter);
+    const matchesFilter =
+      filter === "archived"
+        ? a.status === "archived"
+        : filter === "shared"
+        ? true // backend handles the filter
+        : a.status !== "archived" && (filter === "all" || a.status === filter);
     const matchesSearch =
       !search || a.title.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
@@ -250,6 +258,7 @@ function AssessmentsPage() {
                   ["draft", "Not Started"],
                   ["in_progress", "In Progress"],
                   ["complete", "Completed"],
+                  ["shared", "Shared with me"],
                   ["archived", "Recently Deleted"],
                 ] as [FilterTab, string][]
               ).map(([tab, label]) => (
@@ -372,7 +381,17 @@ function AssessmentsPage() {
                               ? fmtDate(a.updated_at)
                               : "—"}
                           </td>
-                          <td onClick={(e) => e.stopPropagation()}>
+                          <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: "nowrap" }}>
+                            <button
+                              className={styles.colBtn}
+                              title="Collaborate"
+                              onClick={() => setCollaborateTarget(a)}
+                            >
+                              👥
+                              {(a.collaborator_count ?? 0) > 0 && (
+                                <span className={styles.colBadge}>{a.collaborator_count}</span>
+                              )}
+                            </button>
                             <button
                               className={styles.editBtn}
                               title="Actions"
@@ -469,41 +488,7 @@ function AssessmentsPage() {
             {/* Collaborate */}
             <div className={styles.editSection}>
               <div className={styles.editSectionTitle}>Collaborate</div>
-              <p className={styles.editSectionDesc}>Invite team members to view or contribute to this assessment.</p>
-              <div className={styles.colRow}>
-                <input
-                  className={styles.colInput}
-                  type="email"
-                  placeholder="colleague@company.com"
-                  value={colEmail}
-                  onChange={e => setColEmail(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && colEmail.trim()) {
-                      setColList(l => [...l, colEmail.trim()]);
-                      setColEmail("");
-                    }
-                  }}
-                />
-                <button
-                  className={styles.colInviteBtn}
-                  disabled={!colEmail.trim()}
-                  onClick={() => { setColList(l => [...l, colEmail.trim()]); setColEmail(""); }}
-                >
-                  Invite
-                </button>
-              </div>
-              {colList.length > 0 && (
-                <ul className={styles.colList}>
-                  {colList.map((email, i) => (
-                    <li key={i} className={styles.colItem}>
-                      <span className={styles.colAvatar}>{email[0].toUpperCase()}</span>
-                      <span className={styles.colEmail}>{email}</span>
-                      <span className={styles.colPending}>Invite pending</span>
-                      <button className={styles.colRemove} onClick={() => setColList(l => l.filter((_, j) => j !== i))}>✕</button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <CollaboratorPanel assessmentId={editTarget.id} />
             </div>
 
             {/* Danger Zone */}
@@ -529,6 +514,21 @@ function AssessmentsPage() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Collaborate Modal ── */}
+      {collaborateTarget && (
+        <div className={styles.modalOverlay} onClick={() => setCollaborateTarget(null)}>
+          <div className={styles.editModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.editModalHeader}>
+              <h2 className={styles.modalTitle}>Collaborate — {collaborateTarget.title}</h2>
+              <button className={styles.editModalClose} onClick={() => setCollaborateTarget(null)}>✕</button>
+            </div>
+            <div className={styles.editSection}>
+              <CollaboratorPanel assessmentId={collaborateTarget.id} />
             </div>
           </div>
         </div>

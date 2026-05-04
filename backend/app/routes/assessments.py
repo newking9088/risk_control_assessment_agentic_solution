@@ -1,14 +1,51 @@
+import json
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Optional
-from fastapi import APIRouter, Request
+
+from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 from psycopg.rows import dict_row
 
-from app.infra.db import get_tenant_cursor
 from app.config.constants import DEFAULT_TENANT_ID
 from app.errors import NotFoundError
+from app.infra.db import get_tenant_cursor
+from app.infra.redis_client import get_redis
 
 router = APIRouter(prefix="/v1/assessments", tags=["assessments"])
+
+_COLLAB_TABLE_EXISTS: bool | None = None
+
+
+async def _check_collab_table(tenant_id: str) -> bool:
+    global _COLLAB_TABLE_EXISTS
+    if _COLLAB_TABLE_EXISTS is not None:
+        return _COLLAB_TABLE_EXISTS
+    try:
+        async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+            await cur.execute(
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema='app' AND table_name='assessment_collaborators'"
+            )
+            _COLLAB_TABLE_EXISTS = (await cur.fetchone()) is not None
+    except Exception:
+        _COLLAB_TABLE_EXISTS = False
+    return _COLLAB_TABLE_EXISTS
+
+
+async def _publish_assessment_event(assessment_id: str, user: dict, changed_fields: list) -> None:
+    try:
+        r = get_redis()
+        payload = json.dumps({
+            "type": "assessmentUpdated",
+            "user_id": user.get("id"),
+            "user_name": user.get("name", user.get("email", "Someone")),
+            "changed_fields": changed_fields,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        await r.publish(f"assessments:{assessment_id}:events", payload)
+    except Exception:
+        pass
 
 
 class AssessmentCreate(BaseModel):
@@ -111,28 +148,57 @@ async def _check_rating_cols(tenant_id: str) -> bool:
 
 
 @router.get("")
-async def list_assessments(request: Request):
+async def list_assessments(
+    request: Request,
+    shared_with_me: bool = Query(False),
+):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    user_id = user.get("id", "")
     has_scope = await _check_scope_cols(tenant_id)
     has_unit = await _check_unit_col(tenant_id)
     has_ratings = await _check_rating_cols(tenant_id)
+    has_collab = await _check_collab_table(tenant_id)
 
     extra_cols = ""
     if has_scope:
-        extra_cols += ", taxonomy_scope, risk_sources"
+        extra_cols += ", a.taxonomy_scope, a.risk_sources"
     if has_unit:
-        extra_cols += ", unit_id"
+        extra_cols += ", a.unit_id"
     if has_ratings:
-        extra_cols += ", inherent_risk_rating, controls_effectiveness_rating, residual_risk_rating, assessment_end_date"
+        extra_cols += ", a.inherent_risk_rating, a.controls_effectiveness_rating, a.residual_risk_rating, a.assessment_end_date"
 
-    sql = f"""SELECT id, title, description, scope, assessment_date, owner, business_unit,
-                    status, current_step{extra_cols},
-                    created_by, tenant_id, created_at, updated_at
-             FROM app.assessments WHERE tenant_id = %s ORDER BY created_at DESC"""
+    collab_col = ""
+    collab_join = ""
+    if has_collab:
+        collab_col = ", COALESCE(c.collab_count, 0) AS collaborator_count"
+        collab_join = (
+            "LEFT JOIN ("
+            "  SELECT assessment_id, COUNT(*) AS collab_count "
+            "  FROM app.assessment_collaborators GROUP BY assessment_id"
+            ") c ON c.assessment_id = a.id"
+        )
+
+    if shared_with_me and has_collab:
+        sql = f"""SELECT a.id, a.title, a.description, a.scope, a.assessment_date, a.owner,
+                         a.business_unit, a.status, a.current_step{extra_cols},
+                         a.created_by, a.tenant_id, a.created_at, a.updated_at{collab_col}
+                  FROM app.assessments a
+                  JOIN app.assessment_collaborators ac ON ac.assessment_id = a.id AND ac.user_id = %s
+                  {collab_join}
+                  WHERE a.tenant_id = %s ORDER BY a.created_at DESC"""
+        params = (user_id, tenant_id)
+    else:
+        sql = f"""SELECT a.id, a.title, a.description, a.scope, a.assessment_date, a.owner,
+                         a.business_unit, a.status, a.current_step{extra_cols},
+                         a.created_by, a.tenant_id, a.created_at, a.updated_at{collab_col}
+                  FROM app.assessments a
+                  {collab_join}
+                  WHERE a.tenant_id = %s ORDER BY a.created_at DESC"""
+        params = (tenant_id,)
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-        await cur.execute(sql, (tenant_id,))
+        await cur.execute(sql, params)
         rows = await cur.fetchall()
 
     defaults: dict = {}
@@ -147,6 +213,8 @@ async def list_assessments(request: Request):
             "residual_risk_rating": None,
             "assessment_end_date": None,
         })
+    if not has_collab:
+        defaults["collaborator_count"] = 0
     if defaults:
         rows = [{**defaults, **r} for r in rows]
     return rows
@@ -244,6 +312,7 @@ async def patch_assessment(assessment_id: str, body: AssessmentPatch, request: R
             f"UPDATE app.assessments SET {set_clauses}, updated_at = NOW() WHERE id = %s",
             values,
         )
+    await _publish_assessment_event(assessment_id, user, list(updates.keys()))
     return {"id": assessment_id}
 
 
