@@ -4,6 +4,7 @@ import { ChatWidget } from "@/features/chat/ChatWidget";
 import { SettingsDrawer } from "@/features/settings/SettingsDrawer";
 import { useTaxonomyManagement } from "./useTaxonomyManagement";
 import { taxonomyApi } from "./taxonomyApi";
+import type { RiskItem } from "./taxonomyTypes";
 import type { RiskSourceFilter } from "./useTaxonomyManagement";
 import styles from "./TaxonomyManagement.module.scss";
 import { useState } from "react";
@@ -13,6 +14,137 @@ const SOURCE_FILTERS: { value: RiskSourceFilter; label: string }[] = [
   { value: "EXT", label: "External Fraud" },
   { value: "INT", label: "Insider Threat" },
 ];
+
+function isHierarchical(risks: RiskItem[]): boolean {
+  return risks.length > 0 && risks[0].l4 !== undefined;
+}
+
+// ── Hierarchical table (NGC L1→L2→L3→L4 layout) ──────────────────────────────
+
+function HierarchicalRiskTable({ risks }: { risks: RiskItem[] }) {
+  let prevL1 = "", prevL2 = "", prevL3 = "";
+
+  return (
+    <div className={styles.tableWrapper}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th className={styles.thL1}>L1 Risk</th>
+            <th className={styles.thL2}>L2 Risk</th>
+            <th className={styles.thL3}>L3 Risk</th>
+            <th>L3 Risk Description</th>
+            <th className={styles.thL4}>L4 Risk</th>
+            <th>L4 Risk Description</th>
+            <th className={styles.thSource}>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {risks.map((r, i) => {
+            const l1 = r.l1 ?? r.category ?? "";
+            const l2 = r.l2 ?? "";
+            const l3 = r.l3 ?? "";
+            const l3d = r.l3_description ?? "";
+            const l4 = r.l4 ?? r.name ?? "";
+            const l4d = r.l4_description ?? r.description ?? "";
+            const src = r.source ?? "";
+
+            const showL1 = l1 !== prevL1;
+            const showL2 = l2 !== prevL2 || showL1;
+            const showL3 = l3 !== prevL3 || showL2;
+
+            prevL1 = l1;
+            prevL2 = l2;
+            prevL3 = l3;
+
+            return (
+              <tr key={i} className={styles.tableRow}>
+                <td className={showL1 ? styles.hierCellL1 : styles.hierCellBlank}>
+                  {showL1 ? l1 : ""}
+                </td>
+                <td className={showL2 ? styles.hierCellL2 : styles.hierCellBlank}>
+                  {showL2 ? l2 : ""}
+                </td>
+                <td className={showL3 ? styles.hierCellL3 : styles.hierCellBlank}>
+                  {showL3 ? l3 : ""}
+                </td>
+                <td className={styles.hierCellDesc}>
+                  {showL3 ? l3d : ""}
+                </td>
+                <td className={styles.hierCellL4}>{l4}</td>
+                <td className={styles.hierCellDesc}>{l4d}</td>
+                <td>
+                  {src && <span className={styles.sourceBadge}>{src}</span>}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Flat editable table (manually-entered risks) ──────────────────────────────
+
+function FlatRiskTable({
+  riskPageData, riskPage, RISK_PAGE, handleRiskChange,
+}: {
+  riskPageData: RiskItem[];
+  riskPage: number;
+  RISK_PAGE: number;
+  handleRiskChange: (i: number, f: keyof RiskItem, v: string) => void;
+}) {
+  return (
+    <div className={styles.tableWrapper}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Risk ID</th>
+            <th>Category</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {riskPageData.map((r, i) => {
+            const globalIdx = (riskPage - 1) * RISK_PAGE + i;
+            return (
+              <tr key={r.risk_id} className={styles.tableRow}>
+                <td className={`${styles.editableCell} ${styles.idCell}`}>
+                  <input value={r.risk_id} onChange={(e) => handleRiskChange(globalIdx, "risk_id", e.target.value)} />
+                </td>
+                <td className={styles.editableCell}>
+                  <input value={r.category} onChange={(e) => handleRiskChange(globalIdx, "category", e.target.value)} placeholder="Category" />
+                </td>
+                <td className={styles.editableCell}>
+                  <input value={r.name} onChange={(e) => handleRiskChange(globalIdx, "name", e.target.value)} placeholder="Risk name" />
+                </td>
+                <td className={styles.editableCell}>
+                  <textarea value={r.description ?? ""} onChange={(e) => handleRiskChange(globalIdx, "description", e.target.value)} placeholder="Description" rows={1} />
+                </td>
+                <td className={styles.editableCell}>
+                  <select
+                    className={styles.filterSelect}
+                    value={r.source ?? ""}
+                    onChange={(e) => handleRiskChange(globalIdx, "source", e.target.value)}
+                    style={{ fontSize: "0.75rem", padding: "0.2rem 0.4rem" }}
+                  >
+                    <option value="">—</option>
+                    <option value="EXT">External Fraud</option>
+                    <option value="INT">Insider Threat</option>
+                  </select>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export function TaxonomyManagementPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -32,6 +164,8 @@ export function TaxonomyManagementPage() {
     riskCategories, stats,
     RISK_PAGE,
   } = useTaxonomyManagement();
+
+  const hierMode = isHierarchical(editRisks);
 
   return (
     <div className={styles.page}>
@@ -62,10 +196,7 @@ export function TaxonomyManagementPage() {
               {uploading ? "Uploading…" : "⬆ Upload Excel / CSV"}
             </button>
             {selectedId && (
-              <button
-                className={styles.btnSecondary}
-                onClick={() => taxonomyApi.export(selectedId)}
-              >
+              <button className={styles.btnSecondary} onClick={() => taxonomyApi.export(selectedId)}>
                 ⬇ Export CSV
               </button>
             )}
@@ -87,9 +218,7 @@ export function TaxonomyManagementPage() {
               onChange={(e) => setSelectedId(e.target.value)}
             >
               {taxonomies.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} (v{t.version})
-                </option>
+                <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>
               ))}
             </select>
           </div>
@@ -100,9 +229,7 @@ export function TaxonomyManagementPage() {
         {error      && <div className={styles.bannerError}>✗ {error}</div>}
 
         {loading && (
-          <div style={{ color: "#64748b", fontSize: "0.875rem", marginBottom: "1rem" }}>
-            Loading…
-          </div>
+          <div style={{ color: "#64748b", fontSize: "0.875rem", marginBottom: "1rem" }}>Loading…</div>
         )}
 
         {/* Empty state */}
@@ -111,10 +238,7 @@ export function TaxonomyManagementPage() {
             <div className={styles.emptyIcon}>📂</div>
             <h3>No taxonomy loaded</h3>
             <p>Upload an Excel or CSV file to import fraud risks into the taxonomy.</p>
-            <button
-              className={styles.btnPrimary}
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <button className={styles.btnPrimary} onClick={() => fileInputRef.current?.click()}>
               ⬆ Upload File
             </button>
           </div>
@@ -122,7 +246,7 @@ export function TaxonomyManagementPage() {
 
         {taxonomy && (
           <>
-            {/* Stats — 3 cards (no Controls) */}
+            {/* Stats */}
             <div className={styles.statsRow} style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
               <div className={styles.statCard}>
                 <div className={styles.statIconRisk}><AlertTriangle size={18} /></div>
@@ -149,14 +273,11 @@ export function TaxonomyManagementPage() {
 
             {/* Risks card */}
             <div className={styles.card}>
-              <div style={{
-                padding: "0.85rem 1.25rem",
-                borderBottom: "1px solid #e2e8f0",
-                fontWeight: 700,
-                fontSize: "0.95rem",
-                color: "#1e293b",
-              }}>
+              <div className={styles.cardHeader}>
                 Fraud Risks ({editRisks.length})
+                {hierMode && (
+                  <span className={styles.hierBadge}>NGC Hierarchical</span>
+                )}
               </div>
 
               {/* Toolbar */}
@@ -195,75 +316,25 @@ export function TaxonomyManagementPage() {
                   <span style={{ fontSize: "0.78rem", color: "#64748b" }}>
                     {filteredRisks.length} risks
                   </span>
-                  <button className={styles.addRowBtn} onClick={addBlankRisk}>
-                    + Add Risk
-                  </button>
+                  {!hierMode && (
+                    <button className={styles.addRowBtn} onClick={addBlankRisk}>
+                      + Add Risk
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Table */}
-              <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Risk ID</th>
-                      <th>Category</th>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {riskPageData.map((r, i) => {
-                      const globalIdx = (riskPage - 1) * RISK_PAGE + i;
-                      return (
-                        <tr key={r.risk_id} className={styles.tableRow}>
-                          <td className={`${styles.editableCell} ${styles.idCell}`}>
-                            <input
-                              value={r.risk_id}
-                              onChange={(e) => handleRiskChange(globalIdx, "risk_id", e.target.value)}
-                            />
-                          </td>
-                          <td className={styles.editableCell}>
-                            <input
-                              value={r.category}
-                              onChange={(e) => handleRiskChange(globalIdx, "category", e.target.value)}
-                              placeholder="Category"
-                            />
-                          </td>
-                          <td className={styles.editableCell}>
-                            <input
-                              value={r.name}
-                              onChange={(e) => handleRiskChange(globalIdx, "name", e.target.value)}
-                              placeholder="Risk name"
-                            />
-                          </td>
-                          <td className={styles.editableCell}>
-                            <textarea
-                              value={r.description ?? ""}
-                              onChange={(e) => handleRiskChange(globalIdx, "description", e.target.value)}
-                              placeholder="Description"
-                              rows={1}
-                            />
-                          </td>
-                          <td className={styles.editableCell}>
-                            <select
-                              className={styles.filterSelect}
-                              value={r.source ?? ""}
-                              onChange={(e) => handleRiskChange(globalIdx, "source", e.target.value)}
-                              style={{ fontSize: "0.75rem", padding: "0.2rem 0.4rem" }}
-                            >
-                              <option value="">—</option>
-                              <option value="EXT">External Fraud</option>
-                              <option value="INT">Insider Threat</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {/* Table — hierarchical or flat */}
+              {hierMode ? (
+                <HierarchicalRiskTable risks={filteredRisks.slice((riskPage - 1) * RISK_PAGE, riskPage * RISK_PAGE)} />
+              ) : (
+                <FlatRiskTable
+                  riskPageData={riskPageData}
+                  riskPage={riskPage}
+                  RISK_PAGE={RISK_PAGE}
+                  handleRiskChange={handleRiskChange}
+                />
+              )}
 
               {/* Pagination */}
               {riskTotalPages > 1 && (
@@ -281,12 +352,14 @@ export function TaxonomyManagementPage() {
                 </div>
               )}
 
-              {/* Save bar */}
-              <div className={styles.saveBar}>
-                <button className={styles.btnPrimary} onClick={handleSave}>
-                  Save Changes
-                </button>
-              </div>
+              {/* Save bar — only in flat mode */}
+              {!hierMode && (
+                <div className={styles.saveBar}>
+                  <button className={styles.btnPrimary} onClick={handleSave}>
+                    Save Changes
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

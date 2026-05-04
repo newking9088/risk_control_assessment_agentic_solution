@@ -120,7 +120,13 @@ def _normalise_risks(rows: list[dict]) -> list[dict]:
 
 
 def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
-    """Parse NGC-style L1/L2/L3/L4 hierarchical risk rows, carrying forward parent values."""
+    """Parse NGC-style L1/L2/L3/L4 hierarchical risk rows, carrying forward parent values.
+
+    Each output row preserves all four hierarchy levels so the frontend can
+    reconstruct the same sparse-table appearance as the source spreadsheet.
+    Backward-compatible flat fields (risk_id, category, name, description,
+    source) are also set so existing wizard / filter code keeps working.
+    """
     out = []
     l1 = l2 = l3 = l3_desc = risk_id = ""
 
@@ -137,7 +143,7 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
         if new_l3:
             l3 = new_l3
             l3_desc = new_l3_desc
-            # Extract code: "A001E - Altered Payment" → "A001E"
+            # Extract code: "R001E - Altered Payment" → "R001E"
             risk_id = l3.split(" - ")[0].strip() if " - " in l3 else f"R-{uuid.uuid4().hex[:6].upper()}"
 
         l4 = r.get("L4 Risk", "").strip()
@@ -147,12 +153,22 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
         if not name:
             continue
 
+        source = (r.get("Source") or r.get("source") or "EXT").strip().upper()
+
         out.append({
+            # ── flat fields (backward compat) ──────────────────
             "risk_id":     risk_id,
             "category":    l1,
             "name":        name,
             "description": l4_desc if l4_desc else l3_desc,
-            "source":      (r.get("Source") or r.get("source") or "EXT").strip().upper(),
+            "source":      source,
+            # ── hierarchical fields (for UI display) ───────────
+            "l1": l1,
+            "l2": l2,
+            "l3": l3,
+            "l3_description": l3_desc,
+            "l4": l4,
+            "l4_description": l4_desc,
         })
 
     return out

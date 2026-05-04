@@ -480,6 +480,94 @@
 
 .pageOf { font-size: 0.78rem; color: #64748b; }
 
+/* ── Card header ─────────────────────────────────────────── */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.hierBadge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  white-space: nowrap;
+}
+
+/* ── Hierarchical table cells ────────────────────────────── */
+.thL1 { width: 13%; }
+.thL2 { width: 13%; }
+.thL3 { width: 16%; }
+.thL4 { width: 18%; }
+.thSource { width: 6%; }
+
+.hierCellL1 {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.8rem;
+  vertical-align: top;
+  padding-top: 0.55rem;
+  border-top: 2px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.hierCellL2 {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.79rem;
+  vertical-align: top;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e9ecf0;
+  background: #fafbfc;
+}
+
+.hierCellL3 {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.75rem;
+  color: #1e40af;
+  font-weight: 600;
+  vertical-align: top;
+  padding-top: 0.55rem;
+}
+
+.hierCellBlank {
+  background: transparent;
+  color: transparent;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.hierCellL4 {
+  font-size: 0.81rem;
+  color: #1e293b;
+}
+
+.hierCellDesc {
+  font-size: 0.77rem;
+  color: #475569;
+  max-width: 240px;
+}
+
+.sourceBadge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
 /* ── Save footer ─────────────────────────────────────────── */
 .saveBar {
   display: flex;

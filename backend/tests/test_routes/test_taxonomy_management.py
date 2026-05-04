@@ -284,9 +284,10 @@ def _hier_row(**kwargs) -> dict:
 
 class TestNormaliseRisksHierarchical:
     def test_basic_l1_l4_parsing(self):
-        """L1 → category, L4 → name, L3 code → risk_id."""
+        """L1 → category, L4 → name, L3 code → risk_id; hierarchical fields stored."""
         rows = [_hier_row(
             **{"L1 Risk": "Fraud",
+               "L2 Risk": "First-Party Fraud",
                "L3 Risk": "A001E - Altered Payment",
                "L3 Risk Description": "Altered cheque",
                "L4 Risk": "A001E.01 - Cheque Alteration",
@@ -294,10 +295,18 @@ class TestNormaliseRisksHierarchical:
         )]
         risks = _normalise_risks(rows)
         assert len(risks) == 1
+        # flat fields (backward compat)
         assert risks[0]["category"] == "Fraud"
         assert risks[0]["name"] == "A001E.01 - Cheque Alteration"
         assert risks[0]["risk_id"] == "A001E"
         assert risks[0]["description"] == "Physical alteration"
+        # hierarchical fields stored for UI
+        assert risks[0]["l1"] == "Fraud"
+        assert risks[0]["l2"] == "First-Party Fraud"
+        assert risks[0]["l3"] == "A001E - Altered Payment"
+        assert risks[0]["l4"] == "A001E.01 - Cheque Alteration"
+        assert risks[0]["l3_description"] == "Altered cheque"
+        assert risks[0]["l4_description"] == "Physical alteration"
 
     def test_l1_l3_carry_forward_across_rows(self):
         """L1/L3 filled only on first row; subsequent rows inherit them."""

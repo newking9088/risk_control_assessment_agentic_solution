@@ -17,6 +17,13 @@ export interface RiskItem {
   name: string;
   description?: string;
   source?: string;
+  // NGC hierarchical fields — present when loaded from an L1-L4 spreadsheet
+  l1?: string;
+  l2?: string;
+  l3?: string;
+  l3_description?: string;
+  l4?: string;
+  l4_description?: string;
 }
 
 export interface ControlItem {
