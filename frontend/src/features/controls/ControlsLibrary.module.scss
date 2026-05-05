@@ -312,9 +312,9 @@
   border-radius: 4px;
   font-size: 0.68rem;
   font-weight: 700;
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
   white-space: nowrap;
 }
 
@@ -332,9 +332,9 @@
 
 .typeBadgePreventive {
   composes: typeBadge;
-  background: #e6f4e5;
-  color: #2d6e2a;
-  border-color: #7BB972;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
 }
 
 .typeBadgeDetective {
