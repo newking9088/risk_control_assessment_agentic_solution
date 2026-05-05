@@ -1,12 +1,13 @@
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 from psycopg.rows import dict_row
 
 from app.infra.db import get_tenant_cursor
 from app.config.constants import DEFAULT_TENANT_ID
 from app.errors import NotFoundError
+from app.utils.risk_scope import risk_matches_scope
 
 router = APIRouter(prefix="/v1/assessments", tags=["risks"])
 
@@ -88,7 +89,11 @@ async def _check_ir_dims(tenant_id: str) -> bool:
 
 
 @router.get("/{assessment_id}/risks")
-async def list_risks(assessment_id: str, request: Request):
+async def list_risks(
+    assessment_id: str,
+    request: Request,
+    scope: Optional[str] = Query(None, description="Filter by risk scope: 'internal', 'external', or 'both'"),
+):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     has_new = await _check_applic_cols(tenant_id)
@@ -99,10 +104,17 @@ async def list_risks(assessment_id: str, request: Request):
         sql += ", applicability_confidence, confidence_label, decision_basis, requires_review, extra_data"
     if has_ir:
         sql += ", likelihood_score, financial_impact, regulatory_impact, legal_impact, customer_impact, reputational_impact, likelihood_rationale, financial_rationale, regulatory_rationale, legal_rationale, customer_rationale, reputational_rationale"
-    sql += " , created_at FROM app.assessment_risks WHERE assessment_id = %s ORDER BY category, name"
+
+    where = " WHERE assessment_id = %s"
+    params: list = [assessment_id]
+    if scope == "internal":
+        where += " AND source = 'INT'"
+    elif scope == "external":
+        where += " AND source = 'EXT'"
+    sql += f" , created_at FROM app.assessment_risks{where} ORDER BY category, name"
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-        await cur.execute(sql, (assessment_id,))
+        await cur.execute(sql, params)
         rows = await cur.fetchall()
 
     if not has_new:
@@ -166,26 +178,26 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
         taxonomy = await cur.fetchone()
 
     if not taxonomy or not taxonomy["risks_data"]:
-        return {"imported": 0, "skipped": 0, "message": "No active taxonomy found"}
+        return {"imported": 0, "skipped": 0, "filtered_out": 0, "scope": "both", "message": "No active taxonomy found"}
 
     risks_data = taxonomy["risks_data"]
+
+    # Fetch the assessment's taxonomy_scope to filter imported risks
+    async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
+        await cur.execute(
+            "SELECT taxonomy_scope FROM app.assessments WHERE id = %s",
+            (assessment_id,),
+        )
+        assessment_row = await cur.fetchone()
+    scope = (assessment_row or {}).get("taxonomy_scope") or "both"
+
+    # Filter risks to only those matching the assessment scope
+    scoped_risks = [r for r in risks_data if risk_matches_scope(r, scope)]
+    filtered_out = len(risks_data) - len(scoped_risks)
+
     imported = 0
     skipped = 0
 
-    async with get_tenant_cursor(tenant_id) as cur:
-        for r in risks_data:
-            tax_risk_id = r.get("risk_id", "")
-            # Check if already imported for this assessment
-            await cur.execute(
-                """SELECT id FROM app.assessment_risks
-                   WHERE assessment_id = %s AND taxonomy_risk_id = %s""",
-                (assessment_id, tax_risk_id),
-            )
-            # Use connection's own cursor to check
-            # Re-fetch with dict_row
-            pass
-
-        # Re-do with dict_row cursor for check
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         # Get existing taxonomy_risk_ids for this assessment
         await cur.execute(
@@ -195,7 +207,7 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
         existing = {row["taxonomy_risk_id"] for row in await cur.fetchall() if row["taxonomy_risk_id"]}
 
     async with get_tenant_cursor(tenant_id) as cur:
-        for r in risks_data:
+        for r in scoped_risks:
             tax_risk_id = r.get("risk_id", "")
             if tax_risk_id in existing:
                 skipped += 1
@@ -213,7 +225,7 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
             )
             imported += 1
 
-    return {"imported": imported, "skipped": skipped}
+    return {"imported": imported, "skipped": skipped, "filtered_out": filtered_out, "scope": scope}
 
 
 @router.patch("/{assessment_id}/risks/{risk_id}")
