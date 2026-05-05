@@ -278,6 +278,16 @@ export function TaxonomyManagementPage() {
     [editRisks, appliedFilters],
   );
 
+  // In hierarchical mode, "risks" means unique L3 groups, not individual L4 rows
+  const riskGroupCount = useMemo(
+    () => hierMode ? new Set(editRisks.map(r => r.l3 ?? "").filter(Boolean)).size : editRisks.length,
+    [editRisks, hierMode],
+  );
+  const filteredGroupCount = useMemo(
+    () => hierMode ? new Set(hierFiltered.map(r => r.l3 ?? "").filter(Boolean)).size : hierFiltered.length,
+    [hierFiltered, hierMode],
+  );
+
   return (
     <div className={styles.page}>
       <TopNav onSettingsOpen={() => setSettingsOpen(true)} />
@@ -362,7 +372,7 @@ export function TaxonomyManagementPage() {
               <div className={styles.statCard}>
                 <div className={styles.statIconRisk}><AlertTriangle size={18} /></div>
                 <div>
-                  <div className={styles.statValue}>{stats.totalRisks}</div>
+                  <div className={styles.statValue}>{riskGroupCount}</div>
                   <div className={styles.statLabel}>Total Risks</div>
                 </div>
               </div>
@@ -385,7 +395,7 @@ export function TaxonomyManagementPage() {
             {/* Risks card */}
             <div className={styles.card}>
               <div className={styles.cardHeader}>
-                Fraud Risks ({editRisks.length})
+                Fraud Risks ({riskGroupCount})
                 {hierMode && <span className={styles.hierBadge}>NGC Hierarchical</span>}
               </div>
 
@@ -397,7 +407,7 @@ export function TaxonomyManagementPage() {
                     onClear={() => setAppliedFilters(EMPTY_HIER)}
                   />
                   <div className={styles.hierCountRow}>
-                    <span>{hierFiltered.length} of {editRisks.length} risks displayed</span>
+                    <span>{filteredGroupCount} of {riskGroupCount} risks displayed</span>
                   </div>
                   <HierarchicalRiskTable risks={hierFiltered} />
                 </>
