@@ -1,7 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Shield } from "lucide-react";
+import { Shield, Users, UserCheck, UserMinus, ShieldCheck, Key, ScrollText, ClipboardCheck, UserPlus } from "lucide-react";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
 import { getSession } from "@/lib/auth";
@@ -79,35 +79,36 @@ function AdminPage() {
             </div>
           </div>
           <button className={styles.createBtn} onClick={() => setActiveTab("users")}>
-            + Create User
+            <UserPlus size={15} strokeWidth={1.75} />
+            Create User
           </button>
         </div>
 
         {/* Stat cards */}
         <div className={styles.statsRow}>
           <div className={styles.statCard}>
-            <span className={styles.statIcon}>👥</span>
+            <div className={styles.statIconUsers}><Users size={18} /></div>
             <div>
               <div className={styles.statValue}>{total}</div>
               <div className={styles.statLabel}>Total Users</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon}>✅</span>
+            <div className={styles.statIconActive}><UserCheck size={18} /></div>
             <div>
               <div className={styles.statValue}>{active}</div>
               <div className={styles.statLabel}>Active</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon}>⚠️</span>
+            <div className={styles.statIconInactive}><UserMinus size={18} /></div>
             <div>
               <div className={styles.statValue}>{inactive}</div>
               <div className={styles.statLabel}>Inactive</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon}>🛡️</span>
+            <div className={styles.statIconAdmin}><ShieldCheck size={18} /></div>
             <div>
               <div className={styles.statValue}>{admins}</div>
               <div className={styles.statLabel}>Admins</div>
@@ -117,18 +118,30 @@ function AdminPage() {
 
         {/* Tab bar */}
         <div className={styles.tabBar}>
-          {(["users", "roles", "audit", "approvals"] as AdminTab[]).map((tab) => (
-            <button
-              key={tab}
-              className={`${styles.tabBtn} ${activeTab === tab ? styles.tabBtnActive : ""}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === "users"      && "Users"}
-              {tab === "roles"      && "Roles & Permissions"}
-              {tab === "audit"      && "Audit Log"}
-              {tab === "approvals"  && "Approvals"}
-            </button>
-          ))}
+          <button
+            className={`${styles.tabBtn} ${activeTab === "users" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("users")}
+          >
+            <Users size={14} strokeWidth={1.75} /> Users
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "roles" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("roles")}
+          >
+            <Key size={14} strokeWidth={1.75} /> Roles &amp; Permissions
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "audit" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("audit")}
+          >
+            <ScrollText size={14} strokeWidth={1.75} /> Audit Log
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "approvals" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("approvals")}
+          >
+            <ClipboardCheck size={14} strokeWidth={1.75} /> Approvals
+          </button>
         </div>
 
         {/* Tab content */}

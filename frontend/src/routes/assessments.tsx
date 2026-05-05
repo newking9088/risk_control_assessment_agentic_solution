@@ -1,6 +1,7 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
+import { ClipboardList, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
@@ -217,28 +218,28 @@ function AssessmentsPage() {
         {/* Stats row */}
         <div className={styles.statsRow}>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "var(--fra-stat-medium)" }}>📈</span>
+            <div className={styles.statIconTotal}><ClipboardList size={18} /></div>
             <div>
               <div className={styles.statValue}>{active.length}</div>
               <div className={styles.statLabel}>Total Assessments</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "var(--fra-stat-veryhigh)" }}>⏱</span>
+            <div className={styles.statIconProgress}><Clock size={18} /></div>
             <div>
               <div className={styles.statValue}>{inProgressCount}</div>
               <div className={styles.statLabel}>In Progress</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "var(--fra-stat-low)" }}>✓</span>
+            <div className={styles.statIconComplete}><CheckCircle2 size={18} /></div>
             <div>
               <div className={styles.statValue}>{completedCount}</div>
               <div className={styles.statLabel}>Completed</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statIcon} style={{ color: "var(--fra-stat-veryhigh)" }}>⚠</span>
+            <div className={styles.statIconAlert}><AlertTriangle size={18} /></div>
             <div>
               <div className={styles.statValue}>{highCriticalCount}</div>
               <div className={styles.statLabel}>High/Critical</div>

@@ -51,10 +51,19 @@
 }
 
 .statIcon {
-  font-size: 1.5rem;
-  line-height: 1;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
+
+.statIconTotal    { composes: statIcon; background: #eff6ff; color: #2563eb; }
+.statIconProgress { composes: statIcon; background: #fef3c7; color: #92400e; }
+.statIconComplete { composes: statIcon; background: #f0fdf4; color: #16a34a; }
+.statIconAlert    { composes: statIcon; background: #fff1f2; color: #dc2626; }
 
 .statValue {
   font-size: 1.75rem;

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
-import { LayoutDashboard, Settings } from "lucide-react";
+import { LayoutDashboard, Settings, ShieldCheck, GitBranch, BookOpen, Building2, Plus, User, Pencil, LogOut } from "lucide-react";
 import { getSession, signOut } from "@/lib/auth";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
 import styles from "./TopNav.module.scss";
@@ -63,7 +63,7 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
 
       <nav className={styles.tabs}>
         <Link to="/assessments" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
-          <LayoutDashboard size={16} strokeWidth={1.75} style={{ verticalAlign: "middle", marginRight: "0.375rem" }} />
+          <LayoutDashboard size={15} strokeWidth={1.75} />
           Assessment Dashboard
         </Link>
 
@@ -72,20 +72,25 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
           onClick={onCreateNew}
           disabled={createPending}
         >
-          + Create New Assessment
+          <Plus size={15} strokeWidth={2} />
+          Create New Assessment
         </button>
 
         <Link to="/controls" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
+          <ShieldCheck size={15} strokeWidth={1.75} />
           Controls Library
         </Link>
         <Link to="/taxonomy" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
+          <GitBranch size={15} strokeWidth={1.75} />
           Taxonomy
         </Link>
         <Link to="/methodology" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
+          <BookOpen size={15} strokeWidth={1.75} />
           Methodology
         </Link>
         {canViewAdmin && (
           <Link to="/admin" className={styles.tab} activeProps={{ className: `${styles.tab} ${styles.tabActive}` }}>
+            <Building2 size={15} strokeWidth={1.75} />
             Administration
           </Link>
         )}
@@ -126,17 +131,17 @@ export function TopNav({ assessmentTitle, onCreateNew, createPending, onSettings
               <div className={styles.dropdownEmail}>{session.email}</div>
             )}
             <button className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
-              <span>👤</span> View Profile
+              <User size={14} strokeWidth={1.75} /> View Profile
             </button>
             <button className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
-              <span>✏</span> Edit Profile
+              <Pencil size={14} strokeWidth={1.75} /> Edit Profile
             </button>
             <div className={styles.dropdownDivider} />
             <button
               className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
               onClick={handleLogout}
             >
-              <span>🚪</span> Logout
+              <LogOut size={14} strokeWidth={1.75} /> Logout
             </button>
           </div>
         )}
