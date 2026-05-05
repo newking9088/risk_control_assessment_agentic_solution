@@ -7,7 +7,7 @@ import { taxonomyApi } from "./taxonomyApi";
 import type { RiskItem } from "./taxonomyTypes";
 import type { RiskSourceFilter } from "./useTaxonomyManagement";
 import styles from "./TaxonomyManagement.module.scss";
-import { useState } from "react";
+import { useState, Fragment } from "react";
 
 const SOURCE_FILTERS: { value: RiskSourceFilter; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -21,63 +21,84 @@ function isHierarchical(risks: RiskItem[]): boolean {
 
 // ── Hierarchical table (NGC L1→L2→L3→L4 layout) ──────────────────────────────
 
+interface L3Group {
+  l1: string;
+  l2: string;
+  l3: string;
+  l3d: string;
+  rows: RiskItem[];
+}
+
+function groupByL3(risks: RiskItem[]): L3Group[] {
+  const groups: L3Group[] = [];
+  for (const r of risks) {
+    const l3 = r.l3 ?? "";
+    const last = groups[groups.length - 1];
+    if (!last || last.l3 !== l3) {
+      groups.push({
+        l1: r.l1 ?? r.category ?? "",
+        l2: r.l2 ?? "",
+        l3,
+        l3d: r.l3_description ?? "",
+        rows: [r],
+      });
+    } else {
+      last.rows.push(r);
+    }
+  }
+  return groups;
+}
+
 function HierarchicalRiskTable({ risks }: { risks: RiskItem[] }) {
-  let prevL1 = "", prevL2 = "", prevL3 = "";
+  const groups = groupByL3(risks);
 
   return (
     <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+      <table className={styles.hierTable}>
         <thead>
           <tr>
-            <th className={styles.thL1}>L1 Risk</th>
-            <th className={styles.thL2}>L2 Risk</th>
-            <th className={styles.thL3}>L3 Risk</th>
-            <th>L3 Risk Description</th>
-            <th className={styles.thL4}>L4 Risk</th>
+            <th className={styles.thRiskId}>Risk ID</th>
+            <th>L4 Risk</th>
             <th>L4 Risk Description</th>
             <th className={styles.thSource}>Source</th>
           </tr>
         </thead>
         <tbody>
-          {risks.map((r, i) => {
-            const l1 = r.l1 ?? r.category ?? "";
-            const l2 = r.l2 ?? "";
-            const l3 = r.l3 ?? "";
-            const l3d = r.l3_description ?? "";
-            const l4 = r.l4 ?? r.name ?? "";
-            const l4d = r.l4_description ?? r.description ?? "";
-            const src = r.source ?? "";
-
-            const showL1 = l1 !== prevL1;
-            const showL2 = l2 !== prevL2 || showL1;
-            const showL3 = l3 !== prevL3 || showL2;
-
-            prevL1 = l1;
-            prevL2 = l2;
-            prevL3 = l3;
-
-            return (
-              <tr key={i} className={styles.tableRow}>
-                <td className={showL1 ? styles.hierCellL1 : styles.hierCellBlank}>
-                  {showL1 ? l1 : ""}
-                </td>
-                <td className={showL2 ? styles.hierCellL2 : styles.hierCellBlank}>
-                  {showL2 ? l2 : ""}
-                </td>
-                <td className={showL3 ? styles.hierCellL3 : styles.hierCellBlank}>
-                  {showL3 ? l3 : ""}
-                </td>
-                <td className={styles.hierCellDesc}>
-                  {showL3 ? l3d : ""}
-                </td>
-                <td className={styles.hierCellL4}>{l4}</td>
-                <td className={styles.hierCellDesc}>{l4d}</td>
-                <td>
-                  {src && <span className={styles.sourceBadge}>{src}</span>}
+          {groups.map((grp, gi) => (
+            <Fragment key={gi}>
+              {/* L3 group header — always shows L1 category */}
+              <tr>
+                <td colSpan={4} className={styles.hierGroupCell}>
+                  <span className={styles.hierL1Badge}>{grp.l1}</span>
+                  {grp.l2 && (
+                    <span className={styles.hierCrumb}>{grp.l2}</span>
+                  )}
+                  {grp.l2 && grp.l3 && <span className={styles.hierCrumbSep}>›</span>}
+                  {grp.l3 && (
+                    <span className={styles.hierL3Label}>{grp.l3}</span>
+                  )}
+                  {grp.l3d && (
+                    <span className={styles.hierL3Desc}>— {grp.l3d}</span>
+                  )}
                 </td>
               </tr>
-            );
-          })}
+              {/* L4 data rows */}
+              {grp.rows.map((r, ri) => (
+                <tr key={ri} className={styles.hierDataRow}>
+                  <td className={styles.hierIdCell}>{r.risk_id}</td>
+                  <td className={styles.hierCellL4}>{r.l4 ?? r.name ?? ""}</td>
+                  <td className={styles.hierCellDesc}>{r.l4_description ?? r.description ?? ""}</td>
+                  <td className={styles.hierSourceCell}>
+                    {r.source && (
+                      <span className={r.source === "EXT" ? styles.sourceBadgeExt : r.source === "INT" ? styles.sourceBadgeInt : styles.sourceBadge}>
+                        {r.source}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </Fragment>
+          ))}
         </tbody>
       </table>
     </div>
