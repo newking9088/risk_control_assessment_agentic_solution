@@ -35,8 +35,8 @@ const FILTER_TABS: [TypeFilter, string][] = [
   ["Directive",  "Directive"],
 ];
 
-function shortRef(id: string) {
-  return `CTRL-${id.slice(0, 6).toUpperCase()}`;
+function controlId(c: { display_label?: string; id: string }) {
+  return c.display_label || `CTRL-${c.id.slice(0, 6).toUpperCase()}`;
 }
 
 export function ControlsLibraryPage() {
@@ -194,12 +194,13 @@ export function ControlsLibraryPage() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Ref</th>
-                      <th>Control Name</th>
+                      <th className={styles.thCtrlId}>Control ID</th>
+                      <th className={styles.thCtrlType}>Control Type</th>
+                      <th className={styles.thCtrlName}>Control Name</th>
                       <th>Description</th>
-                      <th>Type</th>
-                      <th>Key Control</th>
-                      <th>Source / Category</th>
+                      <th className={styles.thType}>Type</th>
+                      <th className={styles.thKey}>Key Control</th>
+                      <th className={styles.thSource}>Source</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -208,7 +209,8 @@ export function ControlsLibraryPage() {
                       const norm = normalizeType(c.control_type);
                       return (
                         <tr key={c.id} className={styles.tableRow}>
-                          <td className={styles.ctrlRef}>{shortRef(c.id)}</td>
+                          <td className={styles.ctrlRef}>{controlId(c)}</td>
+                          <td className={styles.ctrlCategory}>{c.category || "—"}</td>
                           <td className={styles.ctrlName}>{c.name}</td>
                           <td className={styles.ctrlDesc} title={c.description}>
                             {c.description ?? "—"}
@@ -220,13 +222,15 @@ export function ControlsLibraryPage() {
                               </span>
                             ) : "—"}
                           </td>
-                          <td>
+                          <td className={styles.thKey}>
                             {isKeyControl(c.is_key_control) ? (
                               <span className={styles.keyBadge}>KEY</span>
-                            ) : "—"}
+                            ) : <span className={styles.nonKeyLabel}>Non-key</span>}
                           </td>
-                          <td style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                            {[c.source, c.category].filter(Boolean).join(" / ") || "—"}
+                          <td className={styles.thSource}>
+                            {c.source ? (
+                              <span className={styles.sourceBadge}>{c.source}</span>
+                            ) : "—"}
                           </td>
                           <td>
                             <button

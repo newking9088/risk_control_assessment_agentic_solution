@@ -265,11 +265,26 @@
   &:last-child td { border-bottom: none; }
 }
 
+/* ── Column widths ───────────────────────────────────────── */
+.thCtrlId   { width: 7%; white-space: nowrap; }
+.thCtrlType { width: 9%; }
+.thCtrlName { width: 16%; }
+.thType     { width: 9%; }
+.thKey      { width: 8%; text-align: center; }
+.thSource   { width: 7%; text-align: center; }
+
 .ctrlRef {
+  font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.72rem;
-  font-weight: 600;
-  color: #475569;
+  font-weight: 700;
+  color: #4338ca;
   white-space: nowrap;
+}
+
+.ctrlCategory {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #334155;
 }
 
 .ctrlName {
@@ -284,6 +299,23 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nonKeyLabel {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.sourceBadge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  white-space: nowrap;
 }
 
 /* ── Type badge ──────────────────────────────────────────── */
