@@ -1,5 +1,5 @@
 import { createRoute } from "@tanstack/react-router";
-import { Library, Shield, Eye, Star, Trash2 } from "lucide-react";
+import { Library, Shield, Eye, Star } from "lucide-react";
 import { Route as RootRoute } from "./__root";
 import { TopNav } from "@/features/wizard/TopNav";
 import { ChatWidget } from "@/features/chat/ChatWidget";
@@ -56,7 +56,6 @@ export function ControlsLibraryPage() {
     totalPages,
     typeCounts,
     stats,
-    deleteControl,
     triggerUpload,
     handleFileChange,
     fileInputRef,
@@ -201,7 +200,6 @@ export function ControlsLibraryPage() {
                       <th className={styles.thType}>Type</th>
                       <th className={styles.thKey}>Key Control</th>
                       <th className={styles.thSource}>Source</th>
-                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -231,20 +229,6 @@ export function ControlsLibraryPage() {
                             {c.source ? (
                               <span className={styles.sourceBadge}>{c.source}</span>
                             ) : "—"}
-                          </td>
-                          <td>
-                            <button
-                              className={styles.deleteBtn}
-                              disabled={deleteControl.isPending}
-                              title="Delete control"
-                              onClick={() => {
-                                if (window.confirm(`Delete "${c.name}"?`)) {
-                                  deleteControl.mutate(c.id);
-                                }
-                              }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
                           </td>
                         </tr>
                       );
