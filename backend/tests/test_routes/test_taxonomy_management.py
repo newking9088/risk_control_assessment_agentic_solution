@@ -10,6 +10,7 @@ Coverage:
   - GET /{taxonomy_id}: leaves list values unchanged
   - _normalise_risks: flat format (name/Name/Risk Name headers)
   - _normalise_risks: NGC hierarchical format (L1 Risk through L4 Risk headers)
+  - POST /{taxonomy_id}/upload: CSV + XLSX upload, duplicate detection, unique risk IDs
 """
 import io
 import uuid
@@ -17,6 +18,7 @@ from contextlib import asynccontextmanager
 from contextlib import contextmanager
 from unittest.mock import AsyncMock, patch
 
+import openpyxl
 import pytest
 from fastapi.testclient import TestClient
 
@@ -298,7 +300,7 @@ class TestNormaliseRisksHierarchical:
         # flat fields (backward compat)
         assert risks[0]["category"] == "Fraud"
         assert risks[0]["name"] == "A001E.01 - Cheque Alteration"
-        assert risks[0]["risk_id"] == "A001E"
+        assert risks[0]["risk_id"] == "A001E-1"
         assert risks[0]["description"] == "Physical alteration"
         # hierarchical fields stored for UI
         assert risks[0]["l1"] == "Fraud"
@@ -318,7 +320,7 @@ class TestNormaliseRisksHierarchical:
         risks = _normalise_risks(rows)
         assert len(risks) == 2
         assert risks[1]["category"] == "Fraud"
-        assert risks[1]["risk_id"] == "A001E"
+        assert risks[1]["risk_id"] == "A001E-2"
         assert risks[1]["name"] == "A001E.02 - Row Two"
 
     def test_new_l3_updates_risk_id(self):
@@ -330,8 +332,8 @@ class TestNormaliseRisksHierarchical:
                          "L4 Risk": "B002F.01 - Wire Transfer"}),
         ]
         risks = _normalise_risks(rows)
-        assert risks[0]["risk_id"] == "A001E"
-        assert risks[1]["risk_id"] == "B002F"
+        assert risks[0]["risk_id"] == "A001E-1"
+        assert risks[1]["risk_id"] == "B002F-1"
 
     def test_fallback_to_l3_when_l4_empty(self):
         """If L4 Risk is empty, L3 Risk is used as the risk name."""
@@ -352,3 +354,169 @@ class TestNormaliseRisksHierarchical:
         risks = _normalise_risks(rows)
         assert len(risks) == 1
         assert risks[0]["name"] == "A001E.01 - Sub"
+
+    def test_same_l3_code_gets_incrementing_suffix(self):
+        """Multiple L4 rows under the same L3 code get unique IDs: A001E-1, A001E-2, …"""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
+                         "L4 Risk": "A001E.01 - First"}),
+            _hier_row(**{"L4 Risk": "A001E.02 - Second"}),   # same L3 via carry-forward
+            _hier_row(**{"L4 Risk": "A001E.03 - Third"}),
+        ]
+        risks = _normalise_risks(rows)
+        assert len(risks) == 3
+        assert risks[0]["risk_id"] == "A001E-1"
+        assert risks[1]["risk_id"] == "A001E-2"
+        assert risks[2]["risk_id"] == "A001E-3"
+
+    def test_different_l3_codes_reset_counter(self):
+        """Each distinct L3 code has its own counter starting at 1."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Payment",
+                         "L4 Risk": "A001E.01 - Sub"}),
+            _hier_row(**{"L3 Risk": "B002F - Transfer",
+                         "L4 Risk": "B002F.01 - Wire"}),
+            _hier_row(**{"L4 Risk": "B002F.02 - ACH"}),   # second B002F
+        ]
+        risks = _normalise_risks(rows)
+        assert risks[0]["risk_id"] == "A001E-1"
+        assert risks[1]["risk_id"] == "B002F-1"
+        assert risks[2]["risk_id"] == "B002F-2"
+
+
+# ── POST /{taxonomy_id}/upload ────────────────────────────────────────────────
+
+def _make_ngc_xlsx(rows: list[dict]) -> bytes:
+    """Build an in-memory XLSX with NGC L1-L4 headers for upload tests."""
+    headers = ["L1 Risk", "L2 Risk", "L3 Risk", "L3 Risk Description",
+               "L4 Risk", "L4 Risk Description", "Source"]
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "NGC Risk Taxonomy"
+    ws.append(headers)
+    for row in rows:
+        ws.append([row.get(h, "") for h in headers])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+@contextmanager
+def _upload_client(duplicate_row=None):
+    """TestClient wired for upload endpoint.
+
+    duplicate_row — if non-None, first fetchone() returns it (→ 409 duplicate).
+                    if None, fetchone() returns None (→ upload proceeds).
+    """
+    call_count = 0
+
+    class _UploadCursor:
+        async def execute(self, sql, params=None):
+            pass
+
+        async def fetchone(self):
+            nonlocal call_count
+            call_count += 1
+            return duplicate_row if call_count == 1 else None
+
+        async def fetchall(self):
+            return []
+
+    @asynccontextmanager
+    async def _fake_ctx(*args, **kwargs):
+        yield _UploadCursor()
+
+    async def _mock_user():
+        return MOCK_AUTH_USER
+
+    app.dependency_overrides[get_current_user] = _mock_user
+
+    with patch.object(tax_mod, "_NEW_COLS_EXIST", True), \
+         patch("app.infra.db.init_db_pool", new_callable=AsyncMock), \
+         patch("app.infra.db.close_db_pool", new_callable=AsyncMock), \
+         patch("app.routes.taxonomy_management.get_tenant_cursor", side_effect=_fake_ctx):
+        with TestClient(app) as client:
+            yield client
+
+    app.dependency_overrides.pop(get_current_user, None)
+
+
+class TestUploadTaxonomyFile:
+    def test_csv_risks_upload(self):
+        """CSV with risk headers → 200 with correct risk/control counts."""
+        csv_bytes = b"risk_id,name,category\nR-001,Fraud Risk,Fraud\nR-002,Credit Risk,Credit"
+        with _upload_client() as client:
+            resp = client.post(
+                "/api/v1/taxonomy/tax-001/upload",
+                files={"file": ("risks.csv", csv_bytes, "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["risks"] == 2
+        assert resp.json()["controls"] == 0
+
+    def test_csv_controls_upload(self):
+        """CSV with control headers → 0 risks, N controls."""
+        csv_bytes = b"control_name,control_type\nMFA,Preventive\nAudit Log,Detective"
+        with _upload_client() as client:
+            resp = client.post(
+                "/api/v1/taxonomy/tax-001/upload",
+                files={"file": ("controls.csv", csv_bytes, "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["risks"] == 0
+        assert resp.json()["controls"] == 2
+
+    def test_xlsx_hierarchical_upload_unique_ids(self):
+        """NGC XLSX upload: two rows under same L3 code get A001E-1 / A001E-2."""
+        xlsx_bytes = _make_ngc_xlsx([
+            {"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
+             "L4 Risk": "A001E.01 - First", "Source": "EXT"},
+            {"L4 Risk": "A001E.02 - Second", "Source": "INT"},
+        ])
+        with _upload_client() as client:
+            resp = client.post(
+                "/api/v1/taxonomy/tax-001/upload",
+                files={"file": ("ngc.xlsx", xlsx_bytes,
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["risks"] == 2
+
+    def test_xlsx_hierarchical_upload_returns_correct_count(self):
+        """NGC XLSX with 3 L4 rows → risks == 3, controls == 0."""
+        xlsx_bytes = _make_ngc_xlsx([
+            {"L1 Risk": "Fraud", "L3 Risk": "A001E - Payment",
+             "L4 Risk": "A001E.01 - Sub1", "Source": "EXT"},
+            {"L4 Risk": "A001E.02 - Sub2", "Source": "EXT"},
+            {"L3 Risk": "B002F - Transfer", "L4 Risk": "B002F.01 - Wire", "Source": "INT"},
+        ])
+        with _upload_client() as client:
+            resp = client.post(
+                "/api/v1/taxonomy/tax-001/upload",
+                files={"file": ("ngc.xlsx", xlsx_bytes,
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["risks"] == 3
+        assert resp.json()["controls"] == 0
+
+    def test_duplicate_file_returns_409(self):
+        """If another taxonomy already has the same file hash, return 409."""
+        csv_bytes = b"risk_id,name,category\nR-001,Test Risk,Fraud"
+        with _upload_client(duplicate_row={"id": "other-tax-999"}) as client:
+            resp = client.post(
+                "/api/v1/taxonomy/tax-001/upload",
+                files={"file": ("risks.csv", csv_bytes, "text/csv")},
+            )
+        assert resp.status_code == 409
+        assert "Duplicate" in resp.json()["detail"]
+
+    def test_empty_csv_upload(self):
+        """Uploading an empty CSV stores 0 risks and 0 controls."""
+        with _upload_client() as client:
+            resp = client.post(
+                "/api/v1/taxonomy/tax-001/upload",
+                files={"file": ("empty.csv", b"", "text/csv")},
+            )
+        assert resp.status_code == 200
+        assert resp.json() == {"risks": 0, "controls": 0}

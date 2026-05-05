@@ -129,6 +129,7 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
     """
     out = []
     l1 = l2 = l3 = l3_desc = risk_id = ""
+    sub_index: dict[str, int] = {}
 
     for r in rows:
         new_l1 = r.get("L1 Risk", "").strip()
@@ -155,9 +156,12 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
 
         source = (r.get("Source") or r.get("source") or "EXT").strip().upper()
 
+        sub_index[risk_id] = sub_index.get(risk_id, 0) + 1
+        unique_id = f"{risk_id}-{sub_index[risk_id]}"
+
         out.append({
             # ── flat fields (backward compat) ──────────────────
-            "risk_id":     risk_id,
+            "risk_id":     unique_id,
             "category":    l1,
             "name":        name,
             "description": l4_desc if l4_desc else l3_desc,
