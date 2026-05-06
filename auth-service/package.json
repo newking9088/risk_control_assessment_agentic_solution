@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "better-auth": "^1.2",
-    "express": "^4.21",
+    "express": "^5.2",
     "pg": "^8.13"
   },
   "devDependencies": {
     "@types/express": "^5.0",
-    "@types/node": "^22",
+    "@types/node": "^25",
     "@types/pg": "^8.11",
     "tsx": "^4.19",
-    "typescript": "^5.7"
+    "typescript": "^6.0"
   }
 }
