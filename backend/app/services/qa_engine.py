@@ -286,11 +286,10 @@ async def run_qa_engine(assessment_id: str, tenant_id: str) -> dict:
     # Pass 1 — mandatory AUP questions
     mandatory_responses = _answer_questions(mandatory_qs, profile_text, ao_summary)
 
-    # Pass 2 — triggered situational FRE questions
-    triggered_qs = _get_triggered_situational(mandatory_responses, situational_all)
+    # Pass 2 — all situational FRE questions (not just triggered ones)
     situational_responses: list[dict] = []
-    if triggered_qs:
-        situational_responses = _answer_questions(triggered_qs, profile_text, ao_summary)
+    if situational_all:
+        situational_responses = _answer_questions(situational_all, profile_text, ao_summary)
 
     all_responses = mandatory_responses + situational_responses
 

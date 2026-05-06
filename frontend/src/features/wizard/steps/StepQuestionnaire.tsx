@@ -4,7 +4,7 @@ import {
   User, ShoppingBag, Radio, GitBranch, Users,
   Lock, ArrowLeftRight, FileText, AlertTriangle,
   CreditCard, Monitor, Bell, UserCog, AlertOctagon,
-  ChevronDown, ChevronRight, RefreshCw, Sparkles, X, Send,
+  ChevronDown, ChevronRight, RefreshCw, Sparkles, X, Send, Loader2,
 } from "lucide-react";
 import clsx from "clsx";
 import { api } from "@/lib/api";
@@ -208,6 +208,10 @@ interface QaData {
 interface AssessmentData {
   questionnaire?: { qa?: QaData };
 }
+interface QpProfile {
+  answers: Record<string, AnswerVal>;
+  rationale: Record<string, string>;
+}
 
 // ─────────────────────────────────────────────────────────────
 // Chat panel
@@ -334,11 +338,13 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
     queryFn: () => api.get(`/api/v1/assessments/${assessmentId}`).then((r) => r.json()),
   });
 
-  const [answers,   setAnswers]   = useState<Record<string, AnswerVal>>({});
-  const [rationale, setRationale] = useState<Record<string, string>>({});
-  const [openCats,  setOpenCats]  = useState<Set<string>>(new Set([CATEGORIES[0].key]));
-  const [filter,    setFilter]    = useState<FilterTab>("all");
-  const [chatQ,     setChatQ]     = useState<Question | null>(null);
+  const [answers,      setAnswers]      = useState<Record<string, AnswerVal>>({});
+  const [rationale,    setRationale]    = useState<Record<string, string>>({});
+  const [openCats,     setOpenCats]     = useState<Set<string>>(new Set([CATEGORIES[0].key]));
+  const [filter,       setFilter]       = useState<FilterTab>("all");
+  const [chatQ,        setChatQ]        = useState<Question | null>(null);
+  const [aiPreFilled,  setAiPreFilled]  = useState(false);
+  const [rerunning,    setRerunning]    = useState(false);
 
   // Hydrate from saved questionnaire
   useEffect(() => {
@@ -348,6 +354,29 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
       if (qa.rationale) setRationale(qa.rationale);
     }
   }, [data]);
+
+  // Poll for AI-generated qp-answers every 5 s while they're not ready (404)
+  const { data: qpProfile, isError: qpNotReady } = useQuery<QpProfile>({
+    queryKey: ["qp-answers", assessmentId],
+    queryFn: async () => {
+      const r = await fetch(`/api/v1/assessments/${assessmentId}/qp-answers`, { credentials: "include" });
+      if (r.status === 404) throw new Error("not_ready");
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    },
+    retry: false,
+    refetchInterval: (query) => (query.state.status === "error" ? 5000 : false),
+  });
+
+  // Pre-fill answers once AI profile arrives — only if user hasn't answered manually yet
+  useEffect(() => {
+    if (qpProfile && !aiPreFilled && Object.keys(answers).length === 0) {
+      setAnswers(qpProfile.answers);
+      if (qpProfile.rationale) setRationale(qpProfile.rationale);
+      setAiPreFilled(true);
+      saveQa.mutate({ answers: qpProfile.answers, rationale: qpProfile.rationale || {} });
+    }
+  }, [qpProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const answeredCount = Object.keys(answers).length;
   const yesCount      = Object.values(answers).filter((a) => a === "yes").length;
@@ -385,10 +414,22 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
     setOpenCats(new Set(CATEGORIES.map((c) => c.key)));
   }
 
-  function handleRerunQa() {
-    // Future: call AI to re-analyse document and auto-answer questions
-    // For now: reset and open first category
-    setOpenCats(new Set([CATEGORIES[0].key]));
+  async function handleRerunQa() {
+    setRerunning(true);
+    try {
+      await api.post(`/api/v1/assessments/${assessmentId}/ao-overview`, { force: true });
+      const profile: QpProfile | null = await api
+        .post(`/api/v1/assessments/${assessmentId}/qp-run`, {})
+        .then((r) => r.json());
+      if (profile?.answers) {
+        setAnswers(profile.answers);
+        if (profile.rationale) setRationale(profile.rationale);
+        saveQa.mutate({ answers: profile.answers, rationale: profile.rationale || {} });
+      }
+      qc.invalidateQueries({ queryKey: ["qp-answers", assessmentId] });
+    } catch { /* non-blocking */ }
+    setRerunning(false);
+    setOpenCats(new Set(CATEGORIES.map((c) => c.key)));
   }
 
   // Filter logic
@@ -409,6 +450,17 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
         </p>
       </div>
 
+      {/* ── AI analysis spinning banner — shown while polling for qp-answers ── */}
+      {qpNotReady && (
+        <div className={styles.analysisBanner}>
+          <Loader2 size={20} className={styles.spin} />
+          <div>
+            <strong>Running QA Analysis…</strong>
+            <p>AI is analyzing your documents and answering questions. You can answer manually or wait for results.</p>
+          </div>
+        </div>
+      )}
+
       {/* ── QA Review card ── */}
       <div className={styles.card}>
         {/* Header row */}
@@ -424,8 +476,16 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
             <button type="button" className={styles.qaExpandBtn} onClick={expandAll}>
               Expand All
             </button>
-            <button type="button" className={styles.qaRerunBtn} onClick={handleRerunQa}>
-              <RefreshCw size={12} /> Re-run QA
+            <button
+              type="button"
+              className={styles.qaRerunBtn}
+              onClick={handleRerunQa}
+              disabled={rerunning}
+            >
+              {rerunning
+                ? <Loader2 size={12} className={styles.spin} />
+                : <RefreshCw size={12} />}
+              {rerunning ? "Running…" : "Re-run QA"}
             </button>
           </div>
         </div>

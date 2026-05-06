@@ -87,6 +87,7 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
   const [selectedSources, setSelectedSources] = useState<string[]>(["NGC"]);
   const [taxonomyScope, setTaxonomyScope] = useState<string>("both");
   const [uploading, setUploading] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [sourcesInitialised, setSourcesInitialised] = useState(false);
 
   // Build unified source list: one entry per unique org name
@@ -142,6 +143,19 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["documents", assessmentId] }),
   });
 
+  async function triggerAnalysisPipeline() {
+    setAnalyzing(true);
+    try {
+      await api.post(`/api/v1/assessments/${assessmentId}/ao-overview`, {});
+      await api.post(`/api/v1/assessments/${assessmentId}/qp-run`, {});
+      qc.invalidateQueries({ queryKey: ["qp-answers", assessmentId] });
+    } catch {
+      // Non-blocking — user can still answer manually in Step 2
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   async function uploadFile(file: File, category: string) {
     setUploading(category);
     try {
@@ -153,6 +167,9 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
       );
       if (!res.ok) throw new Error(await res.text());
       qc.invalidateQueries({ queryKey: ["documents", assessmentId] });
+      if (category === "au_description") {
+        triggerAnalysisPipeline();
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -309,8 +326,17 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
 
           {auDocs.length > 0 && (
             <div className={styles.prepFileStatus}>
-              <CheckCircle2 size={13} className={styles.prepStatusIcon} />
-              Document analysis complete
+              {analyzing ? (
+                <>
+                  <Loader2 size={13} className={styles.prepSpinner} />
+                  Analyzing document — AI is generating AU profile &amp; questionnaire answers…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={13} className={styles.prepStatusIcon} />
+                  Document analysis complete
+                </>
+              )}
             </div>
           )}
 
