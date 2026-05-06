@@ -295,3 +295,27 @@ async def generate_risk_applicability(body: RiskTrigger, request: Request):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     return await process_applicability(body.assessment_id, tenant_id)
+
+
+@agent_router.post("/inherent-risk-ratings")
+async def generate_inherent_risk_ratings(body: RiskTrigger, request: Request):
+    from app.services.inherent_risk import generate_inherent_ratings
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    return await generate_inherent_ratings(body.assessment_id, tenant_id)
+
+
+@agent_router.post("/controls-effectiveness")
+async def evaluate_controls_effectiveness(body: RiskTrigger, request: Request):
+    from app.services.controls_effectiveness import evaluate_all_controls
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    return await evaluate_all_controls(body.assessment_id, tenant_id)
+
+
+@agent_router.post("/residual-risk-ratings")
+async def compute_residual_risk_ratings(body: RiskTrigger, request: Request):
+    from app.services.residual_risk import compute_residual_ratings
+    user = request.state.user
+    tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
+    return await compute_residual_ratings(body.assessment_id, tenant_id)
