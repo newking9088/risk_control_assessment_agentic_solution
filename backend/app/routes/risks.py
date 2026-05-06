@@ -291,21 +291,7 @@ class RiskTrigger(BaseModel):
 
 @agent_router.post("/risk-applicability")
 async def generate_risk_applicability(body: RiskTrigger, request: Request):
-    from app.llm_client import respond_json
+    from app.services.risk_applicability import process_applicability
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
-    result = respond_json(
-        system="You are a risk assessment expert. Return JSON list of applicable risks.",
-        user_content=f"Assessment ID: {body.assessment_id}. "
-                     'Return: {"risks": [{"name": str, "category": str, "source": str, "applicable": bool}]}',
-    )
-    risks = result.get("risks", [])
-    async with get_tenant_cursor(tenant_id) as cur:
-        for r in risks:
-            if r.get("applicable"):
-                await cur.execute(
-                    "INSERT INTO app.assessment_risks (id, assessment_id, name, category, source) "
-                    "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-                    (str(uuid.uuid4()), body.assessment_id, r["name"], r["category"], r.get("source", "EXT")),
-                )
-    return {"risks": risks, "count": len(risks)}
+    return await process_applicability(body.assessment_id, tenant_id)

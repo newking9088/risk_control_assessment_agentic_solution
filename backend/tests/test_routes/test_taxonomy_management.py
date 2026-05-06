@@ -285,103 +285,80 @@ def _hier_row(**kwargs) -> dict:
 
 
 class TestNormaliseRisksHierarchical:
-    def test_basic_l1_l4_parsing(self):
-        """L1 → category, L4 → name, L3 code → risk_id; hierarchical fields stored."""
-        rows = [_hier_row(
-            **{"L1 Risk": "Fraud",
-               "L2 Risk": "First-Party Fraud",
-               "L3 Risk": "A001E - Altered Payment",
-               "L3 Risk Description": "Altered cheque",
-               "L4 Risk": "A001E.01 - Cheque Alteration",
-               "L4 Risk Description": "Physical alteration"}
-        )]
+    def test_l3_level_grouping(self):
+        """Two L4 rows under one L3 produce a single L3-level output row."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
+                         "L3 Risk Description": "Altered cheques",
+                         "L4 Risk": "R001E.01 - Cheque Alteration",
+                         "L4 Risk Description": "Physical alteration"}),
+            _hier_row(**{"L4 Risk": "R001E.02 - Digital Alteration",
+                         "L4 Risk Description": "Digital forgery"}),
+        ]
         risks = _normalise_risks(rows)
         assert len(risks) == 1
-        # flat fields (backward compat)
-        assert risks[0]["category"] == "Fraud"
-        assert risks[0]["name"] == "A001E.01 - Cheque Alteration"
-        assert risks[0]["risk_id"] == "A001E-1"
-        assert risks[0]["description"] == "Physical alteration"
-        # hierarchical fields stored for UI
-        assert risks[0]["l1"] == "Fraud"
-        assert risks[0]["l2"] == "First-Party Fraud"
-        assert risks[0]["l3"] == "A001E - Altered Payment"
-        assert risks[0]["l4"] == "A001E.01 - Cheque Alteration"
-        assert risks[0]["l3_description"] == "Altered cheque"
-        assert risks[0]["l4_description"] == "Physical alteration"
+        assert risks[0]["risk_id"] == "R001E"
 
-    def test_l1_l3_carry_forward_across_rows(self):
-        """L1/L3 filled only on first row; subsequent rows inherit them."""
+    def test_risk_id_no_suffix(self):
+        """risk_id is the L3 code with no -N suffix."""
+        rows = [_hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
+                              "L4 Risk": "R001E.01 - First"})]
+        risks = _normalise_risks(rows)
+        assert risks[0]["risk_id"] == "R001E"
+        assert "-1" not in risks[0]["risk_id"]
+
+    def test_l3_name_as_name_field(self):
+        """The name field is the full L3 string, not the L4."""
+        rows = [_hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
+                              "L4 Risk": "R001E.01 - Cheque Alteration"})]
+        risks = _normalise_risks(rows)
+        assert risks[0]["name"] == "R001E - Altered Payment"
+
+    def test_l4_folded_into_description(self):
+        """L4 sub-risk names appear in the description field."""
         rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
-                         "L4 Risk": "A001E.01 - Row One"}),
-            _hier_row(**{"L4 Risk": "A001E.02 - Row Two"}),   # L1/L3 empty → carry forward
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
+                         "L3 Risk Description": "Base desc",
+                         "L4 Risk": "R001E.01 - Sub One",
+                         "L4 Risk Description": "Physical forgery"}),
+        ]
+        risks = _normalise_risks(rows)
+        assert "Sub One" in risks[0]["description"]
+
+    def test_multiple_l3_groups(self):
+        """Different L3 codes produce separate output rows."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Payment",
+                         "L4 Risk": "R001E.01 - First"}),
+            _hier_row(**{"L3 Risk": "R002E - Transfer",
+                         "L4 Risk": "R002E.01 - Wire"}),
         ]
         risks = _normalise_risks(rows)
         assert len(risks) == 2
+        assert risks[0]["risk_id"] == "R001E"
+        assert risks[1]["risk_id"] == "R002E"
+
+    def test_l1_carry_forward(self):
+        """L1 category carries forward to subsequent L3 groups."""
+        rows = [
+            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Payment",
+                         "L4 Risk": "R001E.01 - Sub"}),
+            _hier_row(**{"L3 Risk": "R002E - Transfer",
+                         "L4 Risk": "R002E.01 - Wire"}),
+        ]
+        risks = _normalise_risks(rows)
         assert risks[1]["category"] == "Fraud"
-        assert risks[1]["risk_id"] == "A001E-2"
-        assert risks[1]["name"] == "A001E.02 - Row Two"
+        assert risks[1]["l1"] == "Fraud"
 
-    def test_new_l3_updates_risk_id(self):
-        """When a new L3 value appears in a row, risk_id is re-extracted."""
-        rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
-                         "L4 Risk": "A001E.01 - First"}),
-            _hier_row(**{"L3 Risk": "B002F - Transfer Fraud",
-                         "L4 Risk": "B002F.01 - Wire Transfer"}),
-        ]
-        risks = _normalise_risks(rows)
-        assert risks[0]["risk_id"] == "A001E-1"
-        assert risks[1]["risk_id"] == "B002F-1"
-
-    def test_fallback_to_l3_when_l4_empty(self):
-        """If L4 Risk is empty, L3 Risk is used as the risk name."""
+    def test_l3_only_no_l4(self):
+        """L3 row with no L4 produces one output row using L3 as name."""
         rows = [_hier_row(**{"L1 Risk": "Fraud",
-                             "L3 Risk": "A001E - Altered Payment",
-                             "L3 Risk Description": "Altered cheques"})]
+                              "L3 Risk": "R001E - Altered Payment",
+                              "L3 Risk Description": "Altered cheques"})]
         risks = _normalise_risks(rows)
         assert len(risks) == 1
-        assert risks[0]["name"] == "A001E - Altered Payment"
+        assert risks[0]["name"] == "R001E - Altered Payment"
         assert risks[0]["description"] == "Altered cheques"
-
-    def test_empty_rows_skipped(self):
-        """Rows with no L3 or L4 Risk value produce no output."""
-        rows = [
-            _hier_row(**{"L1 Risk": "Fraud"}),   # no L3/L4 → skip
-            _hier_row(**{"L3 Risk": "A001E - Payment", "L4 Risk": "A001E.01 - Sub"}),
-        ]
-        risks = _normalise_risks(rows)
-        assert len(risks) == 1
-        assert risks[0]["name"] == "A001E.01 - Sub"
-
-    def test_same_l3_code_gets_incrementing_suffix(self):
-        """Multiple L4 rows under the same L3 code get unique IDs: A001E-1, A001E-2, …"""
-        rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
-                         "L4 Risk": "A001E.01 - First"}),
-            _hier_row(**{"L4 Risk": "A001E.02 - Second"}),   # same L3 via carry-forward
-            _hier_row(**{"L4 Risk": "A001E.03 - Third"}),
-        ]
-        risks = _normalise_risks(rows)
-        assert len(risks) == 3
-        assert risks[0]["risk_id"] == "A001E-1"
-        assert risks[1]["risk_id"] == "A001E-2"
-        assert risks[2]["risk_id"] == "A001E-3"
-
-    def test_different_l3_codes_reset_counter(self):
-        """Each distinct L3 code has its own counter starting at 1."""
-        rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "A001E - Payment",
-                         "L4 Risk": "A001E.01 - Sub"}),
-            _hier_row(**{"L3 Risk": "B002F - Transfer",
-                         "L4 Risk": "B002F.01 - Wire"}),
-            _hier_row(**{"L4 Risk": "B002F.02 - ACH"}),   # second B002F
-        ]
-        risks = _normalise_risks(rows)
-        assert risks[0]["risk_id"] == "A001E-1"
-        assert risks[1]["risk_id"] == "B002F-1"
-        assert risks[2]["risk_id"] == "B002F-2"
 
 
 # ── POST /{taxonomy_id}/upload ────────────────────────────────────────────────
@@ -467,7 +444,7 @@ class TestUploadTaxonomyFile:
         assert resp.json()["controls"] == 2
 
     def test_xlsx_hierarchical_upload_unique_ids(self):
-        """NGC XLSX upload: two rows under same L3 code get A001E-1 / A001E-2."""
+        """NGC XLSX upload: two L4 rows under same L3 → 1 L3-level risk (L4s folded in)."""
         xlsx_bytes = _make_ngc_xlsx([
             {"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
              "L4 Risk": "A001E.01 - First", "Source": "EXT"},
@@ -480,10 +457,10 @@ class TestUploadTaxonomyFile:
                                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
             )
         assert resp.status_code == 200
-        assert resp.json()["risks"] == 2
+        assert resp.json()["risks"] == 1
 
     def test_xlsx_hierarchical_upload_returns_correct_count(self):
-        """NGC XLSX with 3 L4 rows → risks == 3, controls == 0."""
+        """NGC XLSX with 3 L4 rows under 2 L3 codes → 2 L3-level risks, 0 controls."""
         xlsx_bytes = _make_ngc_xlsx([
             {"L1 Risk": "Fraud", "L3 Risk": "A001E - Payment",
              "L4 Risk": "A001E.01 - Sub1", "Source": "EXT"},
@@ -497,7 +474,7 @@ class TestUploadTaxonomyFile:
                                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
             )
         assert resp.status_code == 200
-        assert resp.json()["risks"] == 3
+        assert resp.json()["risks"] == 2
         assert resp.json()["controls"] == 0
 
     def test_duplicate_file_returns_409(self):

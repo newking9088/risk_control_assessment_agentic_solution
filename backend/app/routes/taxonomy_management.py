@@ -120,16 +120,14 @@ def _normalise_risks(rows: list[dict]) -> list[dict]:
 
 
 def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
-    """Parse NGC-style L1/L2/L3/L4 hierarchical risk rows, carrying forward parent values.
+    """Parse NGC-style L1/L2/L3/L4 hierarchical risk rows into L3-level entries.
 
-    Each output row preserves all four hierarchy levels so the frontend can
-    reconstruct the same sparse-table appearance as the source spreadsheet.
-    Backward-compatible flat fields (risk_id, category, name, description,
-    source) are also set so existing wizard / filter code keeps working.
+    Outputs one row per unique L3 risk, with all L4 sub-risks folded into the
+    description.  This gives the frontend four assessable risks (L3-level)
+    rather than one row per L4 line.
     """
-    out = []
     l1 = l2 = l3 = l3_desc = risk_id = ""
-    sub_index: dict[str, int] = {}
+    l3_risks: dict[str, dict] = {}  # insertion-ordered by first encounter
 
     for r in rows:
         new_l1 = r.get("L1 Risk", "").strip()
@@ -147,33 +145,40 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
             # Extract code: "R001E - Altered Payment" → "R001E"
             risk_id = l3.split(" - ")[0].strip() if " - " in l3 else f"R-{uuid.uuid4().hex[:6].upper()}"
 
-        l4 = r.get("L4 Risk", "").strip()
-        l4_desc = r.get("L4 Risk Description", "").strip()
-
-        name = l4 if l4 else l3
-        if not name:
+        if not l3:
             continue
 
         source = (r.get("Source") or r.get("source") or "EXT").strip().upper()
 
-        sub_index[risk_id] = sub_index.get(risk_id, 0) + 1
-        unique_id = f"{risk_id}-{sub_index[risk_id]}"
+        if risk_id not in l3_risks:
+            l3_risks[risk_id] = {
+                "risk_id":        risk_id,
+                "category":       l1,
+                "name":           l3,
+                "description":    l3_desc,
+                "source":         source,
+                "l1":             l1,
+                "l2":             l2,
+                "l3":             l3,
+                "l3_description": l3_desc,
+                "_sub_risks":     [],
+            }
 
-        out.append({
-            # ── flat fields (backward compat) ──────────────────
-            "risk_id":     unique_id,
-            "category":    l1,
-            "name":        name,
-            "description": l4_desc if l4_desc else l3_desc,
-            "source":      source,
-            # ── hierarchical fields (for UI display) ───────────
-            "l1": l1,
-            "l2": l2,
-            "l3": l3,
-            "l3_description": l3_desc,
-            "l4": l4,
-            "l4_description": l4_desc,
-        })
+        l4 = r.get("L4 Risk", "").strip()
+        l4_desc = r.get("L4 Risk Description", "").strip()
+        if l4:
+            l3_risks[risk_id]["_sub_risks"].append(
+                f"{l4}" + (f": {l4_desc}" if l4_desc else "")
+            )
+
+    out = []
+    for entry in l3_risks.values():
+        sub_risks = entry.pop("_sub_risks")
+        if sub_risks:
+            base = entry["description"]
+            joined = "; ".join(sub_risks)
+            entry["description"] = f"{base}\nSub-risks: {joined}".strip()
+        out.append(entry)
 
     return out
 
