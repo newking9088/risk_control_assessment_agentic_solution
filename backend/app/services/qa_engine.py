@@ -8,7 +8,7 @@ Uses evidence-tiered consumption rules (from the spec):
   1. Profile explicitly lists relevant items  → Yes  (assumed, grounded)
   2. Profile empty, vague doc references     → Yes  (assumed, conflict_flagged)
   3. Profile explicitly lists NOT-x          → No   (conservative)
-  4. Profile and document both silent        → No   (conservative default)
+  4. Profile and document both silent        → Yes  (RCSA conservative default — assume exposure exists)
 """
 
 import json
@@ -23,7 +23,7 @@ from psycopg.rows import dict_row
 
 from app.infra.db import get_tenant_cursor
 from app.llm_client import respond_json
-from app.services.orchestration import get_ao_snapshot
+from app.services.orchestration import get_ao_snapshot, select_ao_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,8 @@ CONSUMPTION_RULES = (
     "1. Profile EXPLICITLY lists relevant items → answer Yes (assumed=true, grounded)\n"
     "2. Profile empty but vague doc references exist → answer Yes (assumed=true, conflict_flagged=true)\n"
     "3. Profile explicitly lists NOT-x or operations_not_performed → answer No (conservative)\n"
-    "4. Profile and document both silent, no negation → answer No (conservative default)\n"
+    "4. Profile and document both silent, no negation → answer Yes (assumed=true) "
+    "with reason=\"No evidence found; conservative default for RCSA\".\n"
 )
 
 _QA_SYSTEM = (
@@ -62,6 +63,9 @@ CONFIRMED AU OPERATIONAL PROFILE:
 
 AU SUMMARY:
 {ao_summary}
+
+BUSINESS PROCESS DOCUMENT:
+{doc_text}
 
 QUESTIONS TO ANSWER:
 {questions_block}
@@ -128,10 +132,12 @@ def _answer_batch(
     batch: list[QuestionDef],
     profile_text: str,
     ao_summary: str,
+    doc_text: str = "",
 ) -> list[dict]:
     user_content = _QA_USER.format(
         profile_text=profile_text,
         ao_summary=ao_summary,
+        doc_text=doc_text or "(no document text available)",
         questions_block=_format_questions_block(batch),
     )
     raw = respond_json(system=_QA_SYSTEM, user_content=user_content)
@@ -166,13 +172,14 @@ def _answer_questions(
     questions: list[QuestionDef],
     profile_text: str,
     ao_summary: str,
+    doc_text: str = "",
 ) -> list[dict]:
     """Answer *questions* in batches; return list of normalised response dicts."""
     q_map = {q["id"]: q for q in questions}
     responses: list[dict] = []
 
     for batch in _batch_questions(questions):
-        raw_responses = _answer_batch(batch, profile_text, ao_summary)
+        raw_responses = _answer_batch(batch, profile_text, ao_summary, doc_text)
         answered_ids = set()
         for resp in raw_responses:
             qid = resp.get("question_id", "")
@@ -279,18 +286,22 @@ async def run_qa_engine(assessment_id: str, tenant_id: str) -> dict:
     profile_text = _profile_to_text(snapshot.get("operational_profile") or {})
     ao_summary   = snapshot.get("ao_summary") or ""
 
+    # Fetch document chunks so the LLM has full business process context
+    chunks   = await select_ao_chunks(assessment_id, tenant_id, top_k=6)
+    doc_text = "\n\n-----\n\n".join(chunks) if chunks else ""
+
     qs = _load_questions()
     mandatory_qs   = qs["mandatory"]
     situational_all = qs["situational"]
 
     # Pass 1 — mandatory AUP questions
-    mandatory_responses = _answer_questions(mandatory_qs, profile_text, ao_summary)
+    mandatory_responses = _answer_questions(mandatory_qs, profile_text, ao_summary, doc_text)
 
     # Pass 2 — situational FRE questions triggered by mandatory Yes answers
     triggered_qs = _get_triggered_situational(mandatory_responses, situational_all)
     situational_responses: list[dict] = []
     if triggered_qs:
-        situational_responses = _answer_questions(triggered_qs, profile_text, ao_summary)
+        situational_responses = _answer_questions(triggered_qs, profile_text, ao_summary, doc_text)
 
     all_responses = mandatory_responses + situational_responses
 
