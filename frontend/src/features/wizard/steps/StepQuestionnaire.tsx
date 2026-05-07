@@ -355,11 +355,11 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
     }
   }, [data]);
 
-  // Poll for AI-generated qp-answers every 5 s while they're not ready (404)
+  // Poll for AI-generated qa-answers every 5 s while they're not ready (404)
   const { data: qpProfile, isError: qpNotReady } = useQuery<QpProfile>({
-    queryKey: ["qp-answers", assessmentId],
+    queryKey: ["qa-answers", assessmentId],
     queryFn: async () => {
-      const r = await fetch(`/api/v1/assessments/${assessmentId}/qp-answers`, { credentials: "include" });
+      const r = await fetch(`/api/v1/assessments/${assessmentId}/qa-answers`, { credentials: "include" });
       if (r.status === 404) throw new Error("not_ready");
       if (!r.ok) throw new Error(r.statusText);
       return r.json();
@@ -419,14 +419,14 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
     try {
       await api.post(`/api/v1/assessments/${assessmentId}/ao-overview`, { force: true });
       const profile: QpProfile | null = await api
-        .post(`/api/v1/assessments/${assessmentId}/qp-run`, {})
+        .post(`/api/v1/assessments/${assessmentId}/qa-run`, {})
         .then((r) => r.json());
       if (profile?.answers) {
         setAnswers(profile.answers);
         if (profile.rationale) setRationale(profile.rationale);
         saveQa.mutate({ answers: profile.answers, rationale: profile.rationale || {} });
       }
-      qc.invalidateQueries({ queryKey: ["qp-answers", assessmentId] });
+      qc.invalidateQueries({ queryKey: ["qa-answers", assessmentId] });
     } catch { /* non-blocking */ }
     setRerunning(false);
     setOpenCats(new Set(CATEGORIES.map((c) => c.key)));
@@ -450,7 +450,7 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
         </p>
       </div>
 
-      {/* ── AI analysis spinning banner — shown while polling for qp-answers ── */}
+      {/* ── AI analysis spinning banner — shown while polling for qa-answers ── */}
       {qpNotReady && (
         <div className={styles.analysisBanner}>
           <Loader2 size={20} className={styles.spin} />

@@ -147,8 +147,8 @@ export function StepPreparation({ assessmentId, onValidChange }: StepProps) {
     setAnalyzing(true);
     try {
       await api.post(`/api/v1/assessments/${assessmentId}/ao-overview`, {});
-      await api.post(`/api/v1/assessments/${assessmentId}/qp-run`, {});
-      qc.invalidateQueries({ queryKey: ["qp-answers", assessmentId] });
+      await api.post(`/api/v1/assessments/${assessmentId}/qa-run`, {});
+      qc.invalidateQueries({ queryKey: ["qa-answers", assessmentId] });
     } catch {
       // Non-blocking — user can still answer manually in Step 2
     } finally {

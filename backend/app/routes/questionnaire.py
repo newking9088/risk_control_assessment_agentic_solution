@@ -1,9 +1,9 @@
 """
 Step 2 – Questionnaire routes.
 
-POST  /api/v1/assessments/{id}/qo-run      – run two-pass AI QA engine
-GET   /api/v1/assessments/{id}/qo-answers  – retrieve current QA profile
-PUT   /api/v1/assessments/{id}/qo-answers  – apply user correction to one answer
+POST  /api/v1/assessments/{id}/qa-run      – run two-pass AI QA engine
+GET   /api/v1/assessments/{id}/qa-answers  – retrieve current QA profile
+PUT   /api/v1/assessments/{id}/qa-answers  – apply user correction to one answer
 """
 
 import json
@@ -25,9 +25,9 @@ def _tenant(request: Request) -> str:
     return request.state.user.get("tenantId", DEFAULT_TENANT_ID)
 
 
-# ── POST /qo-run ──────────────────────────────────────────────────────────────
+# ── POST /qa-run ──────────────────────────────────────────────────────────────
 
-@router.post("/{assessment_id}/qo-run")
+@router.post("/{assessment_id}/qa-run")
 async def run_questionnaire(assessment_id: str, request: Request):
     """
     Run the two-pass AI QA engine.
@@ -48,9 +48,9 @@ async def run_questionnaire(assessment_id: str, request: Request):
     return qa_profile
 
 
-# ── GET /qo-answers ───────────────────────────────────────────────────────────
+# ── GET /qa-answers ───────────────────────────────────────────────────────────
 
-@router.get("/{assessment_id}/qo-answers")
+@router.get("/{assessment_id}/qa-answers")
 async def get_answers(assessment_id: str, request: Request):
     """
     Return the saved QA profile (answers + rationale + exposure_categories + counters).
@@ -61,7 +61,7 @@ async def get_answers(assessment_id: str, request: Request):
     if not profile:
         raise HTTPException(
             status_code=404,
-            detail="No QA profile found. Run POST /qo-run first.",
+            detail="No QA profile found. Run POST /qa-run first.",
         )
 
     # Enrich with flat answers/rationale maps for frontend compatibility
@@ -77,7 +77,7 @@ async def get_answers(assessment_id: str, request: Request):
     }
 
 
-# ── PUT /qo-answers ───────────────────────────────────────────────────────────
+# ── PUT /qa-answers ───────────────────────────────────────────────────────────
 
 class AnswerCorrection(BaseModel):
     question_id: str
@@ -85,7 +85,7 @@ class AnswerCorrection(BaseModel):
     rationale: str = ""
 
 
-@router.put("/{assessment_id}/qo-answers")
+@router.put("/{assessment_id}/qa-answers")
 async def correct_answer(
     assessment_id: str,
     request: Request,

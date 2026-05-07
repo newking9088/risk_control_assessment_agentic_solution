@@ -324,7 +324,7 @@ async def process_applicability(assessment_id: str, tenant_id: str) -> dict:
     """
     Evaluate applicability for every risk attached to *assessment_id*.
 
-    Requires the AO snapshot (POST /ao-overview) and QA profile (POST /qp-run)
+    Requires the AO snapshot (POST /ao-overview) and QA profile (POST /qa-run)
     to have been generated first.  Updates app.assessment_risks in-place and
     returns a summary dict.
     """
@@ -344,7 +344,7 @@ async def process_applicability(assessment_id: str, tenant_id: str) -> dict:
     qa_profile = await get_qa_profile(assessment_id, tenant_id)
     if not qa_profile:
         raise ValueError(
-            "QA profile not found. Run POST /qp-run first to generate questionnaire answers."
+            "QA profile not found. Run POST /qa-run first to generate questionnaire answers."
         )
 
     qa_answers: dict[str, str] = qa_profile.get("answers") or {}
