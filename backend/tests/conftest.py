@@ -45,6 +45,6 @@ def test_client():
         return MOCK_AUTH_USER
 
     app.dependency_overrides[get_current_user] = _mock_user
-    client = TestClient(app, headers={"Origin": "http://localhost:3000"})
-    yield client
+    with TestClient(app, headers={"Origin": "http://localhost:3000"}) as client:
+        yield client
     app.dependency_overrides.pop(get_current_user, None)
