@@ -52,7 +52,7 @@ function fmtDate(s: string): string {
 
 const EMPTY_FORM = { name: "", email: "", role: "viewer", status: "active", password: "" };
 
-export function TabUsers({ currentUserEmail, triggerCreate }: Props) {
+export function TabUsers({ currentUserEmail, triggerCreate: _triggerCreate }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");

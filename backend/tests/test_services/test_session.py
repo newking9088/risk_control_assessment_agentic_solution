@@ -59,7 +59,7 @@ async def test_valid_session_returns_user():
 
 
 @pytest.mark.asyncio
-async def test_TTL_cache_hit_skips_http():
+async def test_ttl_cache_hit_skips_http():
     import app.middleware.auth as auth_module
 
     auth_module._cb_failures = 0

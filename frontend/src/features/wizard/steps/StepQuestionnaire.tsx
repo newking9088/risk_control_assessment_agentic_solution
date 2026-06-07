@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { LucideIcon } from "lucide-react";
 import {
   User, ShoppingBag, Radio, GitBranch, Users,
   Lock, ArrowLeftRight, FileText, AlertTriangle,
@@ -22,7 +23,7 @@ interface Question {
 interface Category {
   key: string;
   label: string;
-  Icon: React.FC<{ size?: number; strokeWidth?: number; className?: string }>;
+  Icon: LucideIcon;
   questions: Question[];
 }
 

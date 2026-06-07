@@ -108,7 +108,7 @@ def _patch_qa_llm(mandatory=None, situational=None):
     situational = situational or _MOCK_SITUATIONAL
     call_count = {"n": 0}
 
-    def _side_effect(batch, profile_text, ao_summary):
+    def _side_effect(batch, profile_text, ao_summary, doc_text=""):
         call_count["n"] += 1
         qids = {q["id"] for q in batch}
         # Return mandatory or situational canned answers depending on which batch is sent

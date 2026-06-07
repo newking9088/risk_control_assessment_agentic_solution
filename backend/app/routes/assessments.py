@@ -181,7 +181,7 @@ async def list_assessments(
                   JOIN app.assessment_collaborators ac ON ac.assessment_id = a.id AND ac.user_id = %s
                   {collab_join}
                   WHERE a.tenant_id = %s ORDER BY a.created_at DESC"""
-        params = (user_id, tenant_id)
+        params: tuple[str, ...] = (user_id, tenant_id)
     else:
         sql = f"""SELECT a.id, a.title, a.description, a.scope, a.assessment_date, a.owner,
                          a.business_unit, a.status, a.current_step{extra_cols},

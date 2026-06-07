@@ -272,7 +272,7 @@ class TestNormaliseRisksFlat:
         assert risks[0]["name"] == "Fraud Risk"
         assert risks[0]["category"] == "Fraud"
 
-    def test_name_header(self):
+    def test_capitalised_name_header(self):
         risks = _normalise_risks([{"Name": "Payment Risk"}])
         assert len(risks) == 1
         assert risks[0]["name"] == "Payment Risk"
