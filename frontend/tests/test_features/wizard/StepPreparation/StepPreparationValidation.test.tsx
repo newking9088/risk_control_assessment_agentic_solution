@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi } from "vitest";
 
@@ -27,25 +27,22 @@ function setup(mockData: object, onValidChange = vi.fn()) {
 describe("StepPreparation — validation rules", () => {
   it("onValidChange(false) when api returns assessment with empty title", async () => {
     const onValidChange = vi.fn();
-    setup({ title: "", scope: "Some scope", owner: "Jane" }, onValidChange);
-    await screen.findByText(/assessment details/i);
-    expect(onValidChange).toHaveBeenCalledWith(false);
+    setup({ title: "", business_unit: "Retail", owner: "Jane" }, onValidChange);
+    await waitFor(() => expect(onValidChange).toHaveBeenCalledWith(false));
   });
 
-  it("onValidChange(false) when api returns assessment with empty scope", async () => {
+  it("onValidChange(false) when api returns assessment with empty business_unit", async () => {
     const onValidChange = vi.fn();
-    setup({ title: "My Assessment", scope: "", owner: "Jane" }, onValidChange);
-    await screen.findByText(/assessment details/i);
-    expect(onValidChange).toHaveBeenCalledWith(false);
+    setup({ title: "My Assessment", business_unit: "", owner: "Jane" }, onValidChange);
+    await waitFor(() => expect(onValidChange).toHaveBeenCalledWith(false));
   });
 
-  it("onValidChange(true) when title and scope are both filled", async () => {
+  it("onValidChange(true) when title and business_unit are both filled", async () => {
     const onValidChange = vi.fn();
     setup(
-      { title: "My Assessment", scope: "Retail Banking", owner: "Jane Doe", business_unit: "Retail" },
+      { title: "My Assessment", business_unit: "Retail", owner: "Jane Doe" },
       onValidChange
     );
-    await screen.findByText(/assessment details/i);
-    expect(onValidChange).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(onValidChange).toHaveBeenCalledWith(true));
   });
 });

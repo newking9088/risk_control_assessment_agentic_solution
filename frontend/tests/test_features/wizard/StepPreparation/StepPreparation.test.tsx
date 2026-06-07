@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi } from "vitest";
 
@@ -47,7 +47,7 @@ function setup(mockData: object, onValidChange = vi.fn()) {
 describe("StepPreparation — structure", () => {
   it("renders form heading", async () => {
     setup(mockAssessmentFull);
-    expect(await screen.findByText(/assessment details/i)).toBeInTheDocument();
+    expect(await screen.findByText(/assessment unit details/i)).toBeInTheDocument();
   });
 
   it("renders Title label", async () => {
@@ -77,14 +77,12 @@ describe("StepPreparation — onValidChange", () => {
   it("calls onValidChange(false) when title and scope are empty", async () => {
     const onValidChange = vi.fn();
     setup(mockAssessmentEmpty, onValidChange);
-    await screen.findByText(/assessment details/i);
-    expect(onValidChange).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(onValidChange).toHaveBeenCalledWith(false));
   });
 
   it("calls onValidChange(true) when title and scope are filled", async () => {
     const onValidChange = vi.fn();
     setup(mockAssessmentFull, onValidChange);
-    await screen.findByText(/assessment details/i);
-    expect(onValidChange).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(onValidChange).toHaveBeenCalledWith(true));
   });
 });
