@@ -37,7 +37,11 @@ jobs:
         working-directory: backend
         run: uv run ruff check app/
       - name: Run schema
-        run: psql postgresql://appuser:apppassword@localhost:5432/appdb -f db_provisioning/db/init/001_app_schema.sql
+        run: |
+          for f in db_provisioning/db/init/0*.sql; do
+            echo "Applying $f..."
+            psql postgresql://appuser:apppassword@localhost:5432/appdb -f "$f"
+          done
       - name: Test
         working-directory: backend
         env:
