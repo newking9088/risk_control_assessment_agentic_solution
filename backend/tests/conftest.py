@@ -5,7 +5,9 @@ import psycopg
 import pytest
 from psycopg.rows import dict_row
 
-TEST_DB_URL = os.getenv("DATABASE_URL", "postgresql://adminuser:adminuser_local_pw@localhost:5432/appdb")
+TEST_DB_URL = os.getenv(
+    "DATABASE_URL", "postgresql://adminuser:adminuser_local_pw@localhost:5432/appdb"
+)
 TEST_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 TEST_USER_ID = "00000000-0000-0000-0000-000000000099"
 

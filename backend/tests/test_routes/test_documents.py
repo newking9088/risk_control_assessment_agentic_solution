@@ -1,7 +1,6 @@
 """Tests for POST /api/v1/upload — file type, magic bytes, size validation."""
 
 
-
 def _make_assessment(test_client) -> str:
     resp = test_client.post("/api/v1/assessments", json={"title": "Doc Upload Test"})
     assert resp.status_code == 201

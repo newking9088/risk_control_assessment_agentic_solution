@@ -4,7 +4,6 @@
 TestComputeResidualRisk (5)
 """
 
-
 from app.services.residual_risk import (
     INHERENT_LABELS,
     RESIDUAL_MATRIX,
