@@ -1,6 +1,5 @@
 import asyncio
 import json
-from typing import Optional
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
@@ -92,7 +91,7 @@ async def notification_stream(request: Request):
                     yield f"data: {msg['data']}\n\n"
                 else:
                     yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
-        except (asyncio.TimeoutError, GeneratorExit):
+        except (TimeoutError, GeneratorExit):
             pass
         except Exception:
             pass

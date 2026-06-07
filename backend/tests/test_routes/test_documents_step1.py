@@ -35,7 +35,9 @@ def _seed_assessment(db_conn):
 class TestDocumentUploadChunks:
     def test_upload_pdf_stores_chunks(self, test_client):
         """Uploading a file with extractable text should store at least one chunk."""
-        text_content = b"This is a test AU description for the Contact Center assessment unit. " * 20
+        text_content = (
+            b"This is a test AU description for the Contact Center assessment unit. " * 20
+        )
         with (
             patch("app.routes.documents._check_magic", return_value=True),
             patch("app.routes.documents._check_chunks_table", new=AsyncMock(return_value=True)),

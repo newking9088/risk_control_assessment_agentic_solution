@@ -3,13 +3,17 @@ import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import APIRouter, Request, UploadFile, File, HTTPException
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
-from app.config.constants import ALLOWED_MIME_TYPES, MAGIC_BYTES, MAX_FILE_SIZE_BYTES
-from app.config.constants import DEFAULT_TENANT_ID
+from app.config.constants import (
+    ALLOWED_MIME_TYPES,
+    DEFAULT_TENANT_ID,
+    MAGIC_BYTES,
+    MAX_FILE_SIZE_BYTES,
+)
 from app.infra.db import get_tenant_cursor
-from app.services.document_parser import extract_text
 from app.services.chunker import chunk_text
+from app.services.document_parser import extract_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/upload", tags=["documents"])
@@ -25,12 +29,11 @@ async def _check_cat_col(tenant_id: str) -> bool:
         return _CAT_COL_EXIST
     try:
         from psycopg.rows import dict_row
+
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessment_documents'
-                     AND column_name='category'"""
-            )
+                     AND column_name='category'""")
             _CAT_COL_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _CAT_COL_EXIST = False
@@ -43,11 +46,10 @@ async def _check_chunks_table(tenant_id: str) -> bool:
         return _CHUNKS_TABLE_EXIST
     try:
         from psycopg.rows import dict_row
+
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT table_name FROM information_schema.tables
-                   WHERE table_schema='app' AND table_name='document_chunks'"""
-            )
+            await cur.execute("""SELECT table_name FROM information_schema.tables
+                   WHERE table_schema='app' AND table_name='document_chunks'""")
             _CHUNKS_TABLE_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _CHUNKS_TABLE_EXIST = False
@@ -58,7 +60,7 @@ def _check_magic(content: bytes, mime_type: str) -> bool:
     magic = MAGIC_BYTES.get(mime_type)
     if not magic:
         return False
-    return content[:len(magic)] == magic
+    return content[: len(magic)] == magic
 
 
 async def _store_chunks(
@@ -130,16 +132,31 @@ async def upload_document(
                 "INSERT INTO app.assessment_documents "
                 "(id, assessment_id, blob_key, filename, mime_type, blob_size_bytes, uploaded_by, category) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                (doc_id, assessment_id, blob_key, file.filename,
-                 file.content_type, len(content), user["id"], category),
+                (
+                    doc_id,
+                    assessment_id,
+                    blob_key,
+                    file.filename,
+                    file.content_type,
+                    len(content),
+                    user["id"],
+                    category,
+                ),
             )
         else:
             await cur.execute(
                 "INSERT INTO app.assessment_documents "
                 "(id, assessment_id, blob_key, filename, mime_type, blob_size_bytes, uploaded_by) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (doc_id, assessment_id, blob_key, file.filename,
-                 file.content_type, len(content), user["id"]),
+                (
+                    doc_id,
+                    assessment_id,
+                    blob_key,
+                    file.filename,
+                    file.content_type,
+                    len(content),
+                    user["id"],
+                ),
             )
 
     # Extract text and store chunks (non-blocking; errors are logged, not raised)
@@ -147,8 +164,13 @@ async def upload_document(
     if await _check_chunks_table(tenant_id):
         try:
             chunk_count = await _store_chunks(
-                doc_id, assessment_id, tenant_id,
-                category, content, file.content_type, file.filename or "",
+                doc_id,
+                assessment_id,
+                tenant_id,
+                category,
+                content,
+                file.content_type,
+                file.filename or "",
             )
         except Exception as exc:
             logger.warning("Chunk storage failed for doc %s: %s", doc_id, exc)

@@ -5,6 +5,7 @@ TestNormalizeLabel (3)
 TestComputeOverallImpact (1)
 TestInherentRating (2)
 """
+
 from unittest.mock import patch
 
 import pytest
@@ -18,8 +19,8 @@ from app.services.inherent_risk import (
     score_single_risk,
 )
 
-
 # ── TestNormalizeLabel ────────────────────────────────────────────────────────
+
 
 class TestNormalizeLabel:
     def test_exact_match(self):
@@ -34,19 +35,21 @@ class TestNormalizeLabel:
 
 # ── TestComputeOverallImpact ──────────────────────────────────────────────────
 
+
 class TestComputeOverallImpact:
     def test_worst_of_five(self):
         scores = {
-            "financial_impact":   "Low",
-            "regulatory_impact":  "Medium",
-            "legal_impact":       "Low",
-            "customer_impact":    "High",
+            "financial_impact": "Low",
+            "regulatory_impact": "Medium",
+            "legal_impact": "Low",
+            "customer_impact": "High",
             "reputational_impact": "Medium",
         }
         assert compute_overall_impact(scores) == "High"
 
 
 # ── TestInherentRating ────────────────────────────────────────────────────────
+
 
 class TestInherentRating:
     def test_matrix_lookup(self):
@@ -72,7 +75,9 @@ class TestInherentRating:
         with patch("app.services.inherent_risk.respond_json", return_value=mock_response):
             result = score_single_risk(
                 {"name": "Payment Fraud", "description": "Fraudulent payments."},
-                "Test AU", "Digital banking AU.", "QA: yes answers here.",
+                "Test AU",
+                "Digital banking AU.",
+                "QA: yes answers here.",
             )
         assert result["likelihood"] == "Likely"
         assert result["likelihood_score"] == 3

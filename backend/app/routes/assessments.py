@@ -1,11 +1,11 @@
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Query, Request
-from pydantic import BaseModel
 from psycopg.rows import dict_row
+from pydantic import BaseModel
 
 from app.config.constants import DEFAULT_TENANT_ID
 from app.errors import NotFoundError
@@ -36,13 +36,15 @@ async def _check_collab_table(tenant_id: str) -> bool:
 async def _publish_assessment_event(assessment_id: str, user: dict, changed_fields: list) -> None:
     try:
         r = get_redis()
-        payload = json.dumps({
-            "type": "assessmentUpdated",
-            "user_id": user.get("id"),
-            "user_name": user.get("name", user.get("email", "Someone")),
-            "changed_fields": changed_fields,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        payload = json.dumps(
+            {
+                "type": "assessmentUpdated",
+                "user_id": user.get("id"),
+                "user_name": user.get("name", user.get("email", "Someone")),
+                "changed_fields": changed_fields,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
         await r.publish(f"assessments:{assessment_id}:events", payload)
     except Exception:
         pass
@@ -53,23 +55,23 @@ class AssessmentCreate(BaseModel):
 
 
 class AssessmentPatch(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    scope: Optional[str] = None
-    assessment_date: Optional[str] = None
-    owner: Optional[str] = None
-    business_unit: Optional[str] = None
-    unit_id: Optional[str] = None
-    status: Optional[str] = None
-    current_step: Optional[int] = None
-    questionnaire: Optional[Any] = None
-    questionnaire_notes: Optional[Any] = None
-    taxonomy_scope: Optional[str] = None
-    risk_sources: Optional[list] = None
-    inherent_risk_rating: Optional[str] = None
-    controls_effectiveness_rating: Optional[str] = None
-    residual_risk_rating: Optional[str] = None
-    assessment_end_date: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    scope: str | None = None
+    assessment_date: str | None = None
+    owner: str | None = None
+    business_unit: str | None = None
+    unit_id: str | None = None
+    status: str | None = None
+    current_step: int | None = None
+    questionnaire: Any | None = None
+    questionnaire_notes: Any | None = None
+    taxonomy_scope: str | None = None
+    risk_sources: list | None = None
+    inherent_risk_rating: str | None = None
+    controls_effectiveness_rating: str | None = None
+    residual_risk_rating: str | None = None
+    assessment_end_date: str | None = None
 
 
 # ── Column-resilience caches ─────────────────────────────────
@@ -85,11 +87,9 @@ async def _check_scope_cols(tenant_id: str) -> bool:
         return _SCOPE_COLS_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessments'
-                     AND column_name='taxonomy_scope'"""
-            )
+                     AND column_name='taxonomy_scope'""")
             _SCOPE_COLS_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _SCOPE_COLS_EXIST = False
@@ -102,11 +102,9 @@ async def _check_unit_col(tenant_id: str) -> bool:
         return _UNIT_COL_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessments'
-                     AND column_name='unit_id'"""
-            )
+                     AND column_name='unit_id'""")
             _UNIT_COL_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _UNIT_COL_EXIST = False
@@ -119,11 +117,9 @@ async def _check_doc_cat_col(tenant_id: str) -> bool:
         return _DOC_CAT_COL_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessment_documents'
-                     AND column_name='category'"""
-            )
+                     AND column_name='category'""")
             _DOC_CAT_COL_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _DOC_CAT_COL_EXIST = False
@@ -136,11 +132,9 @@ async def _check_rating_cols(tenant_id: str) -> bool:
         return _RATING_COLS_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessments'
-                     AND column_name='inherent_risk_rating'"""
-            )
+                     AND column_name='inherent_risk_rating'""")
             _RATING_COLS_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _RATING_COLS_EXIST = False
@@ -207,12 +201,14 @@ async def list_assessments(
     if not has_unit:
         defaults.update({"unit_id": ""})
     if not has_ratings:
-        defaults.update({
-            "inherent_risk_rating": None,
-            "controls_effectiveness_rating": None,
-            "residual_risk_rating": None,
-            "assessment_end_date": None,
-        })
+        defaults.update(
+            {
+                "inherent_risk_rating": None,
+                "controls_effectiveness_rating": None,
+                "residual_risk_rating": None,
+                "assessment_end_date": None,
+            }
+        )
     if not has_collab:
         defaults["collaborator_count"] = 0
     if defaults:
@@ -267,12 +263,14 @@ async def get_assessment(assessment_id: str, request: Request):
     if not has_unit:
         defaults.update({"unit_id": ""})
     if not has_ratings:
-        defaults.update({
-            "inherent_risk_rating": None,
-            "controls_effectiveness_rating": None,
-            "residual_risk_rating": None,
-            "assessment_end_date": None,
-        })
+        defaults.update(
+            {
+                "inherent_risk_rating": None,
+                "controls_effectiveness_rating": None,
+                "residual_risk_rating": None,
+                "assessment_end_date": None,
+            }
+        )
     if defaults:
         row = {**defaults, **row}
     return row
@@ -328,6 +326,7 @@ async def delete_assessment(assessment_id: str, request: Request):
 
 
 # ── Document sub-resources ────────────────────────────────────
+
 
 @router.get("/{assessment_id}/documents")
 async def list_documents(assessment_id: str, request: Request):

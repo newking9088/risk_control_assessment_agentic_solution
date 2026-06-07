@@ -1,4 +1,5 @@
 """Integration: RLS tenant isolation — user A cannot see user B's data."""
+
 import uuid
 import pytest
 from tests.conftest import TEST_TENANT_ID, TEST_USER_ID
@@ -21,13 +22,9 @@ async def test_tenant_cannot_read_other_tenant_assessment(db_conn):
     )
 
     # Should not be visible under other tenant context (RLS filters by tenant_id)
-    cur = await db_conn.execute(
-        "SELECT id FROM app.assessments WHERE id = %s", (aid,)
-    )
+    cur = await db_conn.execute("SELECT id FROM app.assessments WHERE id = %s", (aid,))
     row = await cur.fetchone()
     assert row is None, "RLS should prevent cross-tenant reads"
 
     # Restore original tenant context for cleanup
-    await db_conn.execute(
-        "SELECT set_config('app.current_tenant_id', %s, true)", (TEST_TENANT_ID,)
-    )
+    await db_conn.execute("SELECT set_config('app.current_tenant_id', %s, true)", (TEST_TENANT_ID,))

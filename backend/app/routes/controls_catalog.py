@@ -1,16 +1,15 @@
 import csv
 import io
 import uuid
-from typing import Optional
 
 import openpyxl
-from fastapi import APIRouter, Request, UploadFile, File, Depends
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from psycopg.rows import dict_row
+from pydantic import BaseModel
 
-from app.infra.db import get_tenant_cursor
 from app.config.constants import DEFAULT_TENANT_ID
+from app.infra.db import get_tenant_cursor
 from app.middleware.permissions import require_minimum_role
 
 router = APIRouter(prefix="/v1/controls", tags=["controls-catalog"])
@@ -19,9 +18,9 @@ analyst_gate = Depends(require_minimum_role("analyst"))
 
 _CTRL_TYPE_MAP = {
     "prevent": "Preventive",
-    "detect":  "Detective",
+    "detect": "Detective",
     "correct": "Corrective",
-    "direct":  "Directive",
+    "direct": "Directive",
 }
 
 
@@ -39,12 +38,12 @@ def _str(v) -> str:
 
 def _extract_fields(row: dict) -> tuple:
     name = (
-        _str(row.get("name")) or _str(row.get("Name")) or
-        _str(row.get("control_name")) or _str(row.get("Control Name"))
+        _str(row.get("name"))
+        or _str(row.get("Name"))
+        or _str(row.get("control_name"))
+        or _str(row.get("Control Name"))
     )
-    raw_key = (
-        _str(row.get("is_key_control")) or _str(row.get("Key Control"))
-    ).upper()
+    raw_key = (_str(row.get("is_key_control")) or _str(row.get("Key Control"))).upper()
     is_key = raw_key in ("TRUE", "YES", "Y", "1", "KEY")
 
     raw_type = _str(row.get("control_type")) or _str(row.get("Type"))
@@ -53,12 +52,13 @@ def _extract_fields(row: dict) -> tuple:
     description = _str(row.get("description")) or _str(row.get("Description")) or None
     source = _str(row.get("source")) or _str(row.get("Source")) or None
     category = (
-        _str(row.get("category")) or _str(row.get("Category")) or
-        _str(row.get("Control Type"))
+        _str(row.get("category")) or _str(row.get("Category")) or _str(row.get("Control Type"))
     ) or None
     display_label = (
-        _str(row.get("display_label")) or _str(row.get("Label")) or
-        _str(row.get("control_id")) or _str(row.get("Control ID"))
+        _str(row.get("display_label"))
+        or _str(row.get("Label"))
+        or _str(row.get("control_id"))
+        or _str(row.get("Control ID"))
     ) or None
 
     return name, is_key, description, control_type, source, category, display_label
@@ -82,22 +82,22 @@ def _iter_csv_rows(content: bytes):
 
 class ControlCreate(BaseModel):
     name: str
-    description: Optional[str] = None
-    control_type: Optional[str] = None
+    description: str | None = None
+    control_type: str | None = None
     is_key_control: bool = False
-    source: Optional[str] = None
-    category: Optional[str] = None
+    source: str | None = None
+    category: str | None = None
     tags: list[str] = []
-    display_label: Optional[str] = None
+    display_label: str | None = None
 
 
 @router.get("")
 async def list_controls(
     request: Request,
-    type: Optional[str] = None,
-    source: Optional[str] = None,
+    type: str | None = None,
+    source: str | None = None,
     key_only: bool = False,
-    q: Optional[str] = None,
+    q: str | None = None,
     page: int = 1,
     page_size: int = 20,
 ):
@@ -171,9 +171,16 @@ async def create_control(body: ControlCreate, request: Request):
                 source, category, tags, display_label, created_by)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (
-                control_id, tenant_id, body.name, body.description,
-                body.control_type, body.is_key_control, body.source,
-                body.category, body.tags, body.display_label,
+                control_id,
+                tenant_id,
+                body.name,
+                body.description,
+                body.control_type,
+                body.is_key_control,
+                body.source,
+                body.category,
+                body.tags,
+                body.display_label,
                 user.get("email"),
             ),
         )
@@ -200,8 +207,16 @@ async def export_controls_csv(request: Request):
         buf = io.StringIO()
         writer = csv.DictWriter(
             buf,
-            fieldnames=["name", "description", "control_type", "is_key_control",
-                        "source", "category", "display_label", "created_at"],
+            fieldnames=[
+                "name",
+                "description",
+                "control_type",
+                "is_key_control",
+                "source",
+                "category",
+                "display_label",
+                "created_at",
+            ],
         )
         writer.writeheader()
         yield buf.getvalue()
@@ -209,8 +224,16 @@ async def export_controls_csv(request: Request):
             buf = io.StringIO()
             writer = csv.DictWriter(
                 buf,
-                fieldnames=["name", "description", "control_type", "is_key_control",
-                            "source", "category", "display_label", "created_at"],
+                fieldnames=[
+                    "name",
+                    "description",
+                    "control_type",
+                    "is_key_control",
+                    "source",
+                    "category",
+                    "display_label",
+                    "created_at",
+                ],
             )
             writer.writerow(dict(row))
             yield buf.getvalue()
@@ -239,6 +262,7 @@ async def get_control(control_id: str, request: Request):
 
     if not row:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Control not found")
     return row
 
@@ -273,7 +297,9 @@ async def upload_controls_csv(request: Request, file: UploadFile = File(...)):
 
     async with get_tenant_cursor(tenant_id) as cur:
         for row in row_iter:
-            name, is_key, description, control_type, source, category, display_label = _extract_fields(row)
+            name, is_key, description, control_type, source, category, display_label = (
+                _extract_fields(row)
+            )
             if not name:
                 skipped += 1
                 continue

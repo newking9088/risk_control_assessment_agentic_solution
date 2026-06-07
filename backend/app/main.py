@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -8,12 +8,27 @@ from slowapi.util import get_remote_address
 
 from app.config.settings import get_settings
 from app.errors import AppError, app_error_handler, generic_error_handler
-from app.infra.db import init_db_pool, close_db_pool
-from app.infra.redis_client import init_redis, close_redis
+from app.infra.db import close_db_pool, init_db_pool
+from app.infra.redis_client import close_redis, init_redis
 from app.middleware.permissions import require_minimum_role
 from app.middleware.security_headers import SecurityHeadersMiddleware
-from app.routes import assessments, documents, risks, controls, approvals, chat, health, admin, settings as settings_route, controls_catalog, taxonomy_management, collaborators, notifications
-from app.routes import preparation, questionnaire
+from app.routes import (
+    admin,
+    approvals,
+    assessments,
+    chat,
+    collaborators,
+    controls,
+    controls_catalog,
+    documents,
+    health,
+    notifications,
+    preparation,
+    questionnaire,
+    risks,
+    taxonomy_management,
+)
+from app.routes import settings as settings_route
 from app.routes.risks import agent_router
 
 settings = get_settings()
@@ -64,22 +79,23 @@ lead_dep = Depends(require_minimum_role("delivery_lead"))
 admin_dep = Depends(require_minimum_role("admin"))
 
 app.include_router(assessments.router, prefix="/api", dependencies=[viewer_dep])
-app.include_router(documents.router,   prefix="/api", dependencies=[analyst_dep])
-app.include_router(risks.router,       prefix="/api", dependencies=[analyst_dep])
-app.include_router(controls.router,    prefix="/api", dependencies=[analyst_dep])
-app.include_router(approvals.router,   prefix="/api", dependencies=[analyst_dep])
-app.include_router(chat.router,        prefix="/api", dependencies=[viewer_dep])
-app.include_router(admin.router,        prefix="/api", dependencies=[admin_dep])
-app.include_router(settings_route.router,    prefix="/api", dependencies=[viewer_dep])
-app.include_router(controls_catalog.router,    prefix="/api", dependencies=[viewer_dep])
+app.include_router(documents.router, prefix="/api", dependencies=[analyst_dep])
+app.include_router(risks.router, prefix="/api", dependencies=[analyst_dep])
+app.include_router(controls.router, prefix="/api", dependencies=[analyst_dep])
+app.include_router(approvals.router, prefix="/api", dependencies=[analyst_dep])
+app.include_router(chat.router, prefix="/api", dependencies=[viewer_dep])
+app.include_router(admin.router, prefix="/api", dependencies=[admin_dep])
+app.include_router(settings_route.router, prefix="/api", dependencies=[viewer_dep])
+app.include_router(controls_catalog.router, prefix="/api", dependencies=[viewer_dep])
 app.include_router(taxonomy_management.router, prefix="/api", dependencies=[viewer_dep])
-app.include_router(collaborators.router,       prefix="/api", dependencies=[viewer_dep])
-app.include_router(notifications.router,       prefix="/api", dependencies=[viewer_dep])
-app.include_router(preparation.router,         prefix="/api", dependencies=[analyst_dep])
-app.include_router(questionnaire.router,       prefix="/api", dependencies=[analyst_dep])
-app.include_router(agent_router,       prefix="/api", dependencies=[analyst_dep])
+app.include_router(collaborators.router, prefix="/api", dependencies=[viewer_dep])
+app.include_router(notifications.router, prefix="/api", dependencies=[viewer_dep])
+app.include_router(preparation.router, prefix="/api", dependencies=[analyst_dep])
+app.include_router(questionnaire.router, prefix="/api", dependencies=[analyst_dep])
+app.include_router(agent_router, prefix="/api", dependencies=[analyst_dep])
 
 # ── Prometheus metrics (optional) ─────────────────────────────
 if settings.enable_metrics:
     from prometheus_fastapi_instrumentator import Instrumentator
+
     Instrumentator().instrument(app).expose(app)

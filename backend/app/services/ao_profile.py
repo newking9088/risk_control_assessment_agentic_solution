@@ -12,9 +12,9 @@ from app.llm_client import respond_json
 
 logger = logging.getLogger(__name__)
 
-LARGE_DOC_THRESHOLD  = 8_000   # chars
-FACT_WINDOW_SIZE     = 3_000
-FACT_WINDOW_OVERLAP  = 500
+LARGE_DOC_THRESHOLD = 8_000  # chars
+FACT_WINDOW_SIZE = 3_000
+FACT_WINDOW_OVERLAP = 500
 
 _PROFILE_KEYS = [
     "operations_performed",
@@ -72,6 +72,7 @@ def extract_ao_profile(text: str) -> dict:
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
 
 def _windowed_condense(text: str) -> str:
     """Split into windows, extract facts from each, return merged fact sheet."""

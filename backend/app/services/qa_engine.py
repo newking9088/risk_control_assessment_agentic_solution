@@ -13,7 +13,6 @@ Uses evidence-tiered consumption rules (from the spec):
 
 import json
 import logging
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import TypedDict
@@ -28,7 +27,7 @@ from app.services.orchestration import get_ao_snapshot, select_ao_chunks
 logger = logging.getLogger(__name__)
 
 _QUESTIONS_PATH = Path(__file__).parent.parent / "config" / "questions.yaml"
-_BATCH_SIZE = 20   # questions per LLM call
+_BATCH_SIZE = 20  # questions per LLM call
 
 CONSUMPTION_RULES = (
     "EVIDENCE-TIERED CONSUMPTION RULES:\n"
@@ -36,25 +35,25 @@ CONSUMPTION_RULES = (
     "2. Profile empty but vague doc references exist → answer Yes (assumed=true, conflict_flagged=true)\n"
     "3. Profile explicitly lists NOT-x or operations_not_performed → answer No (conservative)\n"
     "4. Profile and document both silent, no negation → answer Yes (assumed=true) "
-    "with reason=\"No evidence found; conservative default for RCSA\".\n"
+    'with reason="No evidence found; conservative default for RCSA".\n'
 )
 
 _QA_SYSTEM = (
     "You are a fraud-risk assessment specialist. You have a confirmed operational profile of an "
     "Assessment Unit (AU). Answer diagnostic yes/no questions based SOLELY on the confirmed profile "
     "and evidence text provided.\n\n"
-    + CONSUMPTION_RULES +
-    "\nReturn STRICT JSON — a list with one object per question_id:\n"
-    '[\n'
-    '  {\n'
+    + CONSUMPTION_RULES
+    + "\nReturn STRICT JSON — a list with one object per question_id:\n"
+    "[\n"
+    "  {\n"
     '    "question_id":    "<id>",\n'
     '    "answer":         "yes" | "no",\n'
     '    "assumed":        true | false,\n'
     '    "conflict_flagged": false,\n'
     '    "evidence":       "<1-2 sentence evidence from profile>",\n'
     '    "reason":         "<brief justification>"\n'
-    '  }\n'
-    ']'
+    "  }\n"
+    "]"
 )
 
 _QA_USER = """\
@@ -89,17 +88,19 @@ def _load_questions() -> dict[str, list[QuestionDef]]:
     def _norm(lst: list[dict]) -> list[QuestionDef]:
         out: list[QuestionDef] = []
         for q in lst:
-            out.append({
-                "id":             q["id"],
-                "category":       q.get("category", ""),
-                "text":           q["text"],
-                "criteria":       str(q.get("criteria", "")),
-                "triggers_if_yes": q.get("triggers_if_yes", []),
-            })
+            out.append(
+                {
+                    "id": q["id"],
+                    "category": q.get("category", ""),
+                    "text": q["text"],
+                    "criteria": str(q.get("criteria", "")),
+                    "triggers_if_yes": q.get("triggers_if_yes", []),
+                }
+            )
         return out
 
     return {
-        "mandatory":   _norm(raw.get("mandatory",   [])),
+        "mandatory": _norm(raw.get("mandatory", [])),
         "situational": _norm(raw.get("situational", [])),
     }
 
@@ -115,7 +116,7 @@ def _profile_to_text(profile: dict) -> str:
 
 
 def _batch_questions(questions: list[QuestionDef]) -> list[list[QuestionDef]]:
-    return [questions[i:i + _BATCH_SIZE] for i in range(0, len(questions), _BATCH_SIZE)]
+    return [questions[i : i + _BATCH_SIZE] for i in range(0, len(questions), _BATCH_SIZE)]
 
 
 def _format_questions_block(batch: list[QuestionDef]) -> str:
@@ -155,16 +156,16 @@ def _answer_batch(
 
 def _normalise_response(resp: dict, q: QuestionDef) -> dict:
     return {
-        "question_id":     q["id"],
-        "question_text":   q["text"],
-        "question_type":   "mandatory" if q["id"].startswith("AUP") else "situational",
-        "category":        q["category"],
-        "answer":          str(resp.get("answer", "no")).lower(),
-        "assumed":         bool(resp.get("assumed", True)),
+        "question_id": q["id"],
+        "question_text": q["text"],
+        "question_type": "mandatory" if q["id"].startswith("AUP") else "situational",
+        "category": q["category"],
+        "answer": str(resp.get("answer", "no")).lower(),
+        "assumed": bool(resp.get("assumed", True)),
         "conflict_flagged": bool(resp.get("conflict_flagged", False)),
-        "evidence":        str(resp.get("evidence", "")),
-        "reason":          str(resp.get("reason",   "")),
-        "user_corrected":  False,
+        "evidence": str(resp.get("evidence", "")),
+        "reason": str(resp.get("reason", "")),
+        "user_corrected": False,
     }
 
 
@@ -224,12 +225,13 @@ def _build_exposure_categories(all_responses: list[dict]) -> dict[str, list[str]
 
 
 def _count_responses(all_responses: list[dict]) -> dict[str, int]:
-    yes   = sum(1 for r in all_responses if r.get("answer") == "yes")
-    no    = sum(1 for r in all_responses if r.get("answer") == "no")
+    yes = sum(1 for r in all_responses if r.get("answer") == "yes")
+    no = sum(1 for r in all_responses if r.get("answer") == "no")
     return {"yes": yes, "no": no, "total": len(all_responses)}
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
+
 
 async def get_qa_profile(assessment_id: str, tenant_id: str) -> dict | None:
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
@@ -268,6 +270,7 @@ async def save_qa_profile(assessment_id: str, tenant_id: str, qa: dict) -> None:
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
+
 async def run_qa_engine(assessment_id: str, tenant_id: str) -> dict:
     """
     Run the two-pass QA engine for *assessment_id*.
@@ -284,14 +287,14 @@ async def run_qa_engine(assessment_id: str, tenant_id: str) -> dict:
         )
 
     profile_text = _profile_to_text(snapshot.get("operational_profile") or {})
-    ao_summary   = snapshot.get("ao_summary") or ""
+    ao_summary = snapshot.get("ao_summary") or ""
 
     # Fetch document chunks so the LLM has full business process context
-    chunks   = await select_ao_chunks(assessment_id, tenant_id, top_k=6)
+    chunks = await select_ao_chunks(assessment_id, tenant_id, top_k=6)
     doc_text = "\n\n-----\n\n".join(chunks) if chunks else ""
 
     qs = _load_questions()
-    mandatory_qs   = qs["mandatory"]
+    mandatory_qs = qs["mandatory"]
     situational_all = qs["situational"]
 
     # Pass 1 — mandatory AUP questions
@@ -306,16 +309,16 @@ async def run_qa_engine(assessment_id: str, tenant_id: str) -> dict:
     all_responses = mandatory_responses + situational_responses
 
     # Build flat answers + rationale maps (matches frontend data model)
-    answers:   dict[str, str] = {r["question_id"]: r["answer"]   for r in all_responses}
+    answers: dict[str, str] = {r["question_id"]: r["answer"] for r in all_responses}
     rationale: dict[str, str] = {r["question_id"]: r["evidence"] for r in all_responses}
 
     qa_profile = {
-        "mandatory_responses":   mandatory_responses,
+        "mandatory_responses": mandatory_responses,
         "situational_responses": situational_responses,
-        "exposure_categories":   _build_exposure_categories(all_responses),
-        "counters":              _count_responses(all_responses),
-        "answers":               answers,
-        "rationale":             rationale,
+        "exposure_categories": _build_exposure_categories(all_responses),
+        "counters": _count_responses(all_responses),
+        "answers": answers,
+        "rationale": rationale,
     }
 
     await save_qa_profile(assessment_id, tenant_id, qa_profile)

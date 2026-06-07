@@ -1,12 +1,11 @@
 import uuid
-from typing import Optional
-from fastapi import APIRouter, Query, Request
-from pydantic import BaseModel
-from psycopg.rows import dict_row
 
-from app.infra.db import get_tenant_cursor
+from fastapi import APIRouter, Query, Request
+from psycopg.rows import dict_row
+from pydantic import BaseModel
+
 from app.config.constants import DEFAULT_TENANT_ID
-from app.errors import NotFoundError
+from app.infra.db import get_tenant_cursor
 from app.utils.risk_scope import risk_matches_scope
 
 router = APIRouter(prefix="/v1/assessments", tags=["risks"])
@@ -16,37 +15,37 @@ class RiskCreate(BaseModel):
     name: str
     category: str
     source: str
-    description: Optional[str] = None
-    taxonomy_risk_id: Optional[str] = None
+    description: str | None = None
+    taxonomy_risk_id: str | None = None
 
 
 class RiskPatch(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    source: Optional[str] = None
-    description: Optional[str] = None
-    applicable: Optional[bool] = None
-    inherent_likelihood: Optional[str] = None
-    inherent_impact: Optional[str] = None
-    residual_likelihood: Optional[str] = None
-    residual_impact: Optional[str] = None
-    rationale: Optional[str] = None
-    applicability_confidence: Optional[float] = None
-    confidence_label: Optional[str] = None
-    decision_basis: Optional[str] = None
-    requires_review: Optional[bool] = None
-    likelihood_score: Optional[int] = None
-    financial_impact: Optional[int] = None
-    regulatory_impact: Optional[int] = None
-    legal_impact: Optional[int] = None
-    customer_impact: Optional[int] = None
-    reputational_impact: Optional[int] = None
-    likelihood_rationale: Optional[str] = None
-    financial_rationale: Optional[str] = None
-    regulatory_rationale: Optional[str] = None
-    legal_rationale: Optional[str] = None
-    customer_rationale: Optional[str] = None
-    reputational_rationale: Optional[str] = None
+    name: str | None = None
+    category: str | None = None
+    source: str | None = None
+    description: str | None = None
+    applicable: bool | None = None
+    inherent_likelihood: str | None = None
+    inherent_impact: str | None = None
+    residual_likelihood: str | None = None
+    residual_impact: str | None = None
+    rationale: str | None = None
+    applicability_confidence: float | None = None
+    confidence_label: str | None = None
+    decision_basis: str | None = None
+    requires_review: bool | None = None
+    likelihood_score: int | None = None
+    financial_impact: int | None = None
+    regulatory_impact: int | None = None
+    legal_impact: int | None = None
+    customer_impact: int | None = None
+    reputational_impact: int | None = None
+    likelihood_rationale: str | None = None
+    financial_rationale: str | None = None
+    regulatory_rationale: str | None = None
+    legal_rationale: str | None = None
+    customer_rationale: str | None = None
+    reputational_rationale: str | None = None
 
 
 # ── Column-resilience cache ───────────────────────────────────
@@ -60,11 +59,9 @@ async def _check_applic_cols(tenant_id: str) -> bool:
         return _APPLIC_COLS_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessment_risks'
-                     AND column_name='applicability_confidence'"""
-            )
+                     AND column_name='applicability_confidence'""")
             _APPLIC_COLS_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _APPLIC_COLS_EXIST = False
@@ -77,11 +74,9 @@ async def _check_ir_dims(tenant_id: str) -> bool:
         return _IR_DIMS_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='assessment_risks'
-                     AND column_name='likelihood_score'"""
-            )
+                     AND column_name='likelihood_score'""")
             _IR_DIMS_EXIST = (await cur.fetchone()) is not None
     except Exception:
         _IR_DIMS_EXIST = False
@@ -92,7 +87,9 @@ async def _check_ir_dims(tenant_id: str) -> bool:
 async def list_risks(
     assessment_id: str,
     request: Request,
-    scope: Optional[str] = Query(None, description="Filter by risk scope: 'internal', 'external', or 'both'"),
+    scope: str | None = Query(
+        None, description="Filter by risk scope: 'internal', 'external', or 'both'"
+    ),
 ):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
@@ -119,16 +116,33 @@ async def list_risks(
 
     if not has_new:
         rows = [
-            {**r, "applicability_confidence": None, "confidence_label": "manual",
-             "decision_basis": "manual", "requires_review": False, "extra_data": {}}
+            {
+                **r,
+                "applicability_confidence": None,
+                "confidence_label": "manual",
+                "decision_basis": "manual",
+                "requires_review": False,
+                "extra_data": {},
+            }
             for r in rows
         ]
     if not has_ir:
         rows = [
-            {**r, "likelihood_score": None, "financial_impact": None, "regulatory_impact": None,
-             "legal_impact": None, "customer_impact": None, "reputational_impact": None,
-             "likelihood_rationale": None, "financial_rationale": None, "regulatory_rationale": None,
-             "legal_rationale": None, "customer_rationale": None, "reputational_rationale": None}
+            {
+                **r,
+                "likelihood_score": None,
+                "financial_impact": None,
+                "regulatory_impact": None,
+                "legal_impact": None,
+                "customer_impact": None,
+                "reputational_impact": None,
+                "likelihood_rationale": None,
+                "financial_rationale": None,
+                "regulatory_rationale": None,
+                "legal_rationale": None,
+                "customer_rationale": None,
+                "reputational_rationale": None,
+            }
             for r in rows
         ]
     return rows
@@ -144,8 +158,15 @@ async def create_risk(assessment_id: str, body: RiskCreate, request: Request):
             """INSERT INTO app.assessment_risks
                (id, assessment_id, name, category, source, description, taxonomy_risk_id)
                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-            (risk_id, assessment_id, body.name, body.category, body.source,
-             body.description, body.taxonomy_risk_id),
+            (
+                risk_id,
+                assessment_id,
+                body.name,
+                body.category,
+                body.source,
+                body.description,
+                body.taxonomy_risk_id,
+            ),
         )
     return {"id": risk_id}
 
@@ -159,11 +180,9 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
     # Fetch active taxonomy with risks_data
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         # Check if risks_data column exists
-        await cur.execute(
-            """SELECT column_name FROM information_schema.columns
+        await cur.execute("""SELECT column_name FROM information_schema.columns
                WHERE table_schema='app' AND table_name='taxonomy_schemas'
-                 AND column_name='risks_data'"""
-        )
+                 AND column_name='risks_data'""")
         has_risks_data = (await cur.fetchone()) is not None
 
         if not has_risks_data:
@@ -178,7 +197,13 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
         taxonomy = await cur.fetchone()
 
     if not taxonomy or not taxonomy["risks_data"]:
-        return {"imported": 0, "skipped": 0, "filtered_out": 0, "scope": "both", "message": "No active taxonomy found"}
+        return {
+            "imported": 0,
+            "skipped": 0,
+            "filtered_out": 0,
+            "scope": "both",
+            "message": "No active taxonomy found",
+        }
 
     risks_data = taxonomy["risks_data"]
 
@@ -204,7 +229,9 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
             "SELECT taxonomy_risk_id FROM app.assessment_risks WHERE assessment_id = %s",
             (assessment_id,),
         )
-        existing = {row["taxonomy_risk_id"] for row in await cur.fetchall() if row["taxonomy_risk_id"]}
+        existing = {
+            row["taxonomy_risk_id"] for row in await cur.fetchall() if row["taxonomy_risk_id"]
+        }
 
     async with get_tenant_cursor(tenant_id) as cur:
         for r in scoped_risks:
@@ -219,9 +246,15 @@ async def import_risks_from_taxonomy(assessment_id: str, request: Request):
                 """INSERT INTO app.assessment_risks
                    (id, assessment_id, name, category, source, description, taxonomy_risk_id)
                    VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                (str(uuid.uuid4()), assessment_id,
-                 r.get("name", ""), r.get("category", ""),
-                 source, r.get("description", ""), tax_risk_id),
+                (
+                    str(uuid.uuid4()),
+                    assessment_id,
+                    r.get("name", ""),
+                    r.get("category", ""),
+                    source,
+                    r.get("description", ""),
+                    tax_risk_id,
+                ),
             )
             imported += 1
 
@@ -239,15 +272,30 @@ async def patch_risk(assessment_id: str, risk_id: str, body: RiskPatch, request:
 
     # Drop new columns if migration hasn't run
     if not has_new:
-        for col in ("applicability_confidence", "confidence_label", "decision_basis", "requires_review"):
+        for col in (
+            "applicability_confidence",
+            "confidence_label",
+            "decision_basis",
+            "requires_review",
+        ):
             updates.pop(col, None)
 
     # Drop IR dimension columns if migration hasn't run
     if not has_ir:
-        for col in ("likelihood_score", "financial_impact", "regulatory_impact", "legal_impact",
-                    "customer_impact", "reputational_impact", "likelihood_rationale",
-                    "financial_rationale", "regulatory_rationale", "legal_rationale",
-                    "customer_rationale", "reputational_rationale"):
+        for col in (
+            "likelihood_score",
+            "financial_impact",
+            "regulatory_impact",
+            "legal_impact",
+            "customer_impact",
+            "reputational_impact",
+            "likelihood_rationale",
+            "financial_rationale",
+            "regulatory_rationale",
+            "legal_rationale",
+            "customer_rationale",
+            "reputational_rationale",
+        ):
             updates.pop(col, None)
 
     # Handle applicable=False explicitly (model_dump excludes False with if v is not None)
@@ -292,6 +340,7 @@ class RiskTrigger(BaseModel):
 @agent_router.post("/risk-applicability")
 async def generate_risk_applicability(body: RiskTrigger, request: Request):
     from app.services.risk_applicability import process_applicability
+
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     return await process_applicability(body.assessment_id, tenant_id)
@@ -300,6 +349,7 @@ async def generate_risk_applicability(body: RiskTrigger, request: Request):
 @agent_router.post("/inherent-risk-ratings")
 async def generate_inherent_risk_ratings(body: RiskTrigger, request: Request):
     from app.services.inherent_risk import generate_inherent_ratings
+
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     return await generate_inherent_ratings(body.assessment_id, tenant_id)
@@ -308,6 +358,7 @@ async def generate_inherent_risk_ratings(body: RiskTrigger, request: Request):
 @agent_router.post("/controls-effectiveness")
 async def evaluate_controls_effectiveness(body: RiskTrigger, request: Request):
     from app.services.controls_effectiveness import evaluate_all_controls
+
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     return await evaluate_all_controls(body.assessment_id, tenant_id)
@@ -316,6 +367,7 @@ async def evaluate_controls_effectiveness(body: RiskTrigger, request: Request):
 @agent_router.post("/residual-risk-ratings")
 async def compute_residual_risk_ratings(body: RiskTrigger, request: Request):
     from app.services.residual_risk import compute_residual_ratings
+
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     return await compute_residual_ratings(body.assessment_id, tenant_id)

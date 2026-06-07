@@ -1,5 +1,6 @@
-from fastapi import Depends, Request
 from typing import Annotated
+
+from fastapi import Depends, Request
 
 from app.config.constants import ROLE_WEIGHTS
 from app.errors import ForbiddenError

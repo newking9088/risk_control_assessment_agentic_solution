@@ -33,7 +33,8 @@ async def test_add_and_list_controls(db_conn):
         (cid, aid, rid, "Approval Control", "Preventive", True),
     )
     cur = await db_conn.execute(
-        "SELECT id, name, type, is_key FROM app.assessment_controls WHERE assessment_id = %s", (aid,)
+        "SELECT id, name, type, is_key FROM app.assessment_controls WHERE assessment_id = %s",
+        (aid,),
     )
     rows = await cur.fetchall()
     assert len(rows) == 1

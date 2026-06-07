@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from app.infra.db import get_conn
 from app.infra.redis_client import get_redis
 

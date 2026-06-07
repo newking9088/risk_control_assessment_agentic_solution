@@ -1,4 +1,5 @@
 """Tests for POST /api/v1/agent/risk-applicability."""
+
 from unittest.mock import patch
 
 
@@ -11,9 +12,7 @@ def _make_assessment(test_client) -> str:
 def test_risk_applicability_returns_risks(test_client):
     aid = _make_assessment(test_client)
     mock_result = {
-        "risks": [
-            {"name": "Fraud Risk", "category": "Fraud", "source": "EXT", "applicable": True}
-        ]
+        "risks": [{"name": "Fraud Risk", "category": "Fraud", "source": "EXT", "applicable": True}]
     }
     with patch("app.routes.risks.respond_json", return_value=mock_result):
         resp = test_client.post(
@@ -41,7 +40,12 @@ def test_risk_applicability_only_inserts_applicable_risks(test_client):
     mock_result = {
         "risks": [
             {"name": "Applicable Risk", "category": "Fraud", "source": "EXT", "applicable": True},
-            {"name": "Not Applicable", "category": "Compliance", "source": "INT", "applicable": False},
+            {
+                "name": "Not Applicable",
+                "category": "Compliance",
+                "source": "INT",
+                "applicable": False,
+            },
         ]
     }
     with patch("app.routes.risks.respond_json", return_value=mock_result):

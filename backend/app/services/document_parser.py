@@ -8,11 +8,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_MIME_PDF  = "application/pdf"
+_MIME_PDF = "application/pdf"
 _MIME_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-_MIME_DOC  = "application/msword"
+_MIME_DOC = "application/msword"
 _MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-_MIME_XLS  = "application/vnd.ms-excel"
+_MIME_XLS = "application/vnd.ms-excel"
 
 
 def extract_text(content: bytes, mime_type: str, filename: str = "") -> str:

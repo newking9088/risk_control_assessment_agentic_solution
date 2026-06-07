@@ -2,8 +2,8 @@
 Sliding-window text chunker.
 """
 
-CHUNK_SIZE    = 1_500   # characters per chunk
-CHUNK_OVERLAP = 200     # overlap between consecutive chunks
+CHUNK_SIZE = 1_500  # characters per chunk
+CHUNK_OVERLAP = 200  # overlap between consecutive chunks
 
 
 def chunk_text(

@@ -44,12 +44,8 @@ async def test_soft_delete(db_conn):
         "INSERT INTO app.assessments (id, tenant_id, title, created_by) VALUES (%s, %s, %s, %s)",
         (aid, TEST_TENANT_ID, "Delete Test", TEST_USER_ID),
     )
-    await db_conn.execute(
-        "UPDATE app.assessments SET status = 'archived' WHERE id = %s", (aid,)
-    )
-    cur = await db_conn.execute(
-        "SELECT status FROM app.assessments WHERE id = %s", (aid,)
-    )
+    await db_conn.execute("UPDATE app.assessments SET status = 'archived' WHERE id = %s", (aid,))
+    cur = await db_conn.execute("SELECT status FROM app.assessments WHERE id = %s", (aid,))
     row = await cur.fetchone()
     assert row["status"] == "archived"
 

@@ -4,6 +4,7 @@
 TestAggregateRiskCE (2)
 TestEvaluateControl (2)
 """
+
 from unittest.mock import patch
 
 from app.services.controls_effectiveness import (
@@ -12,8 +13,8 @@ from app.services.controls_effectiveness import (
     evaluate_control,
 )
 
-
 # ── TestAggregateRiskCE ───────────────────────────────────────────────────────
+
 
 class TestAggregateRiskCE:
     def test_single_control_returns_its_label(self):
@@ -40,6 +41,7 @@ class TestAggregateRiskCE:
 
 
 # ── TestEvaluateControl ───────────────────────────────────────────────────────
+
 
 class TestEvaluateControl:
     def test_llm_scores_are_normalised(self):

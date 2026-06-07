@@ -1,4 +1,5 @@
 """Tests for session validation, LRU cache, and circuit breaker in app.middleware.auth."""
+
 import time
 import pytest
 import httpx
@@ -25,6 +26,7 @@ def _make_request(cookies: dict) -> Request:
 @pytest.mark.asyncio
 async def test_no_cookies_raises_unauthorized():
     from app.middleware.auth import get_current_user
+
     request = _make_request({})
     with pytest.raises(UnauthorizedError):
         await get_current_user(request)
@@ -33,6 +35,7 @@ async def test_no_cookies_raises_unauthorized():
 @pytest.mark.asyncio
 async def test_valid_session_returns_user():
     import app.middleware.auth as auth_module
+
     # Reset circuit breaker state
     auth_module._cb_failures = 0
     auth_module._cb_open_until = 0.0
@@ -58,6 +61,7 @@ async def test_valid_session_returns_user():
 @pytest.mark.asyncio
 async def test_TTL_cache_hit_skips_http():
     import app.middleware.auth as auth_module
+
     auth_module._cb_failures = 0
     auth_module._cb_open_until = 0.0
     auth_module._cache.clear()
@@ -84,6 +88,7 @@ async def test_TTL_cache_hit_skips_http():
 @pytest.mark.asyncio
 async def test_circuit_breaker_opens_after_threshold():
     import app.middleware.auth as auth_module
+
     auth_module._cb_failures = 0
     auth_module._cb_open_until = 0.0
     auth_module._cache.clear()

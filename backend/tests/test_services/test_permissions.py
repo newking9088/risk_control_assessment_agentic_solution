@@ -1,4 +1,5 @@
 """Tests for role-based access control via require_minimum_role."""
+
 from fastapi.testclient import TestClient
 
 

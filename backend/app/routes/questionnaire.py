@@ -6,15 +6,13 @@ GET   /api/v1/assessments/{id}/qa-answers  – retrieve current QA profile
 PUT   /api/v1/assessments/{id}/qa-answers  – apply user correction to one answer
 """
 
-import json
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.config.constants import DEFAULT_TENANT_ID
-from app.infra.db import get_tenant_cursor
-from app.services.qa_engine import run_qa_engine, get_qa_profile, save_qa_profile
+from app.services.qa_engine import get_qa_profile, run_qa_engine, save_qa_profile
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +24,7 @@ def _tenant(request: Request) -> str:
 
 
 # ── POST /qa-run ──────────────────────────────────────────────────────────────
+
 
 @router.post("/{assessment_id}/qa-run")
 async def run_questionnaire(assessment_id: str, request: Request):
@@ -50,6 +49,7 @@ async def run_questionnaire(assessment_id: str, request: Request):
 
 # ── GET /qa-answers ───────────────────────────────────────────────────────────
 
+
 @router.get("/{assessment_id}/qa-answers")
 async def get_answers(assessment_id: str, request: Request):
     """
@@ -65,23 +65,25 @@ async def get_answers(assessment_id: str, request: Request):
         )
 
     # Enrich with flat answers/rationale maps for frontend compatibility
-    mandatory   = profile.get("mandatory_responses")   or []
+    mandatory = profile.get("mandatory_responses") or []
     situational = profile.get("situational_responses") or []
-    all_resp    = (mandatory if isinstance(mandatory, list) else []) + \
-                  (situational if isinstance(situational, list) else [])
+    all_resp = (mandatory if isinstance(mandatory, list) else []) + (
+        situational if isinstance(situational, list) else []
+    )
 
     return {
         **profile,
-        "answers":   {r["question_id"]: r["answer"]   for r in all_resp},
+        "answers": {r["question_id"]: r["answer"] for r in all_resp},
         "rationale": {r["question_id"]: r["evidence"] for r in all_resp},
     }
 
 
 # ── PUT /qa-answers ───────────────────────────────────────────────────────────
 
+
 class AnswerCorrection(BaseModel):
     question_id: str
-    answer: str       # "yes" | "no"
+    answer: str  # "yes" | "no"
     rationale: str = ""
 
 
@@ -105,18 +107,18 @@ async def correct_answer(
     if not profile:
         raise HTTPException(status_code=404, detail="No QA profile found.")
 
-    mandatory   = list(profile.get("mandatory_responses")   or [])
+    mandatory = list(profile.get("mandatory_responses") or [])
     situational = list(profile.get("situational_responses") or [])
 
     updated = False
     for resp_list in (mandatory, situational):
         for resp in resp_list:
             if resp.get("question_id") == correction.question_id:
-                resp["answer"]         = correction.answer
+                resp["answer"] = correction.answer
                 resp["user_corrected"] = True
-                resp["assumed"]        = False
+                resp["assumed"] = False
                 if correction.rationale:
-                    resp["evidence"]   = correction.rationale
+                    resp["evidence"] = correction.rationale
                 updated = True
 
     if not updated:
@@ -138,20 +140,20 @@ async def correct_answer(
 
     def _count(resps: list[dict]) -> dict[str, int]:
         yes = sum(1 for r in resps if r.get("answer") == "yes")
-        no  = sum(1 for r in resps if r.get("answer") == "no")
+        no = sum(1 for r in resps if r.get("answer") == "no")
         return {"yes": yes, "no": no, "total": len(resps)}
 
     updated_profile = {
-        "mandatory_responses":   mandatory,
+        "mandatory_responses": mandatory,
         "situational_responses": situational,
-        "exposure_categories":   _build_exposure(all_resp),
-        "counters":              _count(all_resp),
+        "exposure_categories": _build_exposure(all_resp),
+        "counters": _count(all_resp),
     }
 
     await save_qa_profile(assessment_id, tenant_id, updated_profile)
 
     return {
         **updated_profile,
-        "answers":   {r["question_id"]: r["answer"]   for r in all_resp},
+        "answers": {r["question_id"]: r["answer"] for r in all_resp},
         "rationale": {r["question_id"]: r["evidence"] for r in all_resp},
     }

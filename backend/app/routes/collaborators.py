@@ -1,8 +1,6 @@
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -19,7 +17,7 @@ router = APIRouter(prefix="/v1/assessments", tags=["collaborators"])
 
 class CollaboratorAdd(BaseModel):
     user_email: str
-    display_name: Optional[str] = None
+    display_name: str | None = None
     role: str = "editor"
 
 
@@ -28,11 +26,12 @@ class CollaboratorPatch(BaseModel):
 
 
 class HeartbeatBody(BaseModel):
-    display_name: Optional[str] = None
+    display_name: str | None = None
     role: str = "reader"
 
 
 # ── Collaborators CRUD ────────────────────────────────────────────
+
 
 @router.get("/{assessment_id}/collaborators")
 async def list_collaborators(assessment_id: str, request: Request):
@@ -66,10 +65,14 @@ async def add_collaborator(assessment_id: str, body: CollaboratorAdd, request: R
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (assessment_id, user_id) DO NOTHING",
             (
-                collab_id, tenant_id, assessment_id,
-                target_user_id, body.user_email,
+                collab_id,
+                tenant_id,
+                assessment_id,
+                target_user_id,
+                body.user_email,
                 body.display_name or body.user_email.split("@")[0],
-                body.role, user.get("id"),
+                body.role,
+                user.get("id"),
             ),
         )
         # Create collab_invite notification
@@ -78,9 +81,12 @@ async def add_collaborator(assessment_id: str, body: CollaboratorAdd, request: R
             "(id, tenant_id, user_id, type, body, assessment_id, actor_id, actor_name) "
             "VALUES (%s, %s, %s, 'collab_invite', %s, %s, %s, %s)",
             (
-                notif_id, tenant_id, target_user_id,
+                notif_id,
+                tenant_id,
+                target_user_id,
                 f"You have been invited to collaborate on an assessment as {body.role}.",
-                assessment_id, user.get("id"),
+                assessment_id,
+                user.get("id"),
                 user.get("name", user.get("email", "Someone")),
             ),
         )
@@ -88,11 +94,13 @@ async def add_collaborator(assessment_id: str, body: CollaboratorAdd, request: R
     # Push notification via Redis
     try:
         r = get_redis()
-        notif_payload = json.dumps({
-            "type": "collab_invite",
-            "body": f"You were invited to collaborate as {body.role}.",
-            "assessment_id": assessment_id,
-        })
+        notif_payload = json.dumps(
+            {
+                "type": "collab_invite",
+                "body": f"You were invited to collaborate as {body.role}.",
+                "assessment_id": assessment_id,
+            }
+        )
         await r.publish(f"rcanotify:{target_user_id}", notif_payload)
     except Exception:
         pass
@@ -133,6 +141,7 @@ async def remove_collaborator(assessment_id: str, collab_id: str, request: Reque
 
 
 # ── Presence ──────────────────────────────────────────────────────
+
 
 @router.get("/{assessment_id}/presence")
 async def list_presence(assessment_id: str, request: Request):
@@ -186,6 +195,7 @@ async def heartbeat(assessment_id: str, body: HeartbeatBody, request: Request):
 
 # ── SSE Event Stream ──────────────────────────────────────────────
 
+
 @router.get("/{assessment_id}/events")
 async def assessment_events(assessment_id: str, request: Request):
     async def generator():
@@ -206,7 +216,7 @@ async def assessment_events(assessment_id: str, request: Request):
                     yield f"data: {msg['data']}\n\n"
                 else:
                     yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
-        except (asyncio.TimeoutError, GeneratorExit):
+        except (TimeoutError, GeneratorExit):
             pass
         except Exception:
             pass

@@ -78,7 +78,9 @@ def respond_json(
             raw = response.choices[0].message.content or "{}"
             return json.loads(raw)
         except json.JSONDecodeError:
-            logger.warning("JSON parse failed on attempt %d, retrying without format hint", attempt + 1)
+            logger.warning(
+                "JSON parse failed on attempt %d, retrying without format hint", attempt + 1
+            )
             kwargs.pop("response_format", None)
         except Exception as exc:
             logger.warning("LLM JSON attempt %d failed: %s", attempt + 1, exc)

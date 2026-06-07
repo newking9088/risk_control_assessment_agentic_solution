@@ -1,34 +1,34 @@
 import uuid
-from typing import Optional
-from fastapi import APIRouter, Request
-from pydantic import BaseModel
-from psycopg.rows import dict_row
 
-from app.infra.db import get_tenant_cursor
+from fastapi import APIRouter, Request
+from psycopg.rows import dict_row
+from pydantic import BaseModel
+
 from app.config.constants import DEFAULT_TENANT_ID
+from app.infra.db import get_tenant_cursor
 
 router = APIRouter(prefix="/v1/assessments", tags=["controls"])
 
 
 class ControlCreate(BaseModel):
-    risk_id: Optional[str] = None
+    risk_id: str | None = None
     name: str
-    type: Optional[str] = None
+    type: str | None = None
     is_key: bool = False
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class ControlPatch(BaseModel):
-    name: Optional[str] = None
-    control_ref: Optional[str] = None
-    type: Optional[str] = None
-    is_key: Optional[bool] = None
-    description: Optional[str] = None
-    design_effectiveness: Optional[int] = None
-    operating_effectiveness: Optional[int] = None
-    overall_effectiveness: Optional[str] = None
-    rationale: Optional[str] = None
-    evidence_ref: Optional[str] = None
+    name: str | None = None
+    control_ref: str | None = None
+    type: str | None = None
+    is_key: bool | None = None
+    description: str | None = None
+    design_effectiveness: int | None = None
+    operating_effectiveness: int | None = None
+    overall_effectiveness: str | None = None
+    rationale: str | None = None
+    evidence_ref: str | None = None
 
 
 @router.get("/{assessment_id}/controls")
@@ -56,7 +56,15 @@ async def create_control(assessment_id: str, body: ControlCreate, request: Reque
             """INSERT INTO app.assessment_controls
                (id, assessment_id, risk_id, name, type, is_key, description)
                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-            (control_id, assessment_id, body.risk_id, body.name, body.type, body.is_key, body.description),
+            (
+                control_id,
+                assessment_id,
+                body.risk_id,
+                body.name,
+                body.type,
+                body.is_key,
+                body.description,
+            ),
         )
     return {"id": control_id}
 

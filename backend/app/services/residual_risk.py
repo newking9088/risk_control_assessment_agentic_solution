@@ -26,12 +26,13 @@ INHERENT_LABELS = ["Low", "Medium", "High", "Very High"]
 
 # RESIDUAL_MATRIX[ce_label][inherent_label_index]
 RESIDUAL_MATRIX: dict[str, list[str]] = {
-    "Effective":            ["Low",    "Low",    "Medium",    "High"     ],
-    "Moderately Effective": ["Low",    "Medium", "High",      "Very High"],
-    "Ineffective":          ["Medium", "High",   "Very High", "Very High"],
+    "Effective": ["Low", "Low", "Medium", "High"],
+    "Moderately Effective": ["Low", "Medium", "High", "Very High"],
+    "Ineffective": ["Medium", "High", "Very High", "Very High"],
 }
 
 # ── Pure helper ───────────────────────────────────────────────────────────────
+
 
 def compute_residual_risk(inherent_label: str, ce_label: str) -> str | None:
     """Return residual risk label via matrix lookup.
@@ -47,6 +48,7 @@ def compute_residual_risk(inherent_label: str, ce_label: str) -> str | None:
 
 
 # ── Orchestration ─────────────────────────────────────────────────────────────
+
 
 async def compute_residual_ratings(assessment_id: str, tenant_id: str) -> dict:
     """Compute residual risk for every applicable risk that has an inherent rating."""
@@ -82,18 +84,19 @@ async def compute_residual_ratings(assessment_id: str, tenant_id: str) -> dict:
     computed = 0
     for risk in risks:
         risk_dict = dict(risk)
-        rid       = str(risk_dict["id"])
+        rid = str(risk_dict["id"])
 
         inherent_label = risk_dict.get("inherent_impact") or ""
-        ce_label       = aggregate_risk_ce(controls_by_risk.get(rid, []))
+        ce_label = aggregate_risk_ce(controls_by_risk.get(rid, []))
         if ce_label is None:
-            ce_label = "Moderately Effective"   # default when no controls mapped
+            ce_label = "Moderately Effective"  # default when no controls mapped
 
         residual_label = compute_residual_risk(inherent_label, ce_label)
         if residual_label is None:
             logger.warning(
                 "residual_risk: skipping %s — unrecognised inherent_label=%r",
-                risk_dict.get("name"), inherent_label,
+                risk_dict.get("name"),
+                inherent_label,
             )
             continue
 
@@ -114,11 +117,14 @@ async def compute_residual_ratings(assessment_id: str, tenant_id: str) -> dict:
         computed += 1
         logger.info(
             "residual_risk: %s → inherent=%s CE=%s residual=%s",
-            risk_dict.get("name"), inherent_label, ce_label, residual_label,
+            risk_dict.get("name"),
+            inherent_label,
+            ce_label,
+            residual_label,
         )
 
     return {
-        "assessment_id":    assessment_id,
-        "computed":         computed,
+        "assessment_id": assessment_id,
+        "computed": computed,
         "total_applicable": len(risks),
     }

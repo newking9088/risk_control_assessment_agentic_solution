@@ -1,5 +1,5 @@
 _EXTERNAL_KW = ("external", "first-party", "first party", "third-party", "third party")
-_INSIDER_KW  = ("insider", "internal")
+_INSIDER_KW = ("insider", "internal")
 
 
 def classify_fraud_nature(l1: str, category: str, source: str) -> str:

@@ -12,6 +12,7 @@ Coverage:
   - _normalise_risks: NGC hierarchical format (L1 Risk through L4 Risk headers)
   - POST /{taxonomy_id}/upload: CSV + XLSX upload, duplicate detection, unique risk IDs
 """
+
 import io
 import uuid
 from contextlib import asynccontextmanager
@@ -28,8 +29,8 @@ from app.middleware.auth import get_current_user
 from app.routes.taxonomy_management import _parse_csv, _normalise_risks
 from tests.conftest import MOCK_AUTH_USER, TEST_TENANT_ID
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _uid() -> str:
     return uuid.uuid4().hex[:8]
@@ -60,6 +61,7 @@ def _taxonomy_client(mock_row):
       - get_tenant_cursor returning mock_row
       - _NEW_COLS_EXIST forced to True (skips column-check query)
     """
+
     @asynccontextmanager
     async def _fake_ctx(*args, **kwargs):
         yield _FakeCursor(mock_row)
@@ -69,10 +71,12 @@ def _taxonomy_client(mock_row):
 
     app.dependency_overrides[get_current_user] = _mock_user
 
-    with patch.object(tax_mod, "_NEW_COLS_EXIST", True), \
-         patch("app.infra.db.init_db_pool", new_callable=AsyncMock), \
-         patch("app.infra.db.close_db_pool", new_callable=AsyncMock), \
-         patch("app.routes.taxonomy_management.get_tenant_cursor", side_effect=_fake_ctx):
+    with (
+        patch.object(tax_mod, "_NEW_COLS_EXIST", True),
+        patch("app.infra.db.init_db_pool", new_callable=AsyncMock),
+        patch("app.infra.db.close_db_pool", new_callable=AsyncMock),
+        patch("app.routes.taxonomy_management.get_tenant_cursor", side_effect=_fake_ctx),
+    ):
         with TestClient(app) as client:
             yield client
 
@@ -100,6 +104,7 @@ def _sample_row(risks_data=None, controls_data=None):
 
 # ── _parse_csv unit tests ─────────────────────────────────────────────────────
 
+
 class TestParseCsvNewlines:
     # _parse_csv detects risk path when any header contains "risk".
     # Using "risk_id,name,category" ensures the risk normalisation path is taken.
@@ -113,23 +118,29 @@ class TestParseCsvNewlines:
 
     def test_crlf_risk(self):
         uid = _uid()
-        csv_bytes = f"risk_id,name,category\r\nR-001,Risk {uid},Fraud\r\nR-002,Risk2 {uid},Credit".encode("utf-8")
+        csv_bytes = (
+            f"risk_id,name,category\r\nR-001,Risk {uid},Fraud\r\nR-002,Risk2 {uid},Credit".encode(
+                "utf-8"
+            )
+        )
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 2
 
     def test_cr_only_no_crash(self):
         """Bare \\r (old Mac) causes _csv.Error without newline normalisation."""
         uid = _uid()
-        csv_bytes = f"risk_id,name,category\rR-001,Risk {uid},Fraud\rR-002,Risk2 {uid},Credit".encode("utf-8")
+        csv_bytes = (
+            f"risk_id,name,category\rR-001,Risk {uid},Fraud\rR-002,Risk2 {uid},Credit".encode(
+                "utf-8"
+            )
+        )
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 2
 
     def test_mixed_newlines(self):
         uid = _uid()
         csv_bytes = (
-            f"risk_id,name,category\r\n"
-            f"R-001,Risk {uid},Fraud\n"
-            f"R-002,Risk2 {uid},Credit\r"
+            f"risk_id,name,category\r\n" f"R-001,Risk {uid},Fraud\n" f"R-002,Risk2 {uid},Credit\r"
         ).encode("utf-8")
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 2
@@ -191,6 +202,7 @@ class TestParseCsvColumnDetection:
 
 # ── GET /{taxonomy_id} — JSONB coercion ──────────────────────────────────────
 
+
 class TestFetchTaxonomyCoercion:
     def test_risks_data_dict_coerced_to_list(self):
         """DB stores {} when no rows were parsed — must become [] in response."""
@@ -226,16 +238,30 @@ class TestFetchTaxonomyCoercion:
         assert data["controls_data"] == []
 
     def test_risks_data_list_unchanged(self):
-        risks = [{"risk_id": "R-001", "name": "Fraud Risk", "category": "Fraud",
-                  "description": "", "source": "EXT"}]
+        risks = [
+            {
+                "risk_id": "R-001",
+                "name": "Fraud Risk",
+                "category": "Fraud",
+                "description": "",
+                "source": "EXT",
+            }
+        ]
         row = _sample_row(risks_data=risks, controls_data=[])
         with _taxonomy_client(row) as client:
             resp = client.get("/api/v1/taxonomy/tax-001")
         assert resp.json()["risks_data"] == risks
 
     def test_controls_data_list_unchanged(self):
-        controls = [{"control_id": "C-001", "control_name": "MFA",
-                     "description": "", "control_type": "Preventive", "is_key": True}]
+        controls = [
+            {
+                "control_id": "C-001",
+                "control_name": "MFA",
+                "description": "",
+                "control_type": "Preventive",
+                "is_key": True,
+            }
+        ]
         row = _sample_row(risks_data=[], controls_data=controls)
         with _taxonomy_client(row) as client:
             resp = client.get("/api/v1/taxonomy/tax-001")
@@ -243,6 +269,7 @@ class TestFetchTaxonomyCoercion:
 
 
 # ── _normalise_risks — flat format ────────────────────────────────────────────
+
 
 class TestNormaliseRisksFlat:
     def test_name_header(self):
@@ -273,12 +300,17 @@ class TestNormaliseRisksFlat:
 
 # ── _normalise_risks — NGC hierarchical format ────────────────────────────────
 
+
 def _hier_row(**kwargs) -> dict:
     """Return a minimal hierarchical row dict with all L-columns present."""
     base = {
-        "L1 Risk": "", "L2 Risk": "", "L3 Risk": "",
-        "L3 Risk Description": "", "L4 Risk": "",
-        "L4 Risk Description": "", "Source": "NGC",
+        "L1 Risk": "",
+        "L2 Risk": "",
+        "L3 Risk": "",
+        "L3 Risk Description": "",
+        "L4 Risk": "",
+        "L4 Risk Description": "",
+        "Source": "NGC",
     }
     base.update(kwargs)
     return base
@@ -288,12 +320,21 @@ class TestNormaliseRisksHierarchical:
     def test_l3_level_grouping(self):
         """Two L4 rows under one L3 produce a single L3-level output row."""
         rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
-                         "L3 Risk Description": "Altered cheques",
-                         "L4 Risk": "R001E.01 - Cheque Alteration",
-                         "L4 Risk Description": "Physical alteration"}),
-            _hier_row(**{"L4 Risk": "R001E.02 - Digital Alteration",
-                         "L4 Risk Description": "Digital forgery"}),
+            _hier_row(
+                **{
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "R001E - Altered Payment",
+                    "L3 Risk Description": "Altered cheques",
+                    "L4 Risk": "R001E.01 - Cheque Alteration",
+                    "L4 Risk Description": "Physical alteration",
+                }
+            ),
+            _hier_row(
+                **{
+                    "L4 Risk": "R001E.02 - Digital Alteration",
+                    "L4 Risk Description": "Digital forgery",
+                }
+            ),
         ]
         risks = _normalise_risks(rows)
         assert len(risks) == 1
@@ -301,26 +342,45 @@ class TestNormaliseRisksHierarchical:
 
     def test_risk_id_no_suffix(self):
         """risk_id is the L3 code with no -N suffix."""
-        rows = [_hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
-                              "L4 Risk": "R001E.01 - First"})]
+        rows = [
+            _hier_row(
+                **{
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "R001E - Altered Payment",
+                    "L4 Risk": "R001E.01 - First",
+                }
+            )
+        ]
         risks = _normalise_risks(rows)
         assert risks[0]["risk_id"] == "R001E"
         assert "-1" not in risks[0]["risk_id"]
 
     def test_l3_name_as_name_field(self):
         """The name field is the full L3 string, not the L4."""
-        rows = [_hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
-                              "L4 Risk": "R001E.01 - Cheque Alteration"})]
+        rows = [
+            _hier_row(
+                **{
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "R001E - Altered Payment",
+                    "L4 Risk": "R001E.01 - Cheque Alteration",
+                }
+            )
+        ]
         risks = _normalise_risks(rows)
         assert risks[0]["name"] == "R001E - Altered Payment"
 
     def test_l4_folded_into_description(self):
         """L4 sub-risk names appear in the description field."""
         rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Altered Payment",
-                         "L3 Risk Description": "Base desc",
-                         "L4 Risk": "R001E.01 - Sub One",
-                         "L4 Risk Description": "Physical forgery"}),
+            _hier_row(
+                **{
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "R001E - Altered Payment",
+                    "L3 Risk Description": "Base desc",
+                    "L4 Risk": "R001E.01 - Sub One",
+                    "L4 Risk Description": "Physical forgery",
+                }
+            ),
         ]
         risks = _normalise_risks(rows)
         assert "Sub One" in risks[0]["description"]
@@ -328,10 +388,10 @@ class TestNormaliseRisksHierarchical:
     def test_multiple_l3_groups(self):
         """Different L3 codes produce separate output rows."""
         rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Payment",
-                         "L4 Risk": "R001E.01 - First"}),
-            _hier_row(**{"L3 Risk": "R002E - Transfer",
-                         "L4 Risk": "R002E.01 - Wire"}),
+            _hier_row(
+                **{"L1 Risk": "Fraud", "L3 Risk": "R001E - Payment", "L4 Risk": "R001E.01 - First"}
+            ),
+            _hier_row(**{"L3 Risk": "R002E - Transfer", "L4 Risk": "R002E.01 - Wire"}),
         ]
         risks = _normalise_risks(rows)
         assert len(risks) == 2
@@ -341,10 +401,10 @@ class TestNormaliseRisksHierarchical:
     def test_l1_carry_forward(self):
         """L1 category carries forward to subsequent L3 groups."""
         rows = [
-            _hier_row(**{"L1 Risk": "Fraud", "L3 Risk": "R001E - Payment",
-                         "L4 Risk": "R001E.01 - Sub"}),
-            _hier_row(**{"L3 Risk": "R002E - Transfer",
-                         "L4 Risk": "R002E.01 - Wire"}),
+            _hier_row(
+                **{"L1 Risk": "Fraud", "L3 Risk": "R001E - Payment", "L4 Risk": "R001E.01 - Sub"}
+            ),
+            _hier_row(**{"L3 Risk": "R002E - Transfer", "L4 Risk": "R002E.01 - Wire"}),
         ]
         risks = _normalise_risks(rows)
         assert risks[1]["category"] == "Fraud"
@@ -352,9 +412,15 @@ class TestNormaliseRisksHierarchical:
 
     def test_l3_only_no_l4(self):
         """L3 row with no L4 produces one output row using L3 as name."""
-        rows = [_hier_row(**{"L1 Risk": "Fraud",
-                              "L3 Risk": "R001E - Altered Payment",
-                              "L3 Risk Description": "Altered cheques"})]
+        rows = [
+            _hier_row(
+                **{
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "R001E - Altered Payment",
+                    "L3 Risk Description": "Altered cheques",
+                }
+            )
+        ]
         risks = _normalise_risks(rows)
         assert len(risks) == 1
         assert risks[0]["name"] == "R001E - Altered Payment"
@@ -363,10 +429,18 @@ class TestNormaliseRisksHierarchical:
 
 # ── POST /{taxonomy_id}/upload ────────────────────────────────────────────────
 
+
 def _make_ngc_xlsx(rows: list[dict]) -> bytes:
     """Build an in-memory XLSX with NGC L1-L4 headers for upload tests."""
-    headers = ["L1 Risk", "L2 Risk", "L3 Risk", "L3 Risk Description",
-               "L4 Risk", "L4 Risk Description", "Source"]
+    headers = [
+        "L1 Risk",
+        "L2 Risk",
+        "L3 Risk",
+        "L3 Risk Description",
+        "L4 Risk",
+        "L4 Risk Description",
+        "Source",
+    ]
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "NGC Risk Taxonomy"
@@ -408,10 +482,12 @@ def _upload_client(duplicate_row=None):
 
     app.dependency_overrides[get_current_user] = _mock_user
 
-    with patch.object(tax_mod, "_NEW_COLS_EXIST", True), \
-         patch("app.infra.db.init_db_pool", new_callable=AsyncMock), \
-         patch("app.infra.db.close_db_pool", new_callable=AsyncMock), \
-         patch("app.routes.taxonomy_management.get_tenant_cursor", side_effect=_fake_ctx):
+    with (
+        patch.object(tax_mod, "_NEW_COLS_EXIST", True),
+        patch("app.infra.db.init_db_pool", new_callable=AsyncMock),
+        patch("app.infra.db.close_db_pool", new_callable=AsyncMock),
+        patch("app.routes.taxonomy_management.get_tenant_cursor", side_effect=_fake_ctx),
+    ):
         with TestClient(app) as client:
             yield client
 
@@ -445,33 +521,55 @@ class TestUploadTaxonomyFile:
 
     def test_xlsx_hierarchical_upload_unique_ids(self):
         """NGC XLSX upload: two L4 rows under same L3 → 1 L3-level risk (L4s folded in)."""
-        xlsx_bytes = _make_ngc_xlsx([
-            {"L1 Risk": "Fraud", "L3 Risk": "A001E - Altered Payment",
-             "L4 Risk": "A001E.01 - First", "Source": "EXT"},
-            {"L4 Risk": "A001E.02 - Second", "Source": "INT"},
-        ])
+        xlsx_bytes = _make_ngc_xlsx(
+            [
+                {
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "A001E - Altered Payment",
+                    "L4 Risk": "A001E.01 - First",
+                    "Source": "EXT",
+                },
+                {"L4 Risk": "A001E.02 - Second", "Source": "INT"},
+            ]
+        )
         with _upload_client() as client:
             resp = client.post(
                 "/api/v1/taxonomy/tax-001/upload",
-                files={"file": ("ngc.xlsx", xlsx_bytes,
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+                files={
+                    "file": (
+                        "ngc.xlsx",
+                        xlsx_bytes,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                },
             )
         assert resp.status_code == 200
         assert resp.json()["risks"] == 1
 
     def test_xlsx_hierarchical_upload_returns_correct_count(self):
         """NGC XLSX with 3 L4 rows under 2 L3 codes → 2 L3-level risks, 0 controls."""
-        xlsx_bytes = _make_ngc_xlsx([
-            {"L1 Risk": "Fraud", "L3 Risk": "A001E - Payment",
-             "L4 Risk": "A001E.01 - Sub1", "Source": "EXT"},
-            {"L4 Risk": "A001E.02 - Sub2", "Source": "EXT"},
-            {"L3 Risk": "B002F - Transfer", "L4 Risk": "B002F.01 - Wire", "Source": "INT"},
-        ])
+        xlsx_bytes = _make_ngc_xlsx(
+            [
+                {
+                    "L1 Risk": "Fraud",
+                    "L3 Risk": "A001E - Payment",
+                    "L4 Risk": "A001E.01 - Sub1",
+                    "Source": "EXT",
+                },
+                {"L4 Risk": "A001E.02 - Sub2", "Source": "EXT"},
+                {"L3 Risk": "B002F - Transfer", "L4 Risk": "B002F.01 - Wire", "Source": "INT"},
+            ]
+        )
         with _upload_client() as client:
             resp = client.post(
                 "/api/v1/taxonomy/tax-001/upload",
-                files={"file": ("ngc.xlsx", xlsx_bytes,
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+                files={
+                    "file": (
+                        "ngc.xlsx",
+                        xlsx_bytes,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                },
             )
         assert resp.status_code == 200
         assert resp.json()["risks"] == 2

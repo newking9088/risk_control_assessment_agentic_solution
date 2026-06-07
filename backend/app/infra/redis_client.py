@@ -1,4 +1,5 @@
 import redis.asyncio as aioredis
+
 from app.config.settings import get_settings
 
 settings = get_settings()
@@ -24,5 +25,6 @@ def get_redis() -> aioredis.Redis:
 async def publish_event(session_id: str, event_type: str, **data) -> None:
     r = get_redis()
     import json
+
     payload = json.dumps({"type": event_type, **data})
     await r.publish(f"sse:{session_id}", payload)

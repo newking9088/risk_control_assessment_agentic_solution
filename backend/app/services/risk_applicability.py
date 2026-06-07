@@ -53,11 +53,11 @@ _APPLICABILITY_SYSTEM = (
     "You are a fraud risk specialist evaluating whether a specific fraud risk applies to an "
     "Assessment Unit (AU) based on its operational profile and questionnaire answers.\n\n"
     "Return STRICT JSON (no markdown):\n"
-    '{\n'
+    "{\n"
     '  "applicable": true | false,\n'
     '  "evidence": "<1-2 sentences from profile or QA answers supporting the decision>",\n'
     '  "reason": "<brief justification>"\n'
-    '}'
+    "}"
 )
 
 _APPLICABILITY_USER = """\
@@ -122,6 +122,7 @@ D. IMPACT – financial, operational, or regulatory consequences
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
+
 def _profile_to_text(profile: dict) -> str:
     lines: list[str] = []
     for key, vals in profile.items():
@@ -135,6 +136,7 @@ def _profile_to_text(profile: dict) -> str:
 def _get_relevant_cats(risk: dict) -> list[str]:
     """Map a risk to the relevant QA categories using its fraud nature."""
     from app.utils.risk_scope import classify_fraud_nature
+
     nature = classify_fraud_nature(
         risk.get("l1", "") or "",
         risk.get("category", "") or "",
@@ -147,6 +149,7 @@ def _get_relevant_cats(risk: dict) -> list[str]:
 
 
 # ── Public helpers ────────────────────────────────────────────────────────────
+
 
 def format_relevant_qa(relevant_cats: list[str], all_responses: list[dict]) -> str:
     """Format QA responses for the given categories as a readable block."""
@@ -166,8 +169,7 @@ def format_relevant_qa(relevant_cats: list[str], all_responses: list[dict]) -> s
 def count_relevant_yes(relevant_cats: list[str], all_responses: list[dict]) -> int:
     """Count QA questions in relevant_cats that were answered yes."""
     return sum(
-        1 for r in all_responses
-        if r.get("category") in relevant_cats and r.get("answer") == "yes"
+        1 for r in all_responses if r.get("category") in relevant_cats and r.get("answer") == "yes"
     )
 
 
@@ -320,6 +322,7 @@ def compute_confidence(
 
 # ── Orchestration ─────────────────────────────────────────────────────────────
 
+
 async def process_applicability(assessment_id: str, tenant_id: str) -> dict:
     """
     Evaluate applicability for every risk attached to *assessment_id*.
@@ -349,9 +352,8 @@ async def process_applicability(assessment_id: str, tenant_id: str) -> dict:
 
     qa_answers: dict[str, str] = qa_profile.get("answers") or {}
     qa_rationale: dict[str, str] = qa_profile.get("rationale") or {}
-    all_responses: list[dict] = (
-        list(qa_profile.get("mandatory_responses") or [])
-        + list(qa_profile.get("situational_responses") or [])
+    all_responses: list[dict] = list(qa_profile.get("mandatory_responses") or []) + list(
+        qa_profile.get("situational_responses") or []
     )
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
@@ -368,17 +370,26 @@ async def process_applicability(assessment_id: str, tenant_id: str) -> dict:
     for risk in risks:
         risk_dict = dict(risk)
         result = evaluate_risk_applicability(
-            risk_dict, profile_text, ao_summary, doc_text,
-            qa_answers, qa_rationale, all_responses,
+            risk_dict,
+            profile_text,
+            ao_summary,
+            doc_text,
+            qa_answers,
+            qa_rationale,
+            all_responses,
         )
 
         relevant_cats = _get_relevant_cats(risk_dict)
         confidence, label, source = compute_confidence(
-            result["applicable"], relevant_cats, all_responses,
+            result["applicable"],
+            relevant_cats,
+            all_responses,
         )
 
         statement = generate_risk_statement(
-            risk_dict, au_name, result["applicable"],
+            risk_dict,
+            au_name,
+            result["applicable"],
             profile_text=profile_text,
             ao_summary=ao_summary,
             evidence=result.get("evidence", ""),
@@ -421,8 +432,8 @@ async def process_applicability(assessment_id: str, tenant_id: str) -> dict:
 
     return {
         "assessment_id": assessment_id,
-        "total":          len(risks),
-        "applicable":     applicable_count,
+        "total": len(risks),
+        "applicable": applicable_count,
         "not_applicable": not_applicable_count,
         "requires_review": review_count,
     }

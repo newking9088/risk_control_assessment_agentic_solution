@@ -25,17 +25,17 @@ logger = logging.getLogger(__name__)
 # ── Labels & score maps ───────────────────────────────────────────────────────
 
 LIKELIHOOD_LABELS = ["Unlikely", "Possible", "Likely", "Almost Certain"]
-IMPACT_LABELS     = ["Low", "Medium", "High", "Very High"]
+IMPACT_LABELS = ["Low", "Medium", "High", "Very High"]
 
-SCORE_MAP        = {"Unlikely": 1, "Possible": 2, "Likely": 3, "Almost Certain": 4}
+SCORE_MAP = {"Unlikely": 1, "Possible": 2, "Likely": 3, "Almost Certain": 4}
 IMPACT_SCORE_MAP = {"Low": 1, "Medium": 2, "High": 3, "Very High": 4}
 
 # INHERENT_MATRIX[impact_index][likelihood_index]  (both 0-3)
 INHERENT_MATRIX = [
-    ["Low",    "Low",    "Medium",    "Medium"   ],  # Low impact
-    ["Low",    "Medium", "Medium",    "High"     ],  # Medium impact
-    ["Medium", "Medium", "High",      "Very High"],  # High impact
-    ["Medium", "High",   "Very High", "Very High"],  # Very High impact
+    ["Low", "Low", "Medium", "Medium"],  # Low impact
+    ["Low", "Medium", "Medium", "High"],  # Medium impact
+    ["Medium", "Medium", "High", "Very High"],  # High impact
+    ["Medium", "High", "Very High", "Very High"],  # Very High impact
 ]
 
 # ── LLM prompts ───────────────────────────────────────────────────────────────
@@ -97,6 +97,7 @@ Score the inherent risk for this AU.
 
 # ── Pure helpers ──────────────────────────────────────────────────────────────
 
+
 def normalize_label(raw: str | None, allowed_labels: list[str], default: str) -> str:
     """Map LLM output to exact allowed label, case-insensitive; return default on no match."""
     if not raw:
@@ -110,8 +111,13 @@ def normalize_label(raw: str | None, allowed_labels: list[str], default: str) ->
 
 def compute_overall_impact(scores_dict: dict) -> str:
     """Worst-of-five impact dimensions (matches FRA default aggregation)."""
-    dims = ["financial_impact", "regulatory_impact", "legal_impact",
-            "customer_impact", "reputational_impact"]
+    dims = [
+        "financial_impact",
+        "regulatory_impact",
+        "legal_impact",
+        "customer_impact",
+        "reputational_impact",
+    ]
     values = [IMPACT_SCORE_MAP.get(scores_dict.get(d, "Low"), 1) for d in dims]
     max_score = max(values, default=1)
     return IMPACT_LABELS[max_score - 1]
@@ -144,72 +150,71 @@ def score_single_risk(
         raw = {}
 
     result: dict = {
-        "likelihood":               normalize_label(raw.get("likelihood"),         LIKELIHOOD_LABELS, "Possible"),
-        "likelihood_rationale":     str(raw.get("likelihood_rationale",     "")),
-        "financial_impact":         normalize_label(raw.get("financial_impact"),   IMPACT_LABELS, "Medium"),
-        "financial_rationale":      str(raw.get("financial_rationale",      "")),
-        "regulatory_impact":        normalize_label(raw.get("regulatory_impact"),  IMPACT_LABELS, "Medium"),
-        "regulatory_rationale":     str(raw.get("regulatory_rationale",     "")),
-        "legal_impact":             normalize_label(raw.get("legal_impact"),       IMPACT_LABELS, "Low"),
-        "legal_rationale":          str(raw.get("legal_rationale",          "")),
-        "customer_impact":          normalize_label(raw.get("customer_impact"),    IMPACT_LABELS, "Medium"),
-        "customer_rationale":       str(raw.get("customer_rationale",       "")),
-        "reputational_impact":      normalize_label(raw.get("reputational_impact"),IMPACT_LABELS, "Medium"),
-        "reputational_rationale":   str(raw.get("reputational_rationale",   "")),
+        "likelihood": normalize_label(raw.get("likelihood"), LIKELIHOOD_LABELS, "Possible"),
+        "likelihood_rationale": str(raw.get("likelihood_rationale", "")),
+        "financial_impact": normalize_label(raw.get("financial_impact"), IMPACT_LABELS, "Medium"),
+        "financial_rationale": str(raw.get("financial_rationale", "")),
+        "regulatory_impact": normalize_label(raw.get("regulatory_impact"), IMPACT_LABELS, "Medium"),
+        "regulatory_rationale": str(raw.get("regulatory_rationale", "")),
+        "legal_impact": normalize_label(raw.get("legal_impact"), IMPACT_LABELS, "Low"),
+        "legal_rationale": str(raw.get("legal_rationale", "")),
+        "customer_impact": normalize_label(raw.get("customer_impact"), IMPACT_LABELS, "Medium"),
+        "customer_rationale": str(raw.get("customer_rationale", "")),
+        "reputational_impact": normalize_label(
+            raw.get("reputational_impact"), IMPACT_LABELS, "Medium"
+        ),
+        "reputational_rationale": str(raw.get("reputational_rationale", "")),
         "inherent_risk_rating_rationale": str(raw.get("inherent_risk_rating_rationale", "")),
     }
 
     # Numeric scores (1-4) for SMALLINT columns
-    result["likelihood_score"]          = SCORE_MAP[result["likelihood"]]
-    result["financial_impact_score"]    = IMPACT_SCORE_MAP[result["financial_impact"]]
-    result["regulatory_impact_score"]   = IMPACT_SCORE_MAP[result["regulatory_impact"]]
-    result["legal_impact_score"]        = IMPACT_SCORE_MAP[result["legal_impact"]]
-    result["customer_impact_score"]     = IMPACT_SCORE_MAP[result["customer_impact"]]
+    result["likelihood_score"] = SCORE_MAP[result["likelihood"]]
+    result["financial_impact_score"] = IMPACT_SCORE_MAP[result["financial_impact"]]
+    result["regulatory_impact_score"] = IMPACT_SCORE_MAP[result["regulatory_impact"]]
+    result["legal_impact_score"] = IMPACT_SCORE_MAP[result["legal_impact"]]
+    result["customer_impact_score"] = IMPACT_SCORE_MAP[result["customer_impact"]]
     result["reputational_impact_score"] = IMPACT_SCORE_MAP[result["reputational_impact"]]
 
     # Overall impact = worst-of-five; inherent rating = matrix lookup
     overall_impact = compute_overall_impact(result)
-    result["overall_impact"]  = overall_impact
-    result["inherent_label"]  = compute_inherent_rating(result["likelihood"], overall_impact)
+    result["overall_impact"] = overall_impact
+    result["inherent_label"] = compute_inherent_rating(result["likelihood"], overall_impact)
 
     return result
 
 
 # ── Orchestration ─────────────────────────────────────────────────────────────
 
+
 async def generate_inherent_ratings(assessment_id: str, tenant_id: str) -> dict:
     """Score all applicable risks for *assessment_id* and persist results."""
     snapshot = await get_ao_snapshot(assessment_id, tenant_id)
     if not snapshot:
-        raise ValueError(
-            "AO snapshot not found. Run POST /ao-overview first."
-        )
+        raise ValueError("AO snapshot not found. Run POST /ao-overview first.")
 
     ao_summary = snapshot.get("ao_summary") or ""
-    au_name    = snapshot.get("au_name") or assessment_id
+    au_name = snapshot.get("au_name") or assessment_id
 
-    chunks   = await select_ao_chunks(assessment_id, tenant_id, top_k=6)
-    doc_text = "\n\n-----\n\n".join(chunks) if chunks else ""  # noqa: F841 (available for future use)
+    chunks = await select_ao_chunks(assessment_id, tenant_id, top_k=6)
+    doc_text = "\n\n-----\n\n".join(chunks) if chunks else ""  # noqa: F841
 
-    qa_profile   = await get_qa_profile(assessment_id, tenant_id)
-    all_responses: list[dict] = (
-        list((qa_profile or {}).get("mandatory_responses")   or [])
-        + list((qa_profile or {}).get("situational_responses") or [])
+    qa_profile = await get_qa_profile(assessment_id, tenant_id)
+    all_responses: list[dict] = list((qa_profile or {}).get("mandatory_responses") or []) + list(
+        (qa_profile or {}).get("situational_responses") or []
     )
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
         await cur.execute(
-            "SELECT * FROM app.assessment_risks "
-            "WHERE assessment_id = %s AND applicable = TRUE",
+            "SELECT * FROM app.assessment_risks " "WHERE assessment_id = %s AND applicable = TRUE",
             (assessment_id,),
         )
         risks = await cur.fetchall()
 
     scored = 0
     for risk in risks:
-        risk_dict    = dict(risk)
+        risk_dict = dict(risk)
         relevant_cats = _get_relevant_cats(risk_dict)
-        qa_block      = format_relevant_qa(relevant_cats, all_responses)
+        qa_block = format_relevant_qa(relevant_cats, all_responses)
 
         scores = score_single_risk(risk_dict, au_name, ao_summary, qa_block)
 
@@ -255,12 +260,14 @@ async def generate_inherent_ratings(assessment_id: str, tenant_id: str) -> dict:
         scored += 1
         logger.info(
             "inherent_risk: %s → likelihood=%s overall_impact=%s inherent=%s",
-            risk_dict.get("name"), scores["likelihood"],
-            scores["overall_impact"], scores["inherent_label"],
+            risk_dict.get("name"),
+            scores["likelihood"],
+            scores["overall_impact"],
+            scores["inherent_label"],
         )
 
     return {
-        "assessment_id":   assessment_id,
-        "scored":          scored,
+        "assessment_id": assessment_id,
+        "scored": scored,
         "total_applicable": len(risks),
     }

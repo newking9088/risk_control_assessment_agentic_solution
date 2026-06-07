@@ -1,9 +1,11 @@
 import uuid
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from app.infra.db import get_tenant_cursor
+
 from app.config.constants import DEFAULT_TENANT_ID
 from app.errors import NotFoundError
+from app.infra.db import get_tenant_cursor
 
 router = APIRouter(prefix="/v1/approvals", tags=["approvals"])
 

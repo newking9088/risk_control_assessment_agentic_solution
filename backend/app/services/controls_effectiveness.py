@@ -57,6 +57,7 @@ Evaluate the effectiveness of this control for mitigating the stated fraud risk 
 
 # ── Pure helpers ──────────────────────────────────────────────────────────────
 
+
 def _normalize_eff(raw: str | None) -> str:
     """Normalise LLM effectiveness label, case-insensitive."""
     if not raw:
@@ -82,18 +83,18 @@ def evaluate_control(control: dict, risk: dict, au_summary: str) -> dict:
     if not isinstance(raw, dict):
         raw = {}
 
-    design    = _normalize_eff(raw.get("design_effectiveness"))
+    design = _normalize_eff(raw.get("design_effectiveness"))
     operating = _normalize_eff(raw.get("operating_effectiveness"))
-    overall   = _normalize_eff(raw.get("overall_effectiveness"))
+    overall = _normalize_eff(raw.get("overall_effectiveness"))
 
     return {
-        "design_effectiveness":          design,
-        "design_effectiveness_score":    EFF_SCORE[design],
-        "operating_effectiveness":       operating,
+        "design_effectiveness": design,
+        "design_effectiveness_score": EFF_SCORE[design],
+        "operating_effectiveness": operating,
         "operating_effectiveness_score": EFF_SCORE[operating],
-        "overall_effectiveness":         overall,
-        "overall_effectiveness_score":   EFF_SCORE[overall],
-        "rationale":                     str(raw.get("rationale", "")),
+        "overall_effectiveness": overall,
+        "overall_effectiveness_score": EFF_SCORE[overall],
+        "rationale": str(raw.get("rationale", "")),
     }
 
 
@@ -104,8 +105,7 @@ def aggregate_risk_ce(controls_for_risk: list[dict]) -> str | None:
     """
     if not controls_for_risk:
         return None
-    scores = [EFF_SCORE.get(c.get("overall_effectiveness", ""), 0)
-              for c in controls_for_risk]
+    scores = [EFF_SCORE.get(c.get("overall_effectiveness", ""), 0) for c in controls_for_risk]
     worst_score = min(scores, default=0)
     for label, score in EFF_SCORE.items():
         if score == worst_score:
@@ -115,11 +115,12 @@ def aggregate_risk_ce(controls_for_risk: list[dict]) -> str | None:
 
 # ── Orchestration ─────────────────────────────────────────────────────────────
 
+
 async def evaluate_all_controls(assessment_id: str, tenant_id: str) -> dict:
     """Score every control for *assessment_id* and persist results."""
     from app.services.orchestration import get_ao_snapshot
 
-    snapshot   = await get_ao_snapshot(assessment_id, tenant_id)
+    snapshot = await get_ao_snapshot(assessment_id, tenant_id)
     au_summary = (snapshot or {}).get("ao_summary") or ""
 
     async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
@@ -138,8 +139,8 @@ async def evaluate_all_controls(assessment_id: str, tenant_id: str) -> dict:
     scored = 0
     for ctrl in controls:
         ctrl_dict = dict(ctrl)
-        risk_ctx  = {
-            "name":        ctrl_dict.get("risk_name", ""),
+        risk_ctx = {
+            "name": ctrl_dict.get("risk_name", ""),
             "description": ctrl_dict.get("risk_description", ""),
         }
         result = evaluate_control(ctrl_dict, risk_ctx, au_summary)
@@ -164,10 +165,11 @@ async def evaluate_all_controls(assessment_id: str, tenant_id: str) -> dict:
         scored += 1
         logger.info(
             "controls_effectiveness: %s → %s",
-            ctrl_dict.get("name"), result["overall_effectiveness"],
+            ctrl_dict.get("name"),
+            result["overall_effectiveness"],
         )
 
     return {
-        "assessment_id":   assessment_id,
+        "assessment_id": assessment_id,
         "controls_scored": scored,
     }

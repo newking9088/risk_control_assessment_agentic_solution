@@ -2,7 +2,6 @@ import csv
 import hashlib
 import io
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
@@ -22,28 +21,29 @@ lead_gate = Depends(require_minimum_role("delivery_lead"))
 
 # ── Pydantic bodies ───────────────────────────────────────────
 
+
 class TaxonomyCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     source_type: str = "both"
     version: int = 1
 
 
 class TaxonomyPatch(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    active: Optional[bool] = None
+    name: str | None = None
+    description: str | None = None
+    active: bool | None = None
 
 
 class PatchItem(BaseModel):
-    risk_id: Optional[str] = None
-    control_id: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    category: Optional[str] = None
-    source: Optional[str] = None
-    control_type: Optional[str] = None
-    is_key: Optional[bool] = None
+    risk_id: str | None = None
+    control_id: str | None = None
+    name: str | None = None
+    description: str | None = None
+    category: str | None = None
+    source: str | None = None
+    control_type: str | None = None
+    is_key: bool | None = None
 
 
 class ItemsPatch(BaseModel):
@@ -53,17 +53,24 @@ class ItemsPatch(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────
 
+
 def _parse_excel(content: bytes) -> tuple[list[dict], list[dict]]:
     import openpyxl
+
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
 
     def sheet_rows(ws) -> list[dict]:
-        headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        headers = [
+            str(c.value).strip() if c.value else ""
+            for c in next(ws.iter_rows(min_row=1, max_row=1))
+        ]
         rows = []
         for row in ws.iter_rows(min_row=2, values_only=True):
             if all(v is None for v in row):
                 continue
-            rows.append({headers[i]: (str(v).strip() if v is not None else "") for i, v in enumerate(row)})
+            rows.append(
+                {headers[i]: (str(v).strip() if v is not None else "") for i, v in enumerate(row)}
+            )
         return rows
 
     risk_sheet = ctrl_sheet = None
@@ -79,7 +86,7 @@ def _parse_excel(content: bytes) -> tuple[list[dict], list[dict]]:
     if ctrl_sheet is None and len(wb.sheetnames) >= 2:
         ctrl_sheet = wb[wb.sheetnames[1]]
 
-    risks    = _normalise_risks(sheet_rows(risk_sheet))    if risk_sheet else []
+    risks = _normalise_risks(sheet_rows(risk_sheet)) if risk_sheet else []
     controls = _normalise_controls(sheet_rows(ctrl_sheet)) if ctrl_sheet else []
     return risks, controls
 
@@ -109,13 +116,17 @@ def _normalise_risks(rows: list[dict]) -> list[dict]:
         name = r.get("name") or r.get("Name") or r.get("Risk Name") or ""
         if not name.strip():
             continue
-        out.append({
-            "risk_id":     r.get("risk_id") or r.get("Risk ID") or f"R-{uuid.uuid4().hex[:6].upper()}",
-            "category":    r.get("category") or r.get("Category") or "",
-            "name":        name.strip(),
-            "description": (r.get("description") or r.get("Description") or "").strip(),
-            "source":      (r.get("source") or r.get("Source") or "EXT").strip().upper(),
-        })
+        out.append(
+            {
+                "risk_id": r.get("risk_id")
+                or r.get("Risk ID")
+                or f"R-{uuid.uuid4().hex[:6].upper()}",
+                "category": r.get("category") or r.get("Category") or "",
+                "name": name.strip(),
+                "description": (r.get("description") or r.get("Description") or "").strip(),
+                "source": (r.get("source") or r.get("Source") or "EXT").strip().upper(),
+            }
+        )
     return out
 
 
@@ -143,7 +154,9 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
             l3 = new_l3
             l3_desc = new_l3_desc
             # Extract code: "R001E - Altered Payment" → "R001E"
-            risk_id = l3.split(" - ")[0].strip() if " - " in l3 else f"R-{uuid.uuid4().hex[:6].upper()}"
+            risk_id = (
+                l3.split(" - ")[0].strip() if " - " in l3 else f"R-{uuid.uuid4().hex[:6].upper()}"
+            )
 
         if not l3:
             continue
@@ -152,24 +165,22 @@ def _normalise_risks_hierarchical(rows: list[dict]) -> list[dict]:
 
         if risk_id not in l3_risks:
             l3_risks[risk_id] = {
-                "risk_id":        risk_id,
-                "category":       l1,
-                "name":           l3,
-                "description":    l3_desc,
-                "source":         source,
-                "l1":             l1,
-                "l2":             l2,
-                "l3":             l3,
+                "risk_id": risk_id,
+                "category": l1,
+                "name": l3,
+                "description": l3_desc,
+                "source": source,
+                "l1": l1,
+                "l2": l2,
+                "l3": l3,
                 "l3_description": l3_desc,
-                "_sub_risks":     [],
+                "_sub_risks": [],
             }
 
         l4 = r.get("L4 Risk", "").strip()
         l4_desc = r.get("L4 Risk Description", "").strip()
         if l4:
-            l3_risks[risk_id]["_sub_risks"].append(
-                f"{l4}" + (f": {l4_desc}" if l4_desc else "")
-            )
+            l3_risks[risk_id]["_sub_risks"].append(f"{l4}" + (f": {l4_desc}" if l4_desc else ""))
 
     out = []
     for entry in l3_risks.values():
@@ -190,13 +201,17 @@ def _normalise_controls(rows: list[dict]) -> list[dict]:
         if not name.strip():
             continue
         raw_key = str(r.get("is_key") or r.get("Key Control") or "").strip().upper()
-        out.append({
-            "control_id":   r.get("control_id") or r.get("Control ID") or f"C-{uuid.uuid4().hex[:6].upper()}",
-            "control_name": name.strip(),
-            "description":  (r.get("description") or r.get("Description") or "").strip(),
-            "control_type": (r.get("control_type") or r.get("Type") or "").strip() or None,
-            "is_key":       raw_key in ("TRUE", "YES", "Y", "1"),
-        })
+        out.append(
+            {
+                "control_id": r.get("control_id")
+                or r.get("Control ID")
+                or f"C-{uuid.uuid4().hex[:6].upper()}",
+                "control_name": name.strip(),
+                "description": (r.get("description") or r.get("Description") or "").strip(),
+                "control_type": (r.get("control_type") or r.get("Type") or "").strip() or None,
+                "is_key": raw_key in ("TRUE", "YES", "Y", "1"),
+            }
+        )
     return out
 
 
@@ -212,11 +227,9 @@ async def _check_new_cols(tenant_id: str) -> bool:
         return _NEW_COLS_EXIST
     try:
         async with get_tenant_cursor(tenant_id, row_factory=dict_row) as cur:
-            await cur.execute(
-                """SELECT column_name FROM information_schema.columns
+            await cur.execute("""SELECT column_name FROM information_schema.columns
                    WHERE table_schema='app' AND table_name='taxonomy_schemas'
-                     AND column_name='risks_data'"""
-            )
+                     AND column_name='risks_data'""")
             row = await cur.fetchone()
             _NEW_COLS_EXIST = row is not None
     except Exception:
@@ -248,8 +261,14 @@ async def list_taxonomies(request: Request):
 
     if not has_new:
         rows = [
-            {**r, "source_type": "both", "risk_count": 0, "control_count": 0,
-             "file_name": None, "uploaded_at": None}
+            {
+                **r,
+                "source_type": "both",
+                "risk_count": 0,
+                "control_count": 0,
+                "file_name": None,
+                "uploaded_at": None,
+            }
             for r in rows
         ]
     return rows
@@ -297,13 +316,20 @@ async def get_taxonomy(taxonomy_id: str, request: Request):
     if not has_new:
         row = {
             **row,
-            "source_type": "both", "risks_data": [], "controls_data": [],
-            "risk_count": 0, "control_count": 0, "file_name": None, "uploaded_at": None,
+            "source_type": "both",
+            "risks_data": [],
+            "controls_data": [],
+            "risk_count": 0,
+            "control_count": 0,
+            "file_name": None,
+            "uploaded_at": None,
         }
     else:
         # psycopg3 decodes an empty/non-array JSONB column as {} (dict) — coerce to []
-        row["risks_data"]    = row.get("risks_data")    if isinstance(row.get("risks_data"),    list) else []
-        row["controls_data"] = row.get("controls_data") if isinstance(row.get("controls_data"), list) else []
+        row["risks_data"] = row.get("risks_data") if isinstance(row.get("risks_data"), list) else []
+        row["controls_data"] = (
+            row.get("controls_data") if isinstance(row.get("controls_data"), list) else []
+        )
     return row
 
 
@@ -353,7 +379,9 @@ async def upload_taxonomy_file(taxonomy_id: str, request: Request, file: UploadF
             (tenant_id, sha256, taxonomy_id),
         )
         if await cur.fetchone():
-            raise HTTPException(status_code=409, detail="Duplicate file — this file has already been uploaded.")
+            raise HTTPException(
+                status_code=409, detail="Duplicate file — this file has already been uploaded."
+            )
 
     fname = file.filename or ""
     if fname.endswith(".xlsx") or fname.endswith(".xls"):
@@ -369,7 +397,16 @@ async def upload_taxonomy_file(taxonomy_id: str, request: Request, file: UploadF
                    file_name = %s, file_sha256 = %s,
                    uploaded_at = NOW(), updated_at = NOW()
                WHERE id = %s AND tenant_id = %s""",
-            (Jsonb(risks), Jsonb(controls), len(risks), len(controls), fname, sha256, taxonomy_id, tenant_id),
+            (
+                Jsonb(risks),
+                Jsonb(controls),
+                len(risks),
+                len(controls),
+                fname,
+                sha256,
+                taxonomy_id,
+                tenant_id,
+            ),
         )
 
     return {"risks": len(risks), "controls": len(controls)}
@@ -396,7 +433,11 @@ async def patch_taxonomy_items(taxonomy_id: str, body: ItemsPatch, request: Requ
         items_list = list(row["controls_data"])
         id_field = "control_id"
 
-    patch_map = {p.model_dump()[id_field]: p.model_dump(exclude_none=True) for p in body.items if p.model_dump().get(id_field)}
+    patch_map = {
+        p.model_dump()[id_field]: p.model_dump(exclude_none=True)
+        for p in body.items
+        if p.model_dump().get(id_field)
+    }
 
     for i, item in enumerate(items_list):
         key = item.get(id_field)
@@ -431,7 +472,7 @@ async def export_taxonomy(taxonomy_id: str, request: Request):
     if not row:
         raise HTTPException(status_code=404, detail="Taxonomy not found")
 
-    risks    = row["risks_data"]    or []
+    risks = row["risks_data"] or []
     controls = row["controls_data"] or []
 
     def generate():

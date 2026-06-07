@@ -1,13 +1,14 @@
-import asyncio
 import json
+import uuid
+
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from app.llm_client import get_client
+
+from app.config.constants import DEFAULT_TENANT_ID
 from app.config.settings import get_settings
 from app.infra.db import get_tenant_cursor
-from app.config.constants import DEFAULT_TENANT_ID
-import uuid
+from app.llm_client import get_client
 
 router = APIRouter(prefix="/v1/chat", tags=["chat"])
 settings = get_settings()
@@ -27,8 +28,11 @@ async def chat_stream(body: ChatMessage, request: Request):
     async def event_generator():
         client = get_client()
         messages = [
-            {"role": "system", "content": "You are an AI assistant helping with risk and control assessments. "
-                                           "Be precise, professional, and concise."},
+            {
+                "role": "system",
+                "content": "You are an AI assistant helping with risk and control assessments. "
+                "Be precise, professional, and concise.",
+            },
             {"role": "user", "content": body.message},
         ]
         try:

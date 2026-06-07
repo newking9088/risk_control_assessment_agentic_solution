@@ -1,4 +1,5 @@
 """Tests for GET /api/v1/assessments/{id} — detail / profile endpoint."""
+
 import uuid
 
 

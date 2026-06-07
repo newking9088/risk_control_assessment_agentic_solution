@@ -1,7 +1,8 @@
+import logging
+import uuid
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
-import uuid
-import logging
 
 logger = logging.getLogger(__name__)
 

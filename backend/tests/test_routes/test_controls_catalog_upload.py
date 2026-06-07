@@ -15,6 +15,7 @@ Coverage:
   - Non-UTF-8 bytes (errors='replace' must not crash)
   - XLSX file parsing (openpyxl, standard and NGC headers, type normalisation)
 """
+
 import io
 import uuid
 from contextlib import asynccontextmanager
@@ -34,6 +35,7 @@ _HEADERS = "name,description,control_type,is_key_control,source,category,display
 
 # ── Fake DB cursor ────────────────────────────────────────────────────────────
 
+
 class _FakeCursor:
     """Simulates INSERT ... ON CONFLICT DO NOTHING.
     `seen` is shared across requests within a test so duplicate detection works
@@ -48,7 +50,7 @@ class _FakeCursor:
         if params and len(params) >= 3:
             name = str(params[2]).strip()
             if name in self._seen:
-                self.rowcount = 0        # conflict — nothing inserted
+                self.rowcount = 0  # conflict — nothing inserted
             else:
                 self._seen.add(name)
                 self.rowcount = 1
@@ -57,6 +59,7 @@ class _FakeCursor:
 
 
 # ── Test fixture ──────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def upload_client():
@@ -79,9 +82,11 @@ def upload_client():
 
     app.dependency_overrides[get_current_user] = _mock_user
 
-    with patch("app.infra.db.init_db_pool", new_callable=AsyncMock), \
-         patch("app.infra.db.close_db_pool", new_callable=AsyncMock), \
-         patch("app.routes.controls_catalog.get_tenant_cursor", side_effect=_fake_ctx):
+    with (
+        patch("app.infra.db.init_db_pool", new_callable=AsyncMock),
+        patch("app.infra.db.close_db_pool", new_callable=AsyncMock),
+        patch("app.routes.controls_catalog.get_tenant_cursor", side_effect=_fake_ctx),
+    ):
         with TestClient(app) as c:
             yield c
 
@@ -89,6 +94,7 @@ def upload_client():
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _uid() -> str:
     return uuid.uuid4().hex[:8]
@@ -110,6 +116,7 @@ def _post_raw(client, raw: bytes):
 
 
 # ── Newline handling ──────────────────────────────────────────────────────────
+
 
 class TestNewlines:
     def test_unix_lf(self, upload_client):
@@ -136,11 +143,7 @@ class TestNewlines:
     def test_mixed_newlines(self, upload_client):
         uid = _uid()
         # Header CRLF, first row LF, second row CR
-        raw = (
-            f"{_HEADERS}\r\n"
-            f"Mixed A {uid},,,,,,\n"
-            f"Mixed B {uid},,,,,,\r"
-        ).encode("utf-8")
+        raw = (f"{_HEADERS}\r\n" f"Mixed A {uid},,,,,,\n" f"Mixed B {uid},,,,,,\r").encode("utf-8")
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json() == {"inserted": 2, "skipped": 0}
@@ -155,6 +158,7 @@ class TestNewlines:
 
 
 # ── BOM handling ──────────────────────────────────────────────────────────────
+
 
 class TestBOM:
     def test_utf8_bom_excel_export(self, upload_client):
@@ -175,6 +179,7 @@ class TestBOM:
 
 
 # ── Skipping rows ─────────────────────────────────────────────────────────────
+
 
 class TestSkipping:
     def test_empty_name_row_skipped(self, upload_client):
@@ -226,9 +231,9 @@ class TestSkipping:
 
         csv_second = (
             f"{_HEADERS}\n"
-            f"Shared {uid},,,,,,\n"    # duplicate → skipped
-            f"Fresh {uid}A,,,,,,\n"    # new → inserted
-            f"Fresh {uid}B,,,,,,"      # new → inserted
+            f"Shared {uid},,,,,,\n"  # duplicate → skipped
+            f"Fresh {uid}A,,,,,,\n"  # new → inserted
+            f"Fresh {uid}B,,,,,,"  # new → inserted
         )
         r = _post(upload_client, csv_second)
         assert r.status_code == 200
@@ -244,6 +249,7 @@ class TestSkipping:
 
 
 # ── is_key_control values ─────────────────────────────────────────────────────
+
 
 class TestIsKeyControl:
     @pytest.mark.parametrize("truthy", ["TRUE", "true", "True", "YES", "yes", "Y", "y", "1"])
@@ -264,6 +270,7 @@ class TestIsKeyControl:
 
 
 # ── Column aliases ────────────────────────────────────────────────────────────
+
 
 class TestColumnAliases:
     def test_uppercase_header_names(self, upload_client):
@@ -334,6 +341,7 @@ class TestColumnAliases:
 
 # ── Quoted fields ─────────────────────────────────────────────────────────────
 
+
 class TestQuotedFields:
     def test_description_with_comma(self, upload_client):
         uid = _uid()
@@ -368,6 +376,7 @@ class TestQuotedFields:
 
 # ── Bulk insert ───────────────────────────────────────────────────────────────
 
+
 class TestBulk:
     def test_ten_rows(self, upload_client):
         uid = _uid()
@@ -399,6 +408,7 @@ class TestBulk:
 
 # ── Encoding edge cases ───────────────────────────────────────────────────────
 
+
 class TestEncoding:
     def test_latin1_byte_replaced_not_crash(self, upload_client):
         # 0xe9 is 'é' in latin-1 but invalid UTF-8; errors='replace' → U+FFFD
@@ -418,18 +428,22 @@ class TestEncoding:
 
 # ── Control type normalisation (CSV path) ────────────────────────────────────
 
+
 class TestControlTypeNormalise:
-    @pytest.mark.parametrize("raw,expected", [
-        ("Prevent",   "Preventive"),
-        ("Preventive","Preventive"),
-        ("Detect",    "Detective"),
-        ("Detective", "Detective"),
-        ("Correct",   "Corrective"),
-        ("Corrective","Corrective"),
-        ("Direct",    "Directive"),
-        ("Directive", "Directive"),
-        ("Other",     "Other"),
-    ])
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("Prevent", "Preventive"),
+            ("Preventive", "Preventive"),
+            ("Detect", "Detective"),
+            ("Detective", "Detective"),
+            ("Correct", "Corrective"),
+            ("Corrective", "Corrective"),
+            ("Direct", "Directive"),
+            ("Directive", "Directive"),
+            ("Other", "Other"),
+        ],
+    )
     def test_normalise_via_csv_upload(self, upload_client, raw, expected):
         uid = _uid()
         csv = f"name,control_type\nTypeNorm {uid} {raw},{raw}"

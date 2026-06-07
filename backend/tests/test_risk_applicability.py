@@ -7,6 +7,7 @@ TestGenerateRiskStatement (3)
 TestComputeConfidence (4)
 TestProcessApplicability (3)
 """
+
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, patch
 
@@ -22,8 +23,8 @@ from app.services.risk_applicability import (
     process_applicability,
 )
 
-
 # ── Fixtures / helpers ────────────────────────────────────────────────────────
+
 
 def _resp(qid: str, cat: str, answer: str, text: str = "", evidence: str = "") -> dict:
     return {
@@ -64,11 +65,18 @@ _INSIDER_RISK = {
 
 # ── TestCategoryMap ───────────────────────────────────────────────────────────
 
+
 class TestCategoryMap:
     def test_external_has_required_categories(self):
         ext = CATEGORY_MAP["external"]
-        for cat in ("transaction_payment", "auth_access", "digital_technical",
-                    "credit_application", "dispute_claim", "customer_behavior"):
+        for cat in (
+            "transaction_payment",
+            "auth_access",
+            "digital_technical",
+            "credit_application",
+            "dispute_claim",
+            "customer_behavior",
+        ):
             assert cat in ext, f"Expected '{cat}' in CATEGORY_MAP['external']"
 
     def test_insider_has_required_categories(self):
@@ -78,6 +86,7 @@ class TestCategoryMap:
 
 
 # ── TestEvaluateRiskApplicability ─────────────────────────────────────────────
+
 
 class TestEvaluateRiskApplicability:
     _PROFILE = "CHANNELS:\n  - Online Banking\nPRODUCTS:\n  - Credit Card"
@@ -90,11 +99,22 @@ class TestEvaluateRiskApplicability:
     ]
 
     def test_llm_applicable_true(self):
-        with patch("app.services.risk_applicability.respond_json",
-                   return_value={"applicable": True, "evidence": "AU processes payments.", "reason": "High exposure."}):
+        with patch(
+            "app.services.risk_applicability.respond_json",
+            return_value={
+                "applicable": True,
+                "evidence": "AU processes payments.",
+                "reason": "High exposure.",
+            },
+        ):
             result = evaluate_risk_applicability(
-                _SAMPLE_RISK, self._PROFILE, self._SUMMARY, "",
-                {}, {}, self._RESPONSES,
+                _SAMPLE_RISK,
+                self._PROFILE,
+                self._SUMMARY,
+                "",
+                {},
+                {},
+                self._RESPONSES,
             )
         assert result["applicable"] is True
         assert result["requires_review"] is False
@@ -103,11 +123,22 @@ class TestEvaluateRiskApplicability:
     def test_llm_applicable_false_with_no_yes(self):
         """LLM says no, and there are < 2 relevant yes answers → no review flag."""
         responses = [_resp("FRE-014", "transaction_payment", "no")]
-        with patch("app.services.risk_applicability.respond_json",
-                   return_value={"applicable": False, "evidence": "No payments.", "reason": "Not exposed."}):
+        with patch(
+            "app.services.risk_applicability.respond_json",
+            return_value={
+                "applicable": False,
+                "evidence": "No payments.",
+                "reason": "Not exposed.",
+            },
+        ):
             result = evaluate_risk_applicability(
-                _SAMPLE_RISK, self._PROFILE, self._SUMMARY, "",
-                {}, {}, responses,
+                _SAMPLE_RISK,
+                self._PROFILE,
+                self._SUMMARY,
+                "",
+                {},
+                {},
+                responses,
             )
         assert result["applicable"] is False
         assert result["requires_review"] is False
@@ -119,17 +150,25 @@ class TestEvaluateRiskApplicability:
             _resp("FRE-017", "transaction_payment", "yes"),
             _resp("FRE-018", "transaction_payment", "yes"),
         ]
-        with patch("app.services.risk_applicability.respond_json",
-                   return_value={"applicable": False, "evidence": "", "reason": ""}):
+        with patch(
+            "app.services.risk_applicability.respond_json",
+            return_value={"applicable": False, "evidence": "", "reason": ""},
+        ):
             result = evaluate_risk_applicability(
-                _SAMPLE_RISK, self._PROFILE, self._SUMMARY, "",
-                {}, {}, responses,
+                _SAMPLE_RISK,
+                self._PROFILE,
+                self._SUMMARY,
+                "",
+                {},
+                {},
+                responses,
             )
         assert result["applicable"] is False
         assert result["requires_review"] is True
 
 
 # ── TestGenerateRiskStatement ─────────────────────────────────────────────────
+
 
 class TestGenerateRiskStatement:
     _GOOD_STMT = (
@@ -149,24 +188,30 @@ class TestGenerateRiskStatement:
 
     def test_applicable_returns_4_part_structure(self):
         """Applicable: LLM output is validated to start/end with FRA markers."""
-        with patch("app.services.risk_applicability.respond_json",
-                   return_value={"statement": self._GOOD_STMT}):
-            stmt = generate_risk_statement(_SAMPLE_RISK, "Test AU", True,
-                                           ao_summary="Handles payments.")
+        with patch(
+            "app.services.risk_applicability.respond_json",
+            return_value={"statement": self._GOOD_STMT},
+        ):
+            stmt = generate_risk_statement(
+                _SAMPLE_RISK, "Test AU", True, ao_summary="Handles payments."
+            )
         assert stmt.startswith("Risk that")
         assert stmt.rstrip().endswith("in the absence of controls.")
 
     def test_llm_failure_falls_back_to_4_part_template(self):
         """If respond_json raises, the fallback is also a valid 4-part statement."""
-        with patch("app.services.risk_applicability.respond_json",
-                   side_effect=RuntimeError("LLM down")):
-            stmt = generate_risk_statement(_SAMPLE_RISK, "Test AU", True,
-                                           ao_summary="Handles payments.")
+        with patch(
+            "app.services.risk_applicability.respond_json", side_effect=RuntimeError("LLM down")
+        ):
+            stmt = generate_risk_statement(
+                _SAMPLE_RISK, "Test AU", True, ao_summary="Handles payments."
+            )
         assert stmt.startswith("Risk that")
         assert stmt.rstrip().endswith("in the absence of controls.")
 
 
 # ── TestComputeConfidence ─────────────────────────────────────────────────────
+
 
 class TestComputeConfidence:
     _CATS = ["transaction_payment", "auth_access"]
@@ -198,6 +243,7 @@ class TestComputeConfidence:
 
 # ── TestProcessApplicability ──────────────────────────────────────────────────
 
+
 class TestProcessApplicability:
     _SNAPSHOT = {"operational_profile": {}, "ao_summary": "Retail banking.", "au_name": "Test AU"}
     _QA_PROFILE = {
@@ -209,25 +255,38 @@ class TestProcessApplicability:
         "situational_responses": [],
     }
     _RISKS = [
-        {"id": "r-001", "name": "Payment Fraud", "category": "External Fraud",
-         "l1": "External Fraud", "source": "EXT", "description": "Fraudulent payments."},
+        {
+            "id": "r-001",
+            "name": "Payment Fraud",
+            "category": "External Fraud",
+            "l1": "External Fraud",
+            "source": "EXT",
+            "description": "Fraudulent payments.",
+        },
     ]
 
     @pytest.mark.asyncio
     async def test_no_snapshot_raises_value_error(self):
-        with patch("app.services.risk_applicability.get_ao_snapshot",
-                   new=AsyncMock(return_value=None)):
+        with patch(
+            "app.services.risk_applicability.get_ao_snapshot", new=AsyncMock(return_value=None)
+        ):
             with pytest.raises(ValueError, match="AO snapshot"):
                 await process_applicability("test-id", "tenant-1")
 
     @pytest.mark.asyncio
     async def test_no_qa_profile_raises_value_error(self):
-        with patch("app.services.risk_applicability.get_ao_snapshot",
-                   new=AsyncMock(return_value=self._SNAPSHOT)), \
-             patch("app.services.risk_applicability.select_ao_chunks",
-                   new=AsyncMock(return_value=[])), \
-             patch("app.services.risk_applicability.get_qa_profile",
-                   new=AsyncMock(return_value=None)):
+        with (
+            patch(
+                "app.services.risk_applicability.get_ao_snapshot",
+                new=AsyncMock(return_value=self._SNAPSHOT),
+            ),
+            patch(
+                "app.services.risk_applicability.select_ao_chunks", new=AsyncMock(return_value=[])
+            ),
+            patch(
+                "app.services.risk_applicability.get_qa_profile", new=AsyncMock(return_value=None)
+            ),
+        ):
             with pytest.raises(ValueError, match="QA profile"):
                 await process_applicability("test-id", "tenant-1")
 
@@ -238,8 +297,10 @@ class TestProcessApplicability:
         class _Cursor:
             async def execute(self, sql, params=None):
                 pass
+
             async def fetchall(self):
                 return risks_data
+
             async def fetchone(self):
                 return None
 
@@ -247,17 +308,29 @@ class TestProcessApplicability:
         async def _fake_ctx(*args, **kwargs):
             yield _Cursor()
 
-        with patch("app.services.risk_applicability.get_ao_snapshot",
-                   new=AsyncMock(return_value=self._SNAPSHOT)), \
-             patch("app.services.risk_applicability.select_ao_chunks",
-                   new=AsyncMock(return_value=[])), \
-             patch("app.services.risk_applicability.get_qa_profile",
-                   new=AsyncMock(return_value=self._QA_PROFILE)), \
-             patch("app.services.risk_applicability.get_tenant_cursor",
-                   side_effect=_fake_ctx), \
-             patch("app.services.risk_applicability.respond_json",
-                   return_value={"applicable": True, "evidence": "Evidence.", "reason": "Reason.",
-                                 "statement": "Risk that fraud may occur, given exposure, resulting in losses, in the absence of controls."}):
+        with (
+            patch(
+                "app.services.risk_applicability.get_ao_snapshot",
+                new=AsyncMock(return_value=self._SNAPSHOT),
+            ),
+            patch(
+                "app.services.risk_applicability.select_ao_chunks", new=AsyncMock(return_value=[])
+            ),
+            patch(
+                "app.services.risk_applicability.get_qa_profile",
+                new=AsyncMock(return_value=self._QA_PROFILE),
+            ),
+            patch("app.services.risk_applicability.get_tenant_cursor", side_effect=_fake_ctx),
+            patch(
+                "app.services.risk_applicability.respond_json",
+                return_value={
+                    "applicable": True,
+                    "evidence": "Evidence.",
+                    "reason": "Reason.",
+                    "statement": "Risk that fraud may occur, given exposure, resulting in losses, in the absence of controls.",
+                },
+            ),
+        ):
             result = await process_applicability("test-id", "tenant-1")
 
         assert result["assessment_id"] == "test-id"

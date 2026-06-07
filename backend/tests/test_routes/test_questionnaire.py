@@ -39,30 +39,72 @@ _SNAPSHOT = {
 
 # Minimal realistic LLM answer batch for mandatory questions
 _MOCK_MANDATORY = [
-    {"question_id": "AUP-001", "answer": "yes",  "assumed": True,  "conflict_flagged": False,
-     "evidence": "Unit serves retail consumers.", "reason": "Profile: populations_served includes retail."},
-    {"question_id": "AUP-002", "answer": "no",   "assumed": False, "conflict_flagged": False,
-     "evidence": "No commercial customers in profile.", "reason": "Not mentioned."},
-    {"question_id": "AUP-006", "answer": "yes",  "assumed": True,  "conflict_flagged": False,
-     "evidence": "Call centre services existing accounts.", "reason": "Operations performed."},
-    {"question_id": "AUP-008", "answer": "yes",  "assumed": True,  "conflict_flagged": False,
-     "evidence": "Products include credit cards.", "reason": "Profile: products_handled."},
-    {"question_id": "AUP-027", "answer": "yes",  "assumed": True,  "conflict_flagged": False,
-     "evidence": "Employees view account balances.", "reason": "Profile: employee_capabilities."},
+    {
+        "question_id": "AUP-001",
+        "answer": "yes",
+        "assumed": True,
+        "conflict_flagged": False,
+        "evidence": "Unit serves retail consumers.",
+        "reason": "Profile: populations_served includes retail.",
+    },
+    {
+        "question_id": "AUP-002",
+        "answer": "no",
+        "assumed": False,
+        "conflict_flagged": False,
+        "evidence": "No commercial customers in profile.",
+        "reason": "Not mentioned.",
+    },
+    {
+        "question_id": "AUP-006",
+        "answer": "yes",
+        "assumed": True,
+        "conflict_flagged": False,
+        "evidence": "Call centre services existing accounts.",
+        "reason": "Operations performed.",
+    },
+    {
+        "question_id": "AUP-008",
+        "answer": "yes",
+        "assumed": True,
+        "conflict_flagged": False,
+        "evidence": "Products include credit cards.",
+        "reason": "Profile: products_handled.",
+    },
+    {
+        "question_id": "AUP-027",
+        "answer": "yes",
+        "assumed": True,
+        "conflict_flagged": False,
+        "evidence": "Employees view account balances.",
+        "reason": "Profile: employee_capabilities.",
+    },
 ]
 
 # Minimal situational answers
 _MOCK_SITUATIONAL = [
-    {"question_id": "FRE-007", "answer": "yes", "assumed": True, "conflict_flagged": False,
-     "evidence": "Agents retrieve account data on behalf of customers.", "reason": "Channel=phone."},
-    {"question_id": "FRE-057", "answer": "yes", "assumed": True, "conflict_flagged": False,
-     "evidence": "Employees can view PII.", "reason": "data_types_processed: PII."},
+    {
+        "question_id": "FRE-007",
+        "answer": "yes",
+        "assumed": True,
+        "conflict_flagged": False,
+        "evidence": "Agents retrieve account data on behalf of customers.",
+        "reason": "Channel=phone.",
+    },
+    {
+        "question_id": "FRE-057",
+        "answer": "yes",
+        "assumed": True,
+        "conflict_flagged": False,
+        "evidence": "Employees can view PII.",
+        "reason": "data_types_processed: PII.",
+    },
 ]
 
 
 def _patch_qa_llm(mandatory=None, situational=None):
     """Patch _answer_batch to return pre-canned responses."""
-    mandatory  = mandatory  or _MOCK_MANDATORY
+    mandatory = mandatory or _MOCK_MANDATORY
     situational = situational or _MOCK_SITUATIONAL
     call_count = {"n": 0}
 
@@ -83,6 +125,7 @@ def _patch_qa_llm(mandatory=None, situational=None):
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def _seed_assessment_and_snapshot(db_conn):
@@ -122,6 +165,7 @@ def _seed_assessment_and_snapshot(db_conn):
 # Tests: POST /qo-run
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestQoRun:
     def test_run_returns_answers_dict(self, test_client: TestClient):
         with _patch_qa_llm():
@@ -140,7 +184,7 @@ class TestQoRun:
             resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
         body = resp.json()
         yes = body["counters"]["yes"]
-        no  = body["counters"]["no"]
+        no = body["counters"]["no"]
         total = body["counters"]["total"]
         assert yes + no == total
 
@@ -176,6 +220,7 @@ class TestQoRun:
 # Tests: GET /qo-answers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestGetQoAnswers:
     def test_get_answers_after_run(self, test_client: TestClient):
         with _patch_qa_llm():
@@ -195,6 +240,7 @@ class TestGetQoAnswers:
 # ─────────────────────────────────────────────────────────────────────────────
 # Tests: PUT /qo-answers (user correction)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestCorrectAnswer:
     def test_correct_answer_updates_value(self, test_client: TestClient):

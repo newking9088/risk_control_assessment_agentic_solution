@@ -1,5 +1,6 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Any, Optional
+from typing import Any
 
 import psycopg
 from psycopg_pool import AsyncConnectionPool
@@ -26,7 +27,7 @@ async def close_db_pool() -> None:
 
 
 @asynccontextmanager
-async def get_conn() -> AsyncGenerator[psycopg.AsyncConnection, None]:
+async def get_conn() -> AsyncGenerator[psycopg.AsyncConnection]:
     if not _pool:
         raise RuntimeError("DB pool not initialised")
     async with _pool.connection() as conn:
@@ -34,7 +35,7 @@ async def get_conn() -> AsyncGenerator[psycopg.AsyncConnection, None]:
 
 
 @asynccontextmanager
-async def get_tenant_cursor(tenant_id: str, row_factory: Optional[Any] = None):
+async def get_tenant_cursor(tenant_id: str, row_factory: Any | None = None):
     async with get_conn() as conn:
         async with conn.cursor(row_factory=row_factory) as cur:
             await cur.execute(

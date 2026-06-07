@@ -9,13 +9,12 @@ PUT    /api/v1/assessments/{id}/ao-profile   – user edits operational profile
 import json
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from psycopg.rows import dict_row
 
 from app.config.constants import DEFAULT_TENANT_ID
 from app.infra.db import get_tenant_cursor
-from app.services.orchestration import run_ao_phases, get_ao_snapshot, save_ao_snapshot
+from app.services.orchestration import get_ao_snapshot, run_ao_phases
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,7 @@ def _tenant(request: Request) -> str:
 
 
 # ── POST /ao-overview ─────────────────────────────────────────────────────────
+
 
 class OverviewParams(BaseModel):
     force: bool = False
@@ -58,6 +58,7 @@ async def generate_overview(
 
 # ── GET /ao-snapshot ──────────────────────────────────────────────────────────
 
+
 @router.get("/{assessment_id}/ao-snapshot")
 async def get_snapshot(assessment_id: str, request: Request):
     """Return the current AO snapshot, or 404 if none exists yet."""
@@ -72,6 +73,7 @@ async def get_snapshot(assessment_id: str, request: Request):
 
 
 # ── PUT /ao-profile ───────────────────────────────────────────────────────────
+
 
 class ProfileUpdate(BaseModel):
     operational_profile: dict | None = None

@@ -28,4 +28,11 @@ ASSESSMENT_STEPS = [
 ]
 
 ROLES = ["viewer", "analyst", "senior_analyst", "team_lead", "delivery_lead", "admin"]
-ROLE_WEIGHTS = {"viewer": 0, "analyst": 1, "senior_analyst": 1, "team_lead": 2, "delivery_lead": 2, "admin": 3}
+ROLE_WEIGHTS = {
+    "viewer": 0,
+    "analyst": 1,
+    "senior_analyst": 1,
+    "team_lead": 2,
+    "delivery_lead": 2,
+    "admin": 3,
+}

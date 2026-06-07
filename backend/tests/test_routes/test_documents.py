@@ -1,4 +1,5 @@
 """Tests for POST /api/v1/upload — file type, magic bytes, size validation."""
+
 import io
 import pytest
 import uuid
@@ -30,9 +31,11 @@ def test_upload_rejects_mismatched_magic_bytes(test_client):
 
 def test_upload_rejects_oversized_file(test_client, monkeypatch):
     import app.config.constants as consts
+
     monkeypatch.setattr(consts, "MAX_FILE_SIZE_BYTES", 10)
     # also patch the import inside the route module
     import app.routes.documents as doc_route
+
     monkeypatch.setattr(doc_route, "MAX_FILE_SIZE_BYTES", 10)
 
     aid = _make_assessment(test_client)

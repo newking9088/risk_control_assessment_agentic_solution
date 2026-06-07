@@ -1,4 +1,5 @@
 """Tests for role hierarchy enforcement."""
+
 from fastapi.testclient import TestClient
 from app.config.constants import ROLE_WEIGHTS
 

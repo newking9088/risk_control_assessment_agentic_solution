@@ -1,7 +1,6 @@
-import io
 import csv
+import io
 import uuid
-from typing import List, Optional
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
@@ -17,6 +16,7 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
 # ── Pydantic models ────────────────────────────────────────────────
 
+
 class UserCreate(BaseModel):
     name: str
     email: str
@@ -26,27 +26,27 @@ class UserCreate(BaseModel):
 
 
 class UserPatch(BaseModel):
-    name: Optional[str] = None
-    role: Optional[str] = None
-    status: Optional[str] = None
+    name: str | None = None
+    role: str | None = None
+    status: str | None = None
 
 
 class RolePatch(BaseModel):
-    display_label: Optional[str] = None
-    hierarchy_level: Optional[int] = None
-    capabilities: Optional[List[str]] = None
+    display_label: str | None = None
+    hierarchy_level: int | None = None
+    capabilities: list[str] | None = None
 
 
 class ApprovalCreate(BaseModel):
     assessment_id: str
     type: str
-    scope: Optional[str] = None
-    reason: Optional[str] = None
+    scope: str | None = None
+    reason: str | None = None
 
 
 class ApprovalPatch(BaseModel):
     status: str
-    review_note: Optional[str] = None
+    review_note: str | None = None
 
 
 class TaxonomyCreate(BaseModel):
@@ -57,31 +57,44 @@ class TaxonomyCreate(BaseModel):
 # ── Default capability matrix ──────────────────────────────────────
 
 DEFAULT_CAPABILITIES: dict[str, list[str]] = {
-    "viewer":         ["view_assessments"],
-    "analyst":        ["view_assessments", "create_edit"],
+    "viewer": ["view_assessments"],
+    "analyst": ["view_assessments", "create_edit"],
     "senior_analyst": ["view_assessments", "create_edit"],
-    "team_lead":      ["view_assessments", "create_edit", "upload_taxonomies"],
-    "delivery_lead":  [
-        "view_assessments", "create_edit", "delete_assessments",
-        "manage_taxonomies", "upload_taxonomies", "configure_llm",
-        "clear_cache", "view_audit_logs", "manage_users",
+    "team_lead": ["view_assessments", "create_edit", "upload_taxonomies"],
+    "delivery_lead": [
+        "view_assessments",
+        "create_edit",
+        "delete_assessments",
+        "manage_taxonomies",
+        "upload_taxonomies",
+        "configure_llm",
+        "clear_cache",
+        "view_audit_logs",
+        "manage_users",
     ],
     "admin": [
-        "view_assessments", "create_edit", "delete_assessments",
-        "manage_taxonomies", "upload_taxonomies", "configure_llm",
-        "clear_cache", "view_audit_logs", "manage_users",
+        "view_assessments",
+        "create_edit",
+        "delete_assessments",
+        "manage_taxonomies",
+        "upload_taxonomies",
+        "configure_llm",
+        "clear_cache",
+        "view_audit_logs",
+        "manage_users",
     ],
 }
 
 
 # ── USERS ─────────────────────────────────────────────────────────
 
+
 @router.get("/users")
 async def list_users(
     request: Request,
-    search: Optional[str] = Query(None),
-    role: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
+    search: str | None = Query(None),
+    role: str | None = Query(None),
+    status: str | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
 ):
@@ -125,6 +138,7 @@ async def list_users(
 @router.post("/users", status_code=201)
 async def create_user(body: UserCreate, request: Request):
     import hashlib
+
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
     user_id = str(uuid.uuid4())
@@ -178,6 +192,7 @@ async def delete_user(user_id: str, request: Request):
 
 # ── ROLES & PERMISSIONS ───────────────────────────────────────────
 
+
 @router.get("/roles")
 async def list_roles(request: Request):
     user = request.state.user
@@ -229,11 +244,12 @@ async def reset_roles(request: Request):
 
 # ── AUDIT LOGS ────────────────────────────────────────────────────
 
+
 @router.get("/audit-logs/insights")
 async def audit_insights(
     request: Request,
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
+    from_date: str | None = Query(None),
+    to_date: str | None = Query(None),
 ):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
@@ -280,13 +296,15 @@ async def audit_insights(
     top_overriders = []
     for row in top_raw:
         pct = round((row["downgrades"] / row["overrides"] * 100) if row["overrides"] > 0 else 0, 1)
-        top_overriders.append({
-            "user_id": str(row["actor_id"]) if row["actor_id"] else None,
-            "name": row["actor_name"],
-            "overrides": row["overrides"],
-            "downgrades": row["downgrades"],
-            "pct": pct,
-        })
+        top_overriders.append(
+            {
+                "user_id": str(row["actor_id"]) if row["actor_id"] else None,
+                "name": row["actor_name"],
+                "overrides": row["overrides"],
+                "downgrades": row["downgrades"],
+                "pct": pct,
+            }
+        )
 
     return {
         "failed_logins": int(metrics["failed_logins"] or 0),
@@ -303,11 +321,11 @@ async def audit_insights(
 @router.get("/audit-logs/export")
 async def export_audit_logs(
     request: Request,
-    event_type: Optional[str] = Query(None),
-    entity_type: Optional[str] = Query(None),
-    actor: Optional[str] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
+    event_type: str | None = Query(None),
+    entity_type: str | None = Query(None),
+    actor: str | None = Query(None),
+    from_date: str | None = Query(None),
+    to_date: str | None = Query(None),
 ):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
@@ -315,15 +333,20 @@ async def export_audit_logs(
     conditions = ["tenant_id = %s"]
     params: list = [tenant_id]
     if event_type:
-        conditions.append("event_type = %s"); params.append(event_type)
+        conditions.append("event_type = %s")
+        params.append(event_type)
     if entity_type:
-        conditions.append("entity_type = %s"); params.append(entity_type)
+        conditions.append("entity_type = %s")
+        params.append(entity_type)
     if actor:
-        conditions.append("actor_name ILIKE %s"); params.append(f"%{actor}%")
+        conditions.append("actor_name ILIKE %s")
+        params.append(f"%{actor}%")
     if from_date:
-        conditions.append("created_at >= %s"); params.append(from_date)
+        conditions.append("created_at >= %s")
+        params.append(from_date)
     if to_date:
-        conditions.append("created_at <= %s"); params.append(to_date)
+        conditions.append("created_at <= %s")
+        params.append(to_date)
 
     where = " AND ".join(conditions)
 
@@ -338,7 +361,15 @@ async def export_audit_logs(
     output = io.StringIO()
     writer = csv.DictWriter(
         output,
-        fieldnames=["id", "event_type", "actor_name", "entity_type", "entity_id", "detail", "created_at"],
+        fieldnames=[
+            "id",
+            "event_type",
+            "actor_name",
+            "entity_type",
+            "entity_id",
+            "detail",
+            "created_at",
+        ],
     )
     writer.writeheader()
     for row in rows:
@@ -356,11 +387,11 @@ async def export_audit_logs(
 @router.get("/audit-logs")
 async def list_audit_logs(
     request: Request,
-    event_type: Optional[str] = Query(None),
-    entity_type: Optional[str] = Query(None),
-    actor: Optional[str] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
+    event_type: str | None = Query(None),
+    entity_type: str | None = Query(None),
+    actor: str | None = Query(None),
+    from_date: str | None = Query(None),
+    to_date: str | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
 ):
@@ -371,15 +402,20 @@ async def list_audit_logs(
     conditions = ["tenant_id = %s"]
     params: list = [tenant_id]
     if event_type:
-        conditions.append("event_type = %s"); params.append(event_type)
+        conditions.append("event_type = %s")
+        params.append(event_type)
     if entity_type:
-        conditions.append("entity_type = %s"); params.append(entity_type)
+        conditions.append("entity_type = %s")
+        params.append(entity_type)
     if actor:
-        conditions.append("actor_name ILIKE %s"); params.append(f"%{actor}%")
+        conditions.append("actor_name ILIKE %s")
+        params.append(f"%{actor}%")
     if from_date:
-        conditions.append("created_at >= %s"); params.append(from_date)
+        conditions.append("created_at >= %s")
+        params.append(from_date)
     if to_date:
-        conditions.append("created_at <= %s"); params.append(to_date)
+        conditions.append("created_at <= %s")
+        params.append(to_date)
 
     where = " AND ".join(conditions)
 
@@ -403,10 +439,11 @@ async def list_audit_logs(
 
 # ── APPROVALS ─────────────────────────────────────────────────────
 
+
 @router.get("/approvals")
 async def list_approvals(
     request: Request,
-    status: Optional[str] = Query(None),
+    status: str | None = Query(None),
 ):
     user = request.state.user
     tenant_id = user.get("tenantId", DEFAULT_TENANT_ID)
@@ -443,8 +480,15 @@ async def create_approval(body: ApprovalCreate, request: Request):
             "INSERT INTO app.approvals "
             "(id, tenant_id, assessment_id, type, scope, requested_by, reason) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-            (approval_id, tenant_id, body.assessment_id, body.type,
-             body.scope, user.get("id"), body.reason),
+            (
+                approval_id,
+                tenant_id,
+                body.assessment_id,
+                body.type,
+                body.scope,
+                user.get("id"),
+                body.reason,
+            ),
         )
     return {"id": approval_id}
 
@@ -467,6 +511,7 @@ async def update_approval(approval_id: str, body: ApprovalPatch, request: Reques
 
 
 # ── LEGACY taxonomy endpoints ──────────────────────────────────────
+
 
 @router.post("/taxonomy")
 async def create_taxonomy(body: TaxonomyCreate, request: Request):

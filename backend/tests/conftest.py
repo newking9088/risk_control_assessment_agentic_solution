@@ -25,7 +25,9 @@ def event_loop():
 
 @pytest.fixture
 async def db_conn():
-    conn = await psycopg.AsyncConnection.connect(TEST_DB_URL, row_factory=dict_row, autocommit=False)
+    conn = await psycopg.AsyncConnection.connect(
+        TEST_DB_URL, row_factory=dict_row, autocommit=False
+    )
     await conn.execute("SELECT set_config('app.current_tenant_id', %s, true)", (TEST_TENANT_ID,))
     yield conn
     await conn.rollback()

@@ -52,6 +52,7 @@ MOCK_FRAUD = {
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def _seed_assessment(db_conn):
     """Create a test assessment and document chunks in the real DB."""
@@ -96,6 +97,7 @@ def _seed_assessment(db_conn):
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _patch_llm():
     """Return a context manager that mocks generate_ao_overview, extract_ao_profile,
     extract_fraud_surface so no real LLM call is made."""
@@ -119,6 +121,7 @@ def _patch_llm():
 # ─────────────────────────────────────────────────────────────────────────────
 # Tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestGenerateOverview:
     def test_post_ao_overview_returns_snapshot(self, test_client: TestClient):

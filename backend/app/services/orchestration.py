@@ -10,7 +10,6 @@ import asyncio
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 
 from psycopg.rows import dict_row
 
@@ -27,6 +26,7 @@ _CHUNK_CATEGORIES = ("au_description", "ao_details", "process_desc")
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
+
 
 async def select_ao_chunks(
     assessment_id: str,
@@ -103,6 +103,7 @@ async def save_ao_snapshot(
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
+
 async def run_ao_phases(
     assessment_id: str,
     tenant_id: str,
@@ -131,11 +132,13 @@ async def run_ao_phases(
     # Phase 2 ─ parallel LLM extraction
     loop = asyncio.get_event_loop()
     overview_fut = loop.run_in_executor(_EXECUTOR, generate_ao_overview, evidence_text)
-    fraud_fut    = loop.run_in_executor(_EXECUTOR, extract_fraud_surface, evidence_text)
-    profile_fut  = loop.run_in_executor(_EXECUTOR, extract_ao_profile,  evidence_text)
+    fraud_fut = loop.run_in_executor(_EXECUTOR, extract_fraud_surface, evidence_text)
+    profile_fut = loop.run_in_executor(_EXECUTOR, extract_ao_profile, evidence_text)
 
     overview_data, fraud_data, profile_data = await asyncio.gather(
-        overview_fut, fraud_fut, profile_fut,
+        overview_fut,
+        fraud_fut,
+        profile_fut,
         return_exceptions=False,
     )
 
@@ -144,17 +147,17 @@ async def run_ao_phases(
         "snapshot_version": "1.0",
         "ao_summary": overview_data.get("summary", ""),
         "ao_display": {
-            "in_scope_business_processes":     overview_data.get("in_scope_activities", []),
+            "in_scope_business_processes": overview_data.get("in_scope_activities", []),
             "out_of_scope_business_processes": overview_data.get("out_of_scope_activities", []),
-            "systems_or_tools":                overview_data.get("systems_or_tools", []),
-            "channels":                        overview_data.get("channels", []),
-            "populations_served":              overview_data.get("populations_served", []),
-            "products_handled":                overview_data.get("products_handled", []),
-            "org_partners":                    overview_data.get("org_partners", []),
-            "regulatory_environment":          overview_data.get("regulatory_environment", []),
+            "systems_or_tools": overview_data.get("systems_or_tools", []),
+            "channels": overview_data.get("channels", []),
+            "populations_served": overview_data.get("populations_served", []),
+            "products_handled": overview_data.get("products_handled", []),
+            "org_partners": overview_data.get("org_partners", []),
+            "regulatory_environment": overview_data.get("regulatory_environment", []),
         },
         "operational_profile": profile_data,
-        "fraud_surface":       fraud_data,
+        "fraud_surface": fraud_data,
     }
 
     await save_ao_snapshot(assessment_id, tenant_id, snapshot)
