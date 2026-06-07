@@ -50,7 +50,7 @@ export function useNotificationSSE(userId: string | null) {
       mountedRef.current = false;
       esRef.current?.close();
     };
-  }, [connect]);
+  }, [connect, userId]);
 }
 
 function showToast(message: string) {

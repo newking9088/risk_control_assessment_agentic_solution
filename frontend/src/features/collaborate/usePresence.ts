@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 
 export interface PresenceUser {
@@ -16,7 +16,7 @@ export function usePresence(
   const [isConnected, setIsConnected] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function sendHeartbeat() {
+  const sendHeartbeat = useCallback(async () => {
     if (!currentUser) return;
     try {
       const res = await api.post(`/api/v1/assessments/${assessmentId}/presence`, {
@@ -29,7 +29,7 @@ export function usePresence(
     } catch {
       setIsConnected(false);
     }
-  }
+  }, [assessmentId, currentUser]);
 
   useEffect(() => {
     if (!assessmentId || !currentUser) return;
@@ -38,7 +38,7 @@ export function usePresence(
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [assessmentId, currentUser?.id]);
+  }, [assessmentId, currentUser, sendHeartbeat]);
 
   return { activeUsers, isConnected };
 }

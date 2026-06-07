@@ -46,15 +46,13 @@ export function useTaxonomyManagement() {
     try {
       const list = await taxonomyApi.list();
       setTaxonomies(list);
-      if (list.length && !selectedId) {
-        setSelectedId(list[0].id);
-      }
+      setSelectedId((prev) => (list.length && !prev) ? list[0].id : prev);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load taxonomies");
     } finally {
       setLoading(false);
     }
-  }, [selectedId]);
+  }, []);
 
   const loadTaxonomy = useCallback(async (id: string) => {
     setLoading(true);
@@ -77,11 +75,11 @@ export function useTaxonomyManagement() {
     }
   }, []);
 
-  useEffect(() => { loadTaxonomies(); }, []);
+  useEffect(() => { loadTaxonomies(); }, [loadTaxonomies]);
 
   useEffect(() => {
     if (selectedId) loadTaxonomy(selectedId);
-  }, [selectedId]);
+  }, [selectedId, loadTaxonomy]);
 
   // Inline edit handlers
   function handleRiskChange(index: number, field: keyof RiskItem, value: string) {

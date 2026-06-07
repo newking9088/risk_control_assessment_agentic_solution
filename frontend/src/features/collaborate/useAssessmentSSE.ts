@@ -20,6 +20,8 @@ export function useAssessmentSSE(
   const esRef = useRef<EventSource | null>(null);
   const backoffRef = useRef(1000);
   const mountedRef = useRef(true);
+  const onExternalUpdateRef = useRef(onExternalUpdate);
+  onExternalUpdateRef.current = onExternalUpdate;
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -47,7 +49,7 @@ export function useAssessmentSSE(
           qc.invalidateQueries({ queryKey: ["assessment", assessmentId] });
           qc.invalidateQueries({ queryKey: ["risks", assessmentId] });
           qc.invalidateQueries({ queryKey: ["controls"] });
-          onExternalUpdate?.(data);
+          onExternalUpdateRef.current?.(data);
         }
       } catch { /* ignore parse errors */ }
     };
@@ -70,7 +72,7 @@ export function useAssessmentSSE(
       mountedRef.current = false;
       esRef.current?.close();
     };
-  }, [connect]);
+  }, [connect, assessmentId]);
 
   return { isConnected, lastEvent };
 }

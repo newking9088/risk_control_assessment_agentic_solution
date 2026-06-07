@@ -282,10 +282,6 @@ function ControlRow({
   onUpdate: (body: Record<string, unknown>) => void;
   onDelete: () => void;
 }) {
-  const [rationale, setRationale] = useState(ctrl.rationale ?? "");
-
-  useEffect(() => { setRationale(ctrl.rationale ?? ""); }, [ctrl.rationale]);
-
   function handleDesign(val: string) {
     const design = Number(val);
     const overall = overallFromInts(design, ctrl.operating_effectiveness);

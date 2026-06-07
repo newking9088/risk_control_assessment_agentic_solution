@@ -13,7 +13,7 @@ db-up:  ## Start DB and Redis containers
 db-down:  ## Stop and remove containers
 	docker compose down
 
-db-schema:  ## Apply all SQL migrations (001–016) in order via docker exec
+db-schema:  ## Apply all SQL migrations (001–017) in order via docker exec
 	@echo "Applying migrations..."
 	@for f in \
 	  001_app_schema.sql \
@@ -31,7 +31,9 @@ db-schema:  ## Apply all SQL migrations (001–016) in order via docker exec
 	  013_collaboration_tables.sql \
 	  014_step1_2_tables.sql \
 	  015_admin_user_seed.sql \
-  016_force_rls.sql; do \
+	  016_force_rls.sql \
+	  016_inherent_rating_constraints.sql \
+	  017_rls_tester_role.sql; do \
 	  echo "  → $$f"; \
 	  docker exec rca-db psql -U adminuser -d appdb -q \
 	    -f /docker-entrypoint-initdb.d/$$f; \

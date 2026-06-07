@@ -18,18 +18,13 @@ async def test_tenant_cannot_read_other_tenant_assessment(db_conn):
         (aid, TEST_TENANT_ID, "Tenant A Assessment", TEST_USER_ID),
     )
 
-    # In CI the connecting role (POSTGRES_USER) is a superuser, and PostgreSQL
-    # superusers bypass RLS even when FORCE ROW LEVEL SECURITY is set.
-    # We therefore test isolation by switching to a non-privileged role whose
-    # queries ARE subject to the tenant_isolation policy.
-    # All DDL here is inside the transaction that conftest rolls back on teardown.
-    await db_conn.execute("DROP ROLE IF EXISTS _rls_tester")
-    await db_conn.execute("CREATE ROLE _rls_tester NOLOGIN")
-    await db_conn.execute("GRANT USAGE ON SCHEMA app TO _rls_tester")
-    await db_conn.execute("GRANT SELECT ON app.assessments TO _rls_tester")
-
-    # Switch to the restricted role and change tenant context
-    await db_conn.execute("SET LOCAL ROLE _rls_tester")
+    # In CI the connecting role (POSTGRES_USER) is a superuser and bypasses RLS.
+    # We switch to the permanent `rls_tester` role (created by migration
+    # 017_rls_tester_role.sql, committed before tests run) which is a
+    # non-superuser, non-owner role subject to the tenant_isolation policy.
+    # Creating a role inside this transaction does not work: PostgreSQL evaluates
+    # SET ROLE against the committed catalog, not uncommitted DDL.
+    await db_conn.execute("SET LOCAL ROLE rls_tester")
     await db_conn.execute(
         "SELECT set_config('app.current_tenant_id', %s, true)", (OTHER_TENANT_ID,)
     )

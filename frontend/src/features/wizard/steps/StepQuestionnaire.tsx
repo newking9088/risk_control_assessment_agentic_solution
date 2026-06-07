@@ -277,7 +277,7 @@ function ChatPanel({
           if (payload.type === "chat:done" || payload.type === "chat:error") break;
         }
       }
-    } catch (e) {
+    } catch {
       setMessages((m) => [...m.slice(0, -1), { role: "ai", text: "Sorry, I couldn't reach the AI. Please try again." }]);
     } finally {
       setStreaming(false);
@@ -401,7 +401,7 @@ export function StepQuestionnaire({ assessmentId, onValidChange }: StepProps) {
       saveQa.mutate({ answers: next, rationale });
       return next;
     });
-  }, [rationale, saveQa]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rationale, saveQa]);
 
   function toggleCat(key: string) {
     setOpenCats((s) => {
