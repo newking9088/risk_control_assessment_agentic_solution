@@ -1,7 +1,9 @@
 """Integration: RLS tenant isolation — user A cannot see user B's data."""
 
 import uuid
+
 import pytest
+
 from tests.conftest import TEST_TENANT_ID, TEST_USER_ID
 
 OTHER_TENANT_ID = "00000000-0000-0000-0000-000000000002"

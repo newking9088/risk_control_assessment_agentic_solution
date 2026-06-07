@@ -1,7 +1,8 @@
 import asyncio
 import os
-import pytest
+
 import psycopg
+import pytest
 from psycopg.rows import dict_row
 
 TEST_DB_URL = os.getenv("DATABASE_URL", "postgresql://adminuser:adminuser_local_pw@localhost:5432/appdb")
@@ -38,6 +39,7 @@ async def db_conn():
 @pytest.fixture
 def test_client():
     from fastapi.testclient import TestClient
+
     from app.main import app
     from app.middleware.auth import get_current_user
 

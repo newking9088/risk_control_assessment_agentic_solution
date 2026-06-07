@@ -128,14 +128,14 @@ class TestNewlines:
 
     def test_windows_crlf(self, upload_client):
         uid = _uid()
-        raw = (f"{_HEADERS}\r\nCRLF {uid},Desc,Preventive,FALSE,Internal,Fraud,").encode("utf-8")
+        raw = (f"{_HEADERS}\r\nCRLF {uid},Desc,Preventive,FALSE,Internal,Fraud,").encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json() == {"inserted": 1, "skipped": 0}
 
     def test_cr_only(self, upload_client):
         uid = _uid()
-        raw = (f"{_HEADERS}\rCR {uid},Desc,Preventive,FALSE,Internal,Fraud,").encode("utf-8")
+        raw = (f"{_HEADERS}\rCR {uid},Desc,Preventive,FALSE,Internal,Fraud,").encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json() == {"inserted": 1, "skipped": 0}
@@ -143,7 +143,7 @@ class TestNewlines:
     def test_mixed_newlines(self, upload_client):
         uid = _uid()
         # Header CRLF, first row LF, second row CR
-        raw = (f"{_HEADERS}\r\n" f"Mixed A {uid},,,,,,\n" f"Mixed B {uid},,,,,,\r").encode("utf-8")
+        raw = (f"{_HEADERS}\r\n" f"Mixed A {uid},,,,,,\n" f"Mixed B {uid},,,,,,\r").encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json() == {"inserted": 2, "skipped": 0}
@@ -151,7 +151,7 @@ class TestNewlines:
     def test_trailing_crlf_blank_row_skipped(self, upload_client):
         uid = _uid()
         # Trailing \r\n produces a blank row — must be skipped, not crash
-        raw = (f"{_HEADERS}\r\nTrailing {uid},,,,,,\r\n").encode("utf-8")
+        raw = (f"{_HEADERS}\r\nTrailing {uid},,,,,,\r\n").encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json()["inserted"] == 1
@@ -164,7 +164,7 @@ class TestBOM:
     def test_utf8_bom_excel_export(self, upload_client):
         uid = _uid()
         bom = b"\xef\xbb\xbf"
-        raw = bom + f"{_HEADERS}\nBOM {uid},,,,,,".encode("utf-8")
+        raw = bom + f"{_HEADERS}\nBOM {uid},,,,,,".encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json() == {"inserted": 1, "skipped": 0}
@@ -172,7 +172,7 @@ class TestBOM:
     def test_utf8_bom_with_crlf(self, upload_client):
         uid = _uid()
         bom = b"\xef\xbb\xbf"
-        raw = bom + (f"{_HEADERS}\r\nBOM CRLF {uid},,,,,,").encode("utf-8")
+        raw = bom + (f"{_HEADERS}\r\nBOM CRLF {uid},,,,,,").encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json() == {"inserted": 1, "skipped": 0}
@@ -361,7 +361,7 @@ class TestQuotedFields:
         uid = _uid()
         # Embedded \r\n inside a quoted field — normalisation converts to \n,
         # csv module then treats it as an embedded newline within the field value.
-        raw = f'name,description\r\nEmbCRLF {uid},"Row one\r\nRow two"'.encode("utf-8")
+        raw = f'name,description\r\nEmbCRLF {uid},"Row one\r\nRow two"'.encode()
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json()["inserted"] == 1
@@ -413,7 +413,7 @@ class TestEncoding:
     def test_latin1_byte_replaced_not_crash(self, upload_client):
         # 0xe9 is 'é' in latin-1 but invalid UTF-8; errors='replace' → U+FFFD
         uid = _uid()
-        raw = f"name\nCafe{uid}".encode("utf-8") + b"\xe9"
+        raw = f"name\nCafe{uid}".encode() + b"\xe9"
         resp = _post_raw(upload_client, raw)
         assert resp.status_code == 200
         assert resp.json()["inserted"] == 1

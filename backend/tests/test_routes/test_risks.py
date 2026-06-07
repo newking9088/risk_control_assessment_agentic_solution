@@ -1,5 +1,7 @@
 import uuid
+
 import pytest
+
 from tests.conftest import TEST_TENANT_ID, TEST_USER_ID
 
 

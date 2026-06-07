@@ -1,4 +1,3 @@
-import pytest
 from app.utils.risk_scope import classify_fraud_nature, risk_matches_scope
 
 

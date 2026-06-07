@@ -1,5 +1,7 @@
 import uuid
+
 import pytest
+
 from tests.conftest import TEST_TENANT_ID, TEST_USER_ID
 
 
@@ -51,7 +53,6 @@ async def test_soft_delete(db_conn):
 
 
 # ── HTTP-level tests ──────────────────────────────────────────
-import uuid as _uuid
 
 
 class TestAssessmentsHTTP:
@@ -87,5 +88,5 @@ class TestAssessmentsHTTP:
         assert resp.status_code == 204
 
     def test_get_nonexistent_returns_404(self, test_client):
-        resp = test_client.get(f"/api/v1/assessments/{_uuid.uuid4()}")
+        resp = test_client.get(f"/api/v1/assessments/{uuid.uuid4()}")
         assert resp.status_code == 404

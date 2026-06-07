@@ -15,11 +15,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.qa_engine import run_qa_engine
-from app.services.risk_applicability import process_applicability
-from app.services.inherent_risk import generate_inherent_ratings
 from app.services.controls_effectiveness import evaluate_all_controls
+from app.services.inherent_risk import generate_inherent_ratings
+from app.services.qa_engine import run_qa_engine
 from app.services.residual_risk import compute_residual_ratings, compute_residual_risk
+from app.services.risk_applicability import process_applicability
 
 # ── IDs ───────────────────────────────────────────────────────────────────────
 ASSESS = "aaaaaaaa-0000-0000-0000-000000000001"

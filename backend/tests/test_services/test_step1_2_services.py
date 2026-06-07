@@ -3,8 +3,7 @@ Unit tests for the Step 1 & 2 service layer.
 No DB or LLM calls — all external dependencies are mocked/stubbed.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # ─────────────────────────────────────────────────────────────────────────────
 # chunker
@@ -51,7 +50,7 @@ class TestChunker:
         assert chunks == ["short"]
 
     def test_default_params_produce_chunks(self):
-        from app.services.chunker import chunk_text, CHUNK_SIZE
+        from app.services.chunker import CHUNK_SIZE, chunk_text
 
         text = "X" * (CHUNK_SIZE * 3)
         chunks = chunk_text(text)
@@ -126,7 +125,7 @@ class TestAoOverview:
 
 class TestAoProfile:
     def test_short_text_single_llm_call(self):
-        from app.services.ao_profile import extract_ao_profile, LARGE_DOC_THRESHOLD
+        from app.services.ao_profile import LARGE_DOC_THRESHOLD, extract_ao_profile
 
         text = "X" * (LARGE_DOC_THRESHOLD - 1)
         expected = {"operations_performed": ["handle calls"], "operations_not_performed": []}
@@ -137,7 +136,7 @@ class TestAoProfile:
         assert result["operations_performed"] == ["handle calls"]
 
     def test_long_text_triggers_windowing(self):
-        from app.services.ao_profile import extract_ao_profile, LARGE_DOC_THRESHOLD
+        from app.services.ao_profile import LARGE_DOC_THRESHOLD, extract_ao_profile
 
         text = "Y" * (LARGE_DOC_THRESHOLD + 1)
         with patch("app.services.ao_profile.respond_json", return_value={}) as mock_llm:
@@ -233,7 +232,7 @@ class TestQaEngineUnits:
         assert "CRM" in text
 
     def test_batch_questions_splits_correctly(self):
-        from app.services.qa_engine import _batch_questions, _BATCH_SIZE
+        from app.services.qa_engine import _BATCH_SIZE, _batch_questions
 
         qs = [
             {

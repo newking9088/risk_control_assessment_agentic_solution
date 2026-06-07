@@ -6,7 +6,7 @@ LLM calls are mocked.  Tests hit the real DB.
 
 import json
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -140,7 +140,7 @@ def _seed_assessment_and_snapshot(db_conn):
             """,
             (ASSESSMENT_ID, TEST_TENANT_ID, TEST_USER_ID),
         )
-        # Seed a snapshot so qo-run can find it
+        # Seed a snapshot so qa-run can find it
         await db_conn.execute(
             """
             INSERT INTO app.ao_snapshots
@@ -162,14 +162,14 @@ def _seed_assessment_and_snapshot(db_conn):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tests: POST /qo-run
+# Tests: POST /qa-run
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestQoRun:
     def test_run_returns_answers_dict(self, test_client: TestClient):
         with _patch_qa_llm():
-            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
 
         assert resp.status_code == 200, resp.text
         body = resp.json()
@@ -181,7 +181,7 @@ class TestQoRun:
 
     def test_run_yes_no_counts_match(self, test_client: TestClient):
         with _patch_qa_llm():
-            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         body = resp.json()
         yes = body["counters"]["yes"]
         no = body["counters"]["no"]
@@ -190,66 +190,66 @@ class TestQoRun:
 
     def test_run_answers_include_mandatory_ids(self, test_client: TestClient):
         with _patch_qa_llm():
-            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         answers = resp.json()["answers"]
         assert "AUP-001" in answers
 
     def test_run_no_snapshot_returns_422(self, test_client: TestClient):
         empty_id = str(uuid.uuid4())
         with _patch_qa_llm():
-            resp = test_client.post(f"/api/v1/assessments/{empty_id}/qo-run")
+            resp = test_client.post(f"/api/v1/assessments/{empty_id}/qa-run")
         assert resp.status_code == 422
 
     def test_run_triggers_situational_questions(self, test_client: TestClient):
         """AUP-006=yes and AUP-027=yes should trigger FRE-007 and FRE-057."""
         with _patch_qa_llm():
-            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         answers = resp.json()["answers"]
         # Situational triggered by AUP-006=yes → FRE-007
         assert "FRE-007" in answers
 
     def test_run_exposure_categories_populated(self, test_client: TestClient):
         with _patch_qa_llm():
-            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         cats = resp.json()["exposure_categories"]
         # At least entity_customer should be present (AUP-001=yes)
         assert "entity_customer" in cats
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tests: GET /qo-answers
+# Tests: GET /qa-answers
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestGetQoAnswers:
     def test_get_answers_after_run(self, test_client: TestClient):
         with _patch_qa_llm():
-            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
 
-        resp = test_client.get(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-answers")
+        resp = test_client.get(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-answers")
         assert resp.status_code == 200
         body = resp.json()
         assert "answers" in body
         assert isinstance(body["answers"], dict)
 
     def test_get_answers_not_found(self, test_client: TestClient):
-        resp = test_client.get(f"/api/v1/assessments/{uuid.uuid4()}/qo-answers")
+        resp = test_client.get(f"/api/v1/assessments/{uuid.uuid4()}/qa-answers")
         assert resp.status_code == 404
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tests: PUT /qo-answers (user correction)
+# Tests: PUT /qa-answers (user correction)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestCorrectAnswer:
     def test_correct_answer_updates_value(self, test_client: TestClient):
         with _patch_qa_llm():
-            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
 
         # AUP-002 was answered "no" — flip to "yes"
         resp = test_client.put(
-            f"/api/v1/assessments/{ASSESSMENT_ID}/qo-answers",
+            f"/api/v1/assessments/{ASSESSMENT_ID}/qa-answers",
             json={"question_id": "AUP-002", "answer": "yes", "rationale": "Actually yes."},
         )
         assert resp.status_code == 200
@@ -259,37 +259,37 @@ class TestCorrectAnswer:
 
     def test_correct_answer_invalid_value(self, test_client: TestClient):
         with _patch_qa_llm():
-            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         resp = test_client.put(
-            f"/api/v1/assessments/{ASSESSMENT_ID}/qo-answers",
+            f"/api/v1/assessments/{ASSESSMENT_ID}/qa-answers",
             json={"question_id": "AUP-001", "answer": "maybe"},
         )
         assert resp.status_code == 422
 
     def test_correct_unknown_question_returns_404(self, test_client: TestClient):
         with _patch_qa_llm():
-            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         resp = test_client.put(
-            f"/api/v1/assessments/{ASSESSMENT_ID}/qo-answers",
+            f"/api/v1/assessments/{ASSESSMENT_ID}/qa-answers",
             json={"question_id": "AUP-999", "answer": "yes"},
         )
         assert resp.status_code == 404
 
     def test_correct_answer_not_found_profile(self, test_client: TestClient):
         resp = test_client.put(
-            f"/api/v1/assessments/{uuid.uuid4()}/qo-answers",
+            f"/api/v1/assessments/{uuid.uuid4()}/qa-answers",
             json={"question_id": "AUP-001", "answer": "yes"},
         )
         assert resp.status_code == 404
 
     def test_correct_answer_recalculates_counters(self, test_client: TestClient):
         with _patch_qa_llm():
-            run_resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qo-run")
+            run_resp = test_client.post(f"/api/v1/assessments/{ASSESSMENT_ID}/qa-run")
         original_yes = run_resp.json()["counters"]["yes"]
 
         # Flip AUP-002 from no → yes
         resp = test_client.put(
-            f"/api/v1/assessments/{ASSESSMENT_ID}/qo-answers",
+            f"/api/v1/assessments/{ASSESSMENT_ID}/qa-answers",
             json={"question_id": "AUP-002", "answer": "yes"},
         )
         assert resp.status_code == 200

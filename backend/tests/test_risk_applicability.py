@@ -16,9 +16,7 @@ import pytest
 from app.services.risk_applicability import (
     CATEGORY_MAP,
     compute_confidence,
-    count_relevant_yes,
     evaluate_risk_applicability,
-    format_relevant_qa,
     generate_risk_statement,
     process_applicability,
 )

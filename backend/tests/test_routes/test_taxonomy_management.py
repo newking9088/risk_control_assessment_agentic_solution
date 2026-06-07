@@ -15,18 +15,16 @@ Coverage:
 
 import io
 import uuid
-from contextlib import asynccontextmanager
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from unittest.mock import AsyncMock, patch
 
 import openpyxl
-import pytest
 from fastapi.testclient import TestClient
 
 import app.routes.taxonomy_management as tax_mod
 from app.main import app
 from app.middleware.auth import get_current_user
-from app.routes.taxonomy_management import _parse_csv, _normalise_risks
+from app.routes.taxonomy_management import _normalise_risks, _parse_csv
 from tests.conftest import MOCK_AUTH_USER, TEST_TENANT_ID
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -111,7 +109,7 @@ class TestParseCsvNewlines:
 
     def test_unix_lf_risk(self):
         uid = _uid()
-        csv_bytes = f"risk_id,name,category\nR-001,Risk {uid},Fraud".encode("utf-8")
+        csv_bytes = f"risk_id,name,category\nR-001,Risk {uid},Fraud".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 1
         assert risks[0]["name"] == f"Risk {uid}"
@@ -119,9 +117,7 @@ class TestParseCsvNewlines:
     def test_crlf_risk(self):
         uid = _uid()
         csv_bytes = (
-            f"risk_id,name,category\r\nR-001,Risk {uid},Fraud\r\nR-002,Risk2 {uid},Credit".encode(
-                "utf-8"
-            )
+            f"risk_id,name,category\r\nR-001,Risk {uid},Fraud\r\nR-002,Risk2 {uid},Credit".encode()
         )
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 2
@@ -130,9 +126,7 @@ class TestParseCsvNewlines:
         """Bare \\r (old Mac) causes _csv.Error without newline normalisation."""
         uid = _uid()
         csv_bytes = (
-            f"risk_id,name,category\rR-001,Risk {uid},Fraud\rR-002,Risk2 {uid},Credit".encode(
-                "utf-8"
-            )
+            f"risk_id,name,category\rR-001,Risk {uid},Fraud\rR-002,Risk2 {uid},Credit".encode()
         )
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 2
@@ -141,13 +135,13 @@ class TestParseCsvNewlines:
         uid = _uid()
         csv_bytes = (
             f"risk_id,name,category\r\n" f"R-001,Risk {uid},Fraud\n" f"R-002,Risk2 {uid},Credit\r"
-        ).encode("utf-8")
+        ).encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 2
 
     def test_trailing_crlf_blank_row_skipped(self):
         uid = _uid()
-        csv_bytes = f"risk_id,name,category\r\nR-001,Risk {uid},Fraud\r\n".encode("utf-8")
+        csv_bytes = f"risk_id,name,category\r\nR-001,Risk {uid},Fraud\r\n".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 1
 
@@ -157,7 +151,7 @@ class TestParseCsvBom:
         """UTF-8 BOM (0xEF BB BF) must be stripped so first header is 'risk_id' not '\\ufeffrisk_id'."""
         uid = _uid()
         bom = b"\xef\xbb\xbf"
-        csv_bytes = bom + f"risk_id,name,category\nR-001,BOM Risk {uid},Fraud".encode("utf-8")
+        csv_bytes = bom + f"risk_id,name,category\nR-001,BOM Risk {uid},Fraud".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 1
         assert risks[0]["name"] == f"BOM Risk {uid}"
@@ -165,7 +159,7 @@ class TestParseCsvBom:
     def test_utf8_bom_with_crlf(self):
         uid = _uid()
         bom = b"\xef\xbb\xbf"
-        csv_bytes = bom + f"risk_id,name,category\r\nR-001,BOM CRLF {uid},Credit".encode("utf-8")
+        csv_bytes = bom + f"risk_id,name,category\r\nR-001,BOM CRLF {uid},Credit".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 1
 
@@ -174,7 +168,7 @@ class TestParseCsvColumnDetection:
     def test_risk_headers_produce_risks(self):
         uid = _uid()
         # "risk_id" contains "risk" → risk path
-        csv_bytes = f"risk_id,name,category\nR-001,Risk {uid},Fraud".encode("utf-8")
+        csv_bytes = f"risk_id,name,category\nR-001,Risk {uid},Fraud".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 1
         assert len(controls) == 0
@@ -182,7 +176,7 @@ class TestParseCsvColumnDetection:
     def test_control_headers_produce_controls(self):
         uid = _uid()
         # no header contains "risk" → control path
-        csv_bytes = f"control_name,control_type\nCtrl {uid},Preventive".encode("utf-8")
+        csv_bytes = f"control_name,control_type\nCtrl {uid},Preventive".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 0
         assert len(controls) == 1
@@ -195,7 +189,7 @@ class TestParseCsvColumnDetection:
     def test_risk_name_header_detected_as_risk(self):
         uid = _uid()
         # "Risk Name" header → lowercase "risk name" contains "risk"
-        csv_bytes = f"Risk Name,category\nFraud Risk {uid},Fraud".encode("utf-8")
+        csv_bytes = f"Risk Name,category\nFraud Risk {uid},Fraud".encode()
         risks, controls = _parse_csv(csv_bytes)
         assert len(risks) == 1
 
@@ -278,12 +272,12 @@ class TestNormaliseRisksFlat:
         assert risks[0]["name"] == "Fraud Risk"
         assert risks[0]["category"] == "Fraud"
 
-    def test_Name_header(self):
+    def test_name_header(self):
         risks = _normalise_risks([{"Name": "Payment Risk"}])
         assert len(risks) == 1
         assert risks[0]["name"] == "Payment Risk"
 
-    def test_Risk_Name_header(self):
+    def test_risk_name_header(self):
         risks = _normalise_risks([{"Risk Name": "Compliance Risk", "Category": "Compliance"}])
         assert len(risks) == 1
         assert risks[0]["name"] == "Compliance Risk"

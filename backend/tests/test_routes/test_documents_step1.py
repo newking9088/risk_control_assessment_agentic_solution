@@ -5,7 +5,7 @@ Verifies that uploading a real text-containing file stores chunks in document_ch
 
 import io
 import uuid
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

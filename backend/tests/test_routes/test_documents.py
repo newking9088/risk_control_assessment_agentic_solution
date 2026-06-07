@@ -1,8 +1,5 @@
 """Tests for POST /api/v1/upload — file type, magic bytes, size validation."""
 
-import io
-import pytest
-import uuid
 
 
 def _make_assessment(test_client) -> str:

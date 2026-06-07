@@ -1,13 +1,15 @@
 """Tests for session validation, LRU cache, and circuit breaker in app.middleware.auth."""
 
 import time
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-from unittest.mock import patch, AsyncMock, MagicMock
-from starlette.requests import Request
+import pytest
 from starlette.datastructures import Headers
+from starlette.requests import Request
 
 from app.errors import UnauthorizedError
+from app.middleware.auth import get_current_user
 
 
 def _make_request(cookies: dict) -> Request:
@@ -25,8 +27,6 @@ def _make_request(cookies: dict) -> Request:
 
 @pytest.mark.asyncio
 async def test_no_cookies_raises_unauthorized():
-    from app.middleware.auth import get_current_user
-
     request = _make_request({})
     with pytest.raises(UnauthorizedError):
         await get_current_user(request)

@@ -8,8 +8,6 @@ TestInherentRating (2)
 
 from unittest.mock import patch
 
-import pytest
-
 from app.services.inherent_risk import (
     IMPACT_LABELS,
     LIKELIHOOD_LABELS,
