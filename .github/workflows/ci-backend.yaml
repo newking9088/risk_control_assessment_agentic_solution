@@ -41,6 +41,7 @@ jobs:
       BLOB_PROVIDER: local
       LOCAL_BLOB_PATH: ./data/blobs
       OPENAI_API_KEY: sk-test-fake
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -54,8 +55,10 @@ jobs:
 
       - name: Apply DB schema
         run: |
-          psql $DATABASE_URL -f ../db_provisioning/db/init/001_app_schema.sql
-          psql $DATABASE_URL -f ../db_provisioning/db/init/002_auth_schema.sql
+          for f in ../db_provisioning/db/init/0*.sql; do
+            echo "Applying $f..."
+            psql $DATABASE_URL -f "$f"
+          done
 
       - name: Lint — ruff
         run: uv run ruff check .

@@ -19,6 +19,7 @@ env:
   SERVICE: auth
   IMAGE: ghcr.io/${{ github.repository_owner }}/rca-auth
   TARGET_PORT: "3001"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 concurrency:
   group: cicd-auth-${{ github.ref }}
