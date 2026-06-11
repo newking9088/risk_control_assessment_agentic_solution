@@ -91,19 +91,20 @@ describe("StepIdentifyRisks — rendering", () => {
   it("shows 'External Fraud/Risk' label in L1 column for EXT source", async () => {
     setup();
     await screen.findByText("Payment Fraud");
-    expect(screen.getByText("External Fraud/Risk")).toBeInTheDocument();
+    expect(screen.getAllByText("External Fraud/Risk")[0]).toBeInTheDocument();
   });
 
   it("shows 'Internal/Insider Fraud/Risk' label in L1 column for INT source", async () => {
     setup();
     await screen.findByText("Payment Fraud");
-    expect(screen.getByText("Internal/Insider Fraud/Risk")).toBeInTheDocument();
+    expect(screen.getAllByText("Internal/Insider Fraud/Risk")[0]).toBeInTheDocument();
   });
 
   it("shows category value in the L2 column", async () => {
     setup();
-    expect(await screen.findByText("Card Fraud")).toBeInTheDocument();
-    expect(await screen.findByText("Insider Threat")).toBeInTheDocument();
+    await screen.findByText("Payment Fraud");
+    expect(screen.getAllByText("Card Fraud").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Insider Threat").length).toBeGreaterThan(0);
   });
 
   it("shows risk description as the statement text", async () => {

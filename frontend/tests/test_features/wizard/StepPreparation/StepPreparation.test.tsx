@@ -28,9 +28,15 @@ const mockAssessmentEmpty = {
 };
 
 function setup(mockData: object, onValidChange = vi.fn()) {
-  (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-    json: () => Promise.resolve(mockData),
-    ok: true,
+  (api.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+    if (
+      url.includes("/taxonomy") ||
+      url.includes("/documents") ||
+      url.includes("/controls")
+    ) {
+      return Promise.resolve({ json: () => Promise.resolve([]), ok: true });
+    }
+    return Promise.resolve({ json: () => Promise.resolve(mockData), ok: true });
   });
   (api.patch as ReturnType<typeof vi.fn>).mockResolvedValue({
     json: () => Promise.resolve(mockData),
@@ -50,24 +56,24 @@ describe("StepPreparation — structure", () => {
     expect(await screen.findByText(/assessment unit details/i)).toBeInTheDocument();
   });
 
-  it("renders Title label", async () => {
+  it("renders Assessment Unit Name label", async () => {
     setup(mockAssessmentFull);
-    expect(await screen.findByText(/title/i)).toBeInTheDocument();
+    expect(await screen.findByText(/assessment unit name/i)).toBeInTheDocument();
   });
 
-  it("renders Scope label", async () => {
+  it("renders Risk Scope label", async () => {
     setup(mockAssessmentFull);
-    expect(await screen.findByText(/scope/i)).toBeInTheDocument();
+    expect(await screen.findByText(/risk scope/i)).toBeInTheDocument();
   });
 
-  it("renders Owner label", async () => {
+  it("renders Line of Business label", async () => {
     setup(mockAssessmentFull);
-    expect(await screen.findByText(/owner/i)).toBeInTheDocument();
+    expect(await screen.findByText(/line of business/i)).toBeInTheDocument();
   });
 
   it("renders input fields", async () => {
     setup(mockAssessmentFull);
-    await screen.findByText(/title/i);
+    await screen.findByText(/assessment unit details/i);
     const inputs = document.querySelectorAll("input, textarea");
     expect(inputs.length).toBeGreaterThan(0);
   });

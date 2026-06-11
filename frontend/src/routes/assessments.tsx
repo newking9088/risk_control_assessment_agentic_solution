@@ -54,7 +54,7 @@ type FilterTab = "all" | "draft" | "in_progress" | "complete" | "archived" | "sh
 const PAGE_SIZE = 10;
 
 function shortId(id: string) {
-  return `AU-${id.slice(0, 6).toUpperCase()}`;
+  return `AU-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
 }
 
 function calcProgress(a: Assessment): number {
@@ -71,7 +71,7 @@ function fmtDate(d?: string | null): string {
   });
 }
 
-function AssessmentsPage() {
+export function AssessmentsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -218,28 +218,28 @@ function AssessmentsPage() {
         {/* Stats row */}
         <div className={styles.statsRow}>
           <div className={styles.statCard}>
-            <div className={styles.statIconTotal}><ClipboardList size={18} /></div>
+            <div className={styles.statIconTotal} style={{ color: "var(--fra-stat-total)" }}><ClipboardList size={18} /></div>
             <div>
               <div className={styles.statValue}>{active.length}</div>
               <div className={styles.statLabel}>Total Assessments</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIconProgress}><Clock size={18} /></div>
+            <div className={styles.statIconProgress} style={{ color: "var(--fra-stat-progress)" }}><Clock size={18} /></div>
             <div>
               <div className={styles.statValue}>{inProgressCount}</div>
               <div className={styles.statLabel}>In Progress</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIconComplete}><CheckCircle2 size={18} /></div>
+            <div className={styles.statIconComplete} style={{ color: "var(--fra-stat-complete)" }}><CheckCircle2 size={18} /></div>
             <div>
               <div className={styles.statValue}>{completedCount}</div>
               <div className={styles.statLabel}>Completed</div>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIconAlert}><AlertTriangle size={18} /></div>
+            <div className={styles.statIconAlert} style={{ color: "var(--fra-stat-alert)" }}><AlertTriangle size={18} /></div>
             <div>
               <div className={styles.statValue}>{highCriticalCount}</div>
               <div className={styles.statLabel}>High/Critical</div>

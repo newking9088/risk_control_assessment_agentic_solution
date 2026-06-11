@@ -5,10 +5,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 /* ── Mocks ─────────────────────────────────────────────── */
 vi.mock("@tanstack/react-router", () => ({
   createRoute: vi.fn(() => ({ path: "/assessments" })),
+  createRootRouteWithContext: vi.fn(() => () => ({})),
+  Outlet: () => null,
+  redirect: vi.fn(),
   useNavigate: () => vi.fn(),
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
+}));
+
+vi.mock("@/routes/__root", () => ({ Route: {} }));
+
+vi.mock("@/features/wizard/TopNav", () => ({
+  TopNav: () => null,
+}));
+
+vi.mock("@/features/chat/ChatWidget", () => ({
+  ChatWidget: () => null,
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -29,6 +42,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 import { api } from "@/lib/api";
+import { AssessmentsPage } from "@/routes/assessments";
 
 const mockAssessments = [
   {
@@ -70,8 +84,6 @@ function renderDashboard() {
     ok: true,
   });
 
-  /* Import the page component directly (bypassing router route wrapper) */
-  const { AssessmentsPage } = require("../../../routes/assessments.tsx") as { AssessmentsPage: React.FC };
   return render(
     <QueryClientProvider client={qc}>
       <AssessmentsPage />
@@ -85,7 +97,9 @@ describe("Assessments dashboard — stat cards", () => {
 
   it("shows total assessment count", async () => {
     renderDashboard();
-    expect(await screen.findByText("2")).toBeInTheDocument();
+    await screen.findByText("Consumer Credit Card Opening");
+    const statCards = document.querySelectorAll("[class*='statCard']");
+    expect(statCards[0].querySelector("[class*='statValue']")?.textContent).toBe("2");
   });
 });
 

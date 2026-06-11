@@ -8,9 +8,15 @@ import { api } from "@/lib/api";
 import { StepPreparation } from "@/features/wizard/steps/StepPreparation";
 
 function setup(mockData: object, onValidChange = vi.fn()) {
-  (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-    json: () => Promise.resolve(mockData),
-    ok: true,
+  (api.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+    if (
+      url.includes("/taxonomy") ||
+      url.includes("/documents") ||
+      url.includes("/controls")
+    ) {
+      return Promise.resolve({ json: () => Promise.resolve([]), ok: true });
+    }
+    return Promise.resolve({ json: () => Promise.resolve(mockData), ok: true });
   });
   (api.patch as ReturnType<typeof vi.fn>).mockResolvedValue({
     json: () => Promise.resolve(mockData),

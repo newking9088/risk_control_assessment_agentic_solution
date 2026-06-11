@@ -60,10 +60,17 @@
   flex-shrink: 0;
 }
 
-.statIconTotal    { composes: statIcon; background: #eff6ff; color: #2563eb; }
-.statIconProgress { composes: statIcon; background: #fef3c7; color: #92400e; }
-.statIconComplete { composes: statIcon; background: #f0fdf4; color: #16a34a; }
-.statIconAlert    { composes: statIcon; background: #fff1f2; color: #dc2626; }
+:root {
+  --fra-stat-total:    #2563eb;
+  --fra-stat-progress: #92400e;
+  --fra-stat-complete: #16a34a;
+  --fra-stat-alert:    #dc2626;
+}
+
+.statIconTotal    { composes: statIcon; background: #eff6ff; color: var(--fra-stat-total); }
+.statIconProgress { composes: statIcon; background: #fef3c7; color: var(--fra-stat-progress); }
+.statIconComplete { composes: statIcon; background: #f0fdf4; color: var(--fra-stat-complete); }
+.statIconAlert    { composes: statIcon; background: #fff1f2; color: var(--fra-stat-alert); }
 
 .statValue {
   font-size: 1.75rem;
